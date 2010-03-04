@@ -1,0 +1,69 @@
+name:                berp
+version:             0.1
+cabal-version:       >= 1.2
+synopsis:            Berp is a compiler from Python to Haskell. 
+description:         berp-compile provides the compiler, which translates Python code to Haskell code.
+category:            Language
+license:             BSD3
+license-file:        LICENSE
+copyright:           (c) 2009 Bernard James Pope
+author:              Bernard James Pope 
+maintainer:          bjpop@csse.unimelb.edu.au
+homepage:            
+build-type:          Simple
+stability:           experimental
+extra-source-files:  
+
+Executable berp 
+  main-is:         Main.hs
+  hs-source-dirs:  src, src/Berp/Compile/
+  build-depends:   base, monads-tf, transformers, containers, language-python, 
+                   haskell-src-exts, haskell98, berp-base, parseargs, process
+  other-modules:
+      Berp.Compile.Compile
+      Berp.Compile.CompileMonad
+      Berp.Compile.HsSyntaxUtils
+      Berp.Compile.PySyntaxUtils
+      Berp.Compile.PrimName
+      Berp.Compile.Utils
+
+Library
+   include-dirs: src/include 
+   hs-source-dirs:   src
+   build-depends:    base, monads-tf, transformers, containers, ghc-prim, integer, template-haskell, array
+   exposed-modules:
+      Berp.Base
+      Berp.Base.Hash
+      Berp.Base.Mangle
+   other-modules:
+      Berp.Base.Attributes
+      Berp.Base.Builtins
+      Berp.Base.Builtins.Exception
+      Berp.Base.Builtins.PrimFun
+      Berp.Base.Builtins.Print
+      Berp.Base.Class
+      Berp.Base.ControlStack
+      Berp.Base.Env
+      Berp.Base.HashTable
+      Berp.Base.Ident 
+      Berp.Base.Identity
+      Berp.Base.Monad
+      Berp.Base.Object
+      Berp.Base.Operators
+      Berp.Base.Prims
+      Berp.Base.Procedure
+      Berp.Base.SemanticTypes
+      Berp.Base.Start
+      Berp.Base.StdNames
+      Berp.Base.StdTypes.Bool
+      Berp.Base.StdTypes.Dictionary
+      Berp.Base.StdTypes.Function
+      Berp.Base.StdTypes.Integer
+      Berp.Base.StdTypes.List
+      Berp.Base.StdTypes.None
+      Berp.Base.StdTypes.Object
+      Berp.Base.StdTypes.ObjectBase
+      Berp.Base.StdTypes.String
+      Berp.Base.StdTypes.Tuple
+      Berp.Base.StdTypes.Type
+      Berp.Base.Truth

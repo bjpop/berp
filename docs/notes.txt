@@ -1,0 +1,160 @@
+Random thoughts whilst implementing berp.
+
+--------------------------------------------------------------------------------
+
+Interesting point about closure in Python:
+
+   def f(x):
+      def g():
+         if True:
+            return x
+         else:
+            return y 
+      return g()
+   print(f(3)) 
+
+Note in the above program that g() refers to the free variable
+y which is not defined anywhere in the program. Since the if
+branch always is True, it never looks at y, and there is no
+corresponding error in the program. So the potential error
+is delayed until if and when the free variable is needed.
+
+Note: such variables are treated as "globals".
+
+If we switch the sense of the conditional like so, the
+error is raised (of course):
+
+   def f(x):
+      def g():
+         if False:
+            return x
+         else:
+            return y
+      return g()
+   print(f(3))
+
+Note: procedures are closed over their global environment.
+
+--------------------------------------------------------------------------------
+
+The library StringTable.Atom looks like it might be useful for
+implementing string lookups.
+
+--------------------------------------------------------------------------------
+
+Compile for loops by desugaring into while loops.
+
+   for vars in exp:
+      suite1
+   else:
+      suite2
+
+desugar to --->
+
+   fresh_var_1 = exp.__iter__()
+   fresh_var_2 = True
+   while fresh_var_2:
+      try:
+         vars = fresh_var_1.__next__()
+         suite1
+      except StopIteration: 
+         fresh_var_2 = False 
+   else:
+      suite2
+
+Note: the fresh_var_2 variable is used to break the loop instead of using a break statement
+because of the way that Python treats "else" blocks in while loops. The else block
+is only executed if the while loop terminates normally (not via break). (Yes it is
+weird). This transformation should handle break and continue correctly when they appear
+inside suite1
+
+--------------------------------------------------------------------------------
+
+Compiling variables.
+
+Ideally we would compile Python variables into Haskell variables. But Python
+variables can be updated inside loops and closures, whereas Haskell variables
+cannot. The next best thing is to use IORefs. A promising scheme is to 
+compile each Python variable into a Haskell variable bound to an IORef. A read
+from a Python variable becomes a readIORef, likewise writeIORef.
+
+A few problems still remain. Python's scoping rules are slightly different to
+Haskell. 
+
+Nested references to variables can be annotated as "global" and "nonlocal", otherwise
+a nested assignment creates a new local variable. The main issue is that Python
+variable binding sites are potentially ambiguous (there is no separate syntax
+to introduce a new variable - assignment is used, but this is problematic when
+another variable of the same name is already in scope).
+
+Here is an example:
+
+x = 12
+def f():
+   x = 144
+   def g():
+     global x
+     x = 42
+   g()
+f()
+print(x)
+
+This prints 42. If you remove the "global x" then the program prints 12. 
+Note that the "global x" causes the innermost x to refer to the outermost x, thus
+skipping the one in the middle. Haskell's nested scoping does not have an
+equivalent way to skip enclosing scope.
+
+One possible way to avoid this is to rename global variables, in psuedo
+compiled haskell:
+
+global_x = newVariable "x" 
+writeIORef global_x 12
+f = def (\[] -> do
+   x = newVariable "x"
+   writeIORef x 144 
+   g = def (\[] -> do
+     writeIORef global_x 42
+     )
+   g @@ []
+   )
+f @@ []
+print @@ [global_x]
+
+This looks good but has problems with "nonlocal".
+Dictionary lookups on strings.
+-------------------------------
+
+For better performance of dictionary lookups on Strings we
+could provide an interface which accepts a "hashed String":
+
+   type HashedString = (Int, String)
+
+   stringLookup :: HashedString -> HashTable -> IO (Maybe Object)
+   stringLookup (hashValue, str) hashTable = do
+      table <- liftIO $ readIORef hashTable
+      case IntMap.lookup hashValue table of
+         Nothing -> return Nothing
+         Just matches -> return $ linearSearchString str matches
+
+   linearSearchString :: String -> [(Object, Object)] -> Maybe Object
+   linearSearchString _ [] = Nothing
+   linearSearchString str ((key,value):rest)
+      | objectEqualityString str key = Just value
+      | otherwise = linearSearch str rest
+
+   objectEqualityString :: String -> Object -> Bool
+   objectEqualityString str1 (String { object_string = str2 }) = str1 == str2
+   objectEqualityString _ _ = False
+
+Also we can use Template Haskell to generate the Hashed Strings at compile time:
+
+   hASHSTR :: String -> HashedString
+   hASHSTR str = (hashString str, str)
+
+And use it like so:
+
+   stringLookup $(hASHSTR "foo") table
+
+This should ensure that the string "foo" is hashed at compile time, not at runtime.
+
+Might also want to support a string interface for the other hash table operations.

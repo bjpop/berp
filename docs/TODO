@@ -1,0 +1,23 @@
+Done:
+- closures, lambdas
+- Split up Prims code into smaller modules
+
+Todo:
+- classes
+- exceptions
+- iterators, generators, yield, for loops
+- lists
+- dictionaries
+- subscripts
+- slices
+- augmented assignment, assignment to non-variables 
+- modules
+- object identity, hashes (stable names)
+- floats
+- comprehensions
+- tail calls
+- keyword args, varargs
+- delete
+- decorators
+- finalisers
+- doc strings on procedures and classes

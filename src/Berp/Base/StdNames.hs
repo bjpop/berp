@@ -1,0 +1,31 @@
+{-# LANGUAGE TemplateHaskell #-}
+module Berp.Base.StdNames where
+
+import Berp.Base.Hash (hashedStr, Hashed)
+
+addName :: Hashed String
+addName = $(hashedStr "__add__")
+andName :: Hashed String
+andName = $(hashedStr "__and__")
+eqName :: Hashed String
+eqName = $(hashedStr "__eq__")
+getItemName :: Hashed String
+getItemName = $(hashedStr "__getitem__")
+geName :: Hashed String
+geName = $(hashedStr "__ge__")
+gtName :: Hashed String
+gtName = $(hashedStr "__gt__")
+leName :: Hashed String
+leName = $(hashedStr "__le__")
+ltName :: Hashed String
+ltName = $(hashedStr "__lt__")
+mulName :: Hashed String
+mulName = $(hashedStr "__mul__")
+orName :: Hashed String
+orName = $(hashedStr "__or__")
+setItemName :: Hashed String
+setItemName = $(hashedStr "__setitem__")
+strName :: Hashed String
+strName = $(hashedStr "__str__")
+subName :: Hashed String
+subName = $(hashedStr "__sub__")
