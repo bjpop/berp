@@ -18,7 +18,8 @@ Executable berp
   main-is:         Main.hs
   hs-source-dirs:  src, src/Berp/Compile/
   build-depends:   base, monads-tf, transformers, containers, language-python, 
-                   haskell-src-exts, haskell98, berp-base, parseargs, process
+                   haskell-src-exts, haskell98, parseargs, process, filepath,
+                   directory
   other-modules:
       Berp.Compile.Compile
       Berp.Compile.CompileMonad
@@ -39,11 +40,10 @@ Library
       Berp.Base.Attributes
       Berp.Base.Builtins
       Berp.Base.Builtins.Exception
-      Berp.Base.Builtins.PrimFun
       Berp.Base.Builtins.Print
+      Berp.Base.Builtins.Utils
       Berp.Base.Class
       Berp.Base.ControlStack
-      Berp.Base.Env
       Berp.Base.HashTable
       Berp.Base.Ident 
       Berp.Base.Identity
@@ -51,13 +51,13 @@ Library
       Berp.Base.Object
       Berp.Base.Operators
       Berp.Base.Prims
-      Berp.Base.Procedure
       Berp.Base.SemanticTypes
       Berp.Base.Start
       Berp.Base.StdNames
       Berp.Base.StdTypes.Bool
       Berp.Base.StdTypes.Dictionary
       Berp.Base.StdTypes.Function
+      Berp.Base.StdTypes.Generator
       Berp.Base.StdTypes.Integer
       Berp.Base.StdTypes.List
       Berp.Base.StdTypes.None
@@ -67,3 +67,4 @@ Library
       Berp.Base.StdTypes.Tuple
       Berp.Base.StdTypes.Type
       Berp.Base.Truth
+      Berp.Base.Unique
