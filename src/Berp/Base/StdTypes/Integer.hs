@@ -2,13 +2,11 @@
 module Berp.Base.StdTypes.Integer (int, intClass) where
 
 import Control.Monad.Trans (liftIO)
-import Berp.Base.Monad (constant)
-import Berp.Base.Env (VarEnv, methodsFromList)
+import Berp.Base.Monad (constantIO)
 import Berp.Base.Prims (binOp, primitive)
 import Berp.Base.SemanticTypes (Eval, Procedure, Object (..))
 import Berp.Base.StdTypes.String (string)
 import Berp.Base.StdTypes.Bool (bool)
-import Berp.Base.StdTypes.Object (objectClass)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames 
@@ -30,13 +28,13 @@ instance Num Object where
 
 {-# NOINLINE int #-}
 int :: Integer -> Object 
-int i = constant $ do
+int i = constantIO $ do
    identity <- newIdentity
    return $ Integer { object_identity = identity, object_integer = i }
 
 {-# NOINLINE intClass #-}
 intClass :: Object
-intClass = constant $ do
+intClass = constantIO $ do
    identity <- newIdentity
    as <- attributes
    dict <- attributes
@@ -61,6 +59,7 @@ attributes = mkAttributes
    , (geName, ge)
    , (eqName, eq)
    , (strName, str)
+   , (modName, modulus)
    ]
 
 binOpInteger :: (Integer -> Integer -> Integer) -> Object
@@ -92,6 +91,9 @@ ge = binOpBool (>=)
 
 eq :: Object 
 eq = binOpBool (==) 
+
+modulus :: Object
+modulus = binOpInteger mod
 
 str :: Object 
 str = primitive 1 $ \[x] -> return $ string $ show $ object_integer x

@@ -5,26 +5,25 @@ import Data.IORef (writeIORef, newIORef, readIORef)
 import Control.Monad.Trans (liftIO)
 import Data.Map (fromList)
 import Berp.Base.Ident
--- import Berp.Base.Monad (Eval)
-import Berp.Base.SemanticTypes (Eval, Procedure, VarEnv, Object (..), ObjectRef)
+import Berp.Base.SemanticTypes (Eval, Procedure, Object (..), ObjectRef)
 import Berp.Base.Prims ((@@))
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Hash (Hashed, hashedStr)
 import Berp.Base.Attributes (mkAttributes)
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (typeClass)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
-import {-# SOURCE #-} Berp.Base.StdTypes.Dictionary (emptyDict)
+import {-# SOURCE #-} Berp.Base.StdTypes.Dictionary (emptyDictionary)
 import {-# SOURCE #-} Berp.Base.StdTypes.Tuple (tuple)
 
-klass :: Ident -> ObjectRef -> [ObjectRef] -> Eval [(Hashed String, ObjectRef)] -> Eval ()
-klass className ident basesRefs attributesComp = do
+klass :: Ident -> ObjectRef -> [Object] -> Eval [(Hashed String, ObjectRef)] -> Eval ()
+klass className ident bases attributesComp = do
    attributes <- attributesComp 
    attributesObjects <- liftIO $ mapM getIdentObj attributes
    classDict <- liftIO $ mkAttributes attributesObjects
    -- The cycle in the definition is okay despite the object_procedure field
    -- being strict (see the definition of Object). It is okay because the
    -- Procedure type is a function (functions are values in Haskell).
-   bases <- liftIO $ mapM readIORef basesRefs 
+   -- bases <- liftIO $ mapM readIORef basesRefs 
    identity <- liftIO $ newIdentity
    let typeObject = 
           Type 
@@ -40,7 +39,7 @@ klass className ident basesRefs attributesComp = do
    mkProcedure :: Object -> Procedure
    mkProcedure typeObject args = liftIO $ do
       identity <- newIdentity
-      dict <- emptyDict
+      dict <- emptyDictionary
       return $
          Object
          { object_identity = identity

@@ -6,11 +6,9 @@ import Data.IORef (newIORef, readIORef, writeIORef)
 import Data.Array.MArray (newListArray, readArray, getElems, getBounds, writeArray, newArray_)
 import Data.List (intersperse)
 import Berp.Base.Prims (callMethod, primitive)
-import Berp.Base.Monad (constant)
-import Berp.Base.Env (VarEnv, methodsFromList)
+import Berp.Base.Monad (constantIO)
 import Berp.Base.SemanticTypes (Procedure, Object (..), Eval, ObjectRef, ListArray)
 import Berp.Base.StdTypes.String (string)
-import Berp.Base.StdTypes.Object (objectClass)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames
@@ -98,7 +96,7 @@ updateListElement list index value = liftIO $ do
 
 {-# NOINLINE listClass #-}
 listClass :: Object
-listClass = constant $ do 
+listClass = constantIO $ do 
    identity <- newIdentity
    dict <- attributes
    return $
@@ -114,20 +112,20 @@ listClass = constant $ do
 attributes :: IO Object 
 attributes = mkAttributes 
    [ (eqName, eq)
-   , (strName, str)
-   , (getItemName, getItem) 
-   , (addName, add)
-   , (setItemName, setItem)
+   , (strName, primitive 1 str)
+   , (getItemName, primitive 2 getItem) 
+   , (addName, primitive 2 add)
+   , (setItemName, primitive 3 setItem)
    ]
 
 eq :: Object 
 eq = error "== on list not defined"
 
-getItem :: Object
-getItem = primitive 2 $ \[x,y] -> listIndex x y
+getItem :: Procedure 
+getItem (x:y:_) = listIndex x y
 
-str :: Object 
-str = primitive 1 $ \[x] -> do
+str :: Procedure 
+str (x:_) = do
    elements <- liftIO $ do
       array <- readIORef $ object_list_elements x  
       getElems array
@@ -137,8 +135,8 @@ str = primitive 1 $ \[x] -> do
    where
    objectToStr obj = callMethod obj strName []
 
-add :: Object
-add = primitive 2 $ \[x,y] -> listAppend x y 
+add :: Procedure 
+add (x:y:_) = listAppend x y 
 
-setItem :: Object
-setItem = primitive 3 $ \[x,y,z] -> updateListElement x y z
+setItem :: Procedure 
+setItem (x:y:z:_) = updateListElement x y z

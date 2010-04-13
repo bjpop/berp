@@ -1,16 +1,16 @@
 module Berp.Base
-   ( int, none, string, true, false, dumpEnv, def, lambda, (=:), stmt, ifThenElse, return, pass, break
-   , continue, while, whileElse, ifThen, (@@), tuple, global, globalRef, start, read, var, globalVar
-   , (+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), and, or, pure, klass, setattr, list
-   , subs, try, tryElse, tryFinally, tryElseFinally, except, exceptDefault, raise, reRaise, raiseFrom)
+   ( module Builtins, int, none, string, true, false, def, lambda, (=:), stmt, ifThenElse, ret, pass, break
+   , continue, while, whileElse, for, forElse, ifThen, (@@), tuple, start, read, var
+   , (%), (+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), and, or, klass, setattr, list, dictionary
+   , subs, try, tryElse, tryFinally, tryElseFinally, except, exceptDefault, raise, reRaise, raiseFrom
+   , pure, yield, mkGenerator, unaryMinus, unaryPlus, invert)
    where
 
-import Prelude hiding (return, break, (+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), and, or, read)
-import Berp.Base.Prims (pure, (=:), stmt, ifThenElse, return, pass, break, continue, while, whileElse, ifThen, (@@), global, globalRef, read, var, globalVar, setattr, subs, try, tryElse, tryFinally, tryElseFinally, except, exceptDefault, raise, reRaise, raiseFrom)
-import Berp.Base.Builtins (builtins)
-import Berp.Base.Env (dumpEnv)
-import Berp.Base.Procedure (def, lambda)
-import Berp.Base.Operators ((+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), and, or)
+import Berp.Base.Builtins as Builtins
+import Prelude hiding (break, (+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), and, or, read)
+import Control.Applicative (pure)
+import Berp.Base.Prims ((=:), stmt, ifThenElse, ret, pass, break, continue, while, whileElse, for, forElse, ifThen, (@@), read, var, setattr, subs, try, tryElse, tryFinally, tryElseFinally, except, exceptDefault, raise, reRaise, raiseFrom, yield, def, lambda, mkGenerator)
+import Berp.Base.Operators ((%), (+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), and, or, unaryMinus, unaryPlus, invert)
 import Berp.Base.Start (start)
 import Berp.Base.Class (klass)
 import Berp.Base.StdTypes.Integer (int)
@@ -19,3 +19,4 @@ import Berp.Base.StdTypes.Bool (true, false)
 import Berp.Base.StdTypes.String (string)
 import Berp.Base.StdTypes.None (none)
 import Berp.Base.StdTypes.List (list)
+import Berp.Base.StdTypes.Dictionary (dictionary)

@@ -121,8 +121,10 @@ f @@ []
 print @@ [global_x]
 
 This looks good but has problems with "nonlocal".
+
+--------------------------------------------------------------------------------
+
 Dictionary lookups on strings.
--------------------------------
 
 For better performance of dictionary lookups on Strings we
 could provide an interface which accepts a "hashed String":
@@ -158,3 +160,107 @@ And use it like so:
 This should ensure that the string "foo" is hashed at compile time, not at runtime.
 
 Might also want to support a string interface for the other hash table operations.
+
+--------------------------------------------------------------------------------
+
+Implementing generators/yield
+
+data ControlStack =
+   ...
+   GeneratorContinuation
+   { generator_return :: Object -> Eval ()
+   , generator_object :: Object 
+   , control_stack_tail :: ControlStack
+   }
+   ...
+
+data Object =
+   ...
+   Generator
+   { object_continuation :: IORef (Eval ())
+   , object_stack_context :: IORef (ControlStack -> ControlStack)
+   , object_identity :: Identity
+   , object_type :: Object
+   , object_dict :: Dictionary
+   }
+   ...
+
+yield :: Object -> Eval ()
+yield obj = do
+   callCC $ \next -> do
+      (generatorObj, context) <- unwindYieldContext
+      liftIO $ writeIORef (object_continuation generatorObj) next 
+      liftIO $ writeIORef (object_control_context generatorObj) context 
+      generator_return top obj 
+
+-- the next method for generators
+next :: [Object] -> Eval Object
+next (obj:_) = 
+   callCC $ \afterYield -> 
+      case obj of
+         Generator {} -> 
+            result <- do 
+               push $ GeneratorContinuation afterYield obj
+               stackContext <- liftIO $ readIORef $ object_stack_context obj
+               modifyStack stackContext 
+               liftIO $ readIORef $ object_continution obj 
+
+-- used in the compilation of def generators
+funGenerator :: Eval Object -> Eval Object
+funGenertor body = do
+   contRef <- liftIO $ newIORef (body >> return ())
+   stackRef <- liftIO $ newIORef id
+   generator contRef stackRef 
+
+How much stack is saved when a yield occurs?
+
+The Python PEP 0255 is not entirely clear about that:
+
+  "If a yield statement is encountered, the state of the function is
+   frozen, and the value of expression_list is returned to .next()'s
+   caller.  By "frozen" we mean that all local state is retained,
+   including the current bindings of local variables, the instruction
+   pointer, and the internal evaluation stack:  enough information is
+   saved so that the next time .next() is invoked, the function can
+   proceed exactly as if the yield statement were just another external
+   call."
+
+What is the "internal evaluation stack"?
+
+This example demonstrates that we don't save all the stack:
+
+>>> def f():
+...    yield 1
+...    yield 2
+...    1 / 0
+...    yield 3
+... 
+>>> try:
+...    i = f()
+...    print(next(i))
+... except:
+...    print("here")
+... 
+1
+>>> next(i)
+2
+>>> next(i)
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "<stdin>", line 4, in f
+ZeroDivisionError: int division or modulo by zero
+>>> next(i)
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+StopIteration
+>>> next(i)
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+StopIteration
+
+As can be seen, the try/except is not preserved when the generator is called
+subsequently.
+
+Importantly we can also see that an exception raised during the execution
+of a generator causes the generator to end and subsequent next() calls
+result in StopIteration. 

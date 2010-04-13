@@ -1,25 +1,22 @@
 {-# OPTIONS_GHC -XTemplateHaskell #-}
 module Berp.Base.StdTypes.Function (function, functionClass) where
 
-import Berp.Base.Env (methodsFromList, emptyVarEnv)
-import Berp.Base.Monad (constant)
-import Berp.Base.SemanticTypes (Object (..), Procedure, VarEnv)
+import Berp.Base.Monad (constantIO)
+import Berp.Base.SemanticTypes (Object (..), Procedure)
 import Berp.Base.StdTypes.None (none)
-import Berp.Base.Monad (constant)
 import Berp.Base.Identity (newIdentity)
-import Berp.Base.StdTypes.Object (objectClass)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames
-import {-# SOURCE #-} Berp.Base.StdTypes.Dictionary (emptyDict)
+import {-# SOURCE #-} Berp.Base.StdTypes.Dictionary (emptyDictionary)
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (typeClass)
 import {-# SOURCE #-} Berp.Base.StdTypes.ObjectBase (objectBase)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 
 {-# NOINLINE function #-}
 function :: Int -> Procedure -> Object 
-function arity p = constant $ do 
+function arity p = constantIO $ do 
    identity <- newIdentity
-   dict <- emptyDict
+   dict <- emptyDictionary
    return $
       Function 
       { object_identity = identity 
@@ -30,7 +27,7 @@ function arity p = constant $ do
 
 {-# NOINLINE functionClass #-}
 functionClass :: Object
-functionClass = constant $ do 
+functionClass = constantIO $ do 
    as <- attributes
    identity <- newIdentity 
    dict <- attributes
@@ -40,7 +37,7 @@ functionClass = constant $ do
       , object_type = typeClass
       , object_dict = dict 
       , object_bases = objectBase 
-      , object_constructor = error "function type does not provide a constructor" 
+      , object_constructor = \_ -> error "function type does not provide a constructor" 
       , object_type_name = string "function" 
       }
 

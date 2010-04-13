@@ -53,6 +53,34 @@ BaseException
            +-- BytesWarning
 -}
 
-module Berp.Base.Builtins.Exception where
+module Berp.Base.Builtins.Exception 
+   (baseException, exception, stopIteration, typeError, nameError) 
+   where
 
+import Berp.Base.Monad (constantEval)
 import Berp.Base.SemanticTypes (Object (..), Procedure, Eval)
+import Berp.Base.StdTypes.Type (newType)
+import Berp.Base.StdTypes.Object (object)
+import Berp.Base.StdTypes.Tuple (tuple)
+import Berp.Base.StdTypes.Dictionary (dictionary)
+import Berp.Base.StdTypes.String (string)
+
+mkExceptionType :: String -> [Object] -> Eval Object
+mkExceptionType name bases = do
+   dict <- dictionary []
+   newType [string name, tuple bases, dict]
+
+baseException :: Object
+baseException = constantEval $ mkExceptionType "BaseException" [object]
+
+exception :: Object
+exception = constantEval $ mkExceptionType "Exception" [baseException] 
+
+stopIteration :: Object
+stopIteration = constantEval $ mkExceptionType "StopIteration" [exception]
+
+typeError :: Object
+typeError = constantEval $ mkExceptionType "TypeError" [exception]
+
+nameError :: Object
+nameError = constantEval $ mkExceptionType "NameError" [exception]

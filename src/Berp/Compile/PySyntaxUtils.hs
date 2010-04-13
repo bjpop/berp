@@ -104,8 +104,8 @@ instance (DefinedVars t1, DefinedVars t2) => DefinedVars (t1, t2) where
 instance DefinedVars (StatementSpan) where
    definedVars (While { while_body = b, while_else = e })
       = definedVars b `mappend` definedVars e 
-   definedVars (For { for_body = b, for_else = e })
-      = definedVars b `mappend` definedVars e 
+   definedVars (For { for_targets = t, for_body = b, for_else = e })
+      = mempty { assigned = assignTargets t} `mappend` definedVars b `mappend` definedVars e 
    -- Any definedVars made inside a function body are not collected.
    -- The function name _is_ collected.
    definedVars (Fun { fun_name = n })
@@ -141,7 +141,6 @@ isAtomicExpr (Py.Int {}) = True
 isAtomicExpr (Py.Float {}) = True
 isAtomicExpr (Py.Imaginary {}) = True
 isAtomicExpr (Py.Tuple {}) = True
-isAtomicExpr (Py.List {}) = True
 isAtomicExpr (Py.Paren { paren_expr = e }) = isAtomicExpr e
 isAtomicExpr (Py.None {}) = True
 isAtomicExpr other = False
@@ -159,3 +158,4 @@ isPureExpr (Py.List { list_exprs = es }) = all isPureExpr es
 isPureExpr (Py.Lambda {}) = True
 isPureExpr (Py.None {}) = True
 isPureExpr (Py.Paren { paren_expr = e }) = isPureExpr e
+

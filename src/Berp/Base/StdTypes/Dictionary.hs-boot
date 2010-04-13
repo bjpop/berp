@@ -1,7 +1,7 @@
-module Berp.Base.StdTypes.Dictionary (emptyDict, dict, dictClass) where
+module Berp.Base.StdTypes.Dictionary (emptyDictionary, dictionary, dictionaryClass) where
 
 import Berp.Base.SemanticTypes (Object, Eval)
 
-dict :: [(Object, Object)] -> Eval Object
-dictClass :: Object
-emptyDict :: IO Object
+dictionary :: [(Object, Object)] -> Eval Object
+dictionaryClass :: Object
+emptyDictionary :: IO Object

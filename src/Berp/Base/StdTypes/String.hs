@@ -2,13 +2,11 @@
 module Berp.Base.StdTypes.String (string, stringClass, emptyString) where
 
 import Berp.Base.Prims (primitive)
-import Berp.Base.Monad (constant)
-import Berp.Base.Env (VarEnv, methodsFromList)
+import Berp.Base.Monad (constantIO)
 import Berp.Base.Prims (binOp)
 import Berp.Base.SemanticTypes (Eval, Procedure, Object (..))
 import Berp.Base.Identity (newIdentity)
 import {-# SOURCE #-} Berp.Base.StdTypes.Bool (bool)
-import Berp.Base.StdTypes.Object (objectClass)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (typeClass)
@@ -20,7 +18,7 @@ emptyString = string ""
 
 {-# NOINLINE string #-}
 string :: String -> Object
-string str = constant $ do 
+string str = constantIO $ do 
    identity <- newIdentity
    return $ 
       String
@@ -30,7 +28,7 @@ string str = constant $ do
 
 {-# NOINLINE stringClass #-}
 stringClass :: Object
-stringClass = constant $ do
+stringClass = constantIO $ do
    identity <- newIdentity
    dict <- attributes
    return $

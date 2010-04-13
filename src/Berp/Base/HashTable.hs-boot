@@ -7,6 +7,7 @@ module Berp.Base.HashTable
    , fromList
    , stringTableFromList
    , stringLookup
+   , stringInsert
    ) where
 
 import Prelude hiding (lookup)
@@ -21,3 +22,4 @@ lookup :: Object -> HashTable -> Eval (Maybe Object)
 delete :: Object -> HashTable -> Eval ()
 stringTableFromList :: [(Hashed String, Object)] -> IO HashTable
 stringLookup :: Hashed String -> HashTable -> IO (Maybe Object)
+stringInsert :: Hashed String -> Object -> HashTable -> Eval ()

@@ -1,5 +1,5 @@
 module Berp.Base.SemanticTypes 
-   ( Procedure, ControlStack (..), EvalState (..), VarEnv, Object (..), Eval, ObjectRef
+   ( Procedure, ControlStack (..), EvalState (..), Object (..), Eval, ObjectRef
    , HashTable, ListArray, Arity )  where
 
 import Control.Monad.State.Strict (StateT)
@@ -27,19 +27,27 @@ data ControlStack
      , loop_end :: Eval ()
      , control_stack_tail :: ControlStack
      }
+   | GeneratorCall
+     { generator_yield :: Object -> Eval ()
+     , generator_object :: Object
+     , control_stack_tail :: ControlStack
+     } 
 
 instance Show ControlStack where
    show EmptyStack = "EmptyStack"
    show (ProcedureCall {}) = "ProcedureCall"
    show (ExceptionHandler {}) = "ExceptionHandler"
    show (WhileLoop {}) = "WhileLoop"
+   show (GeneratorCall {}) = "GeneratorCall"
 
 -- XXX can/should we make the env a dictionary/hashtable?
-data EvalState = EvalState { global_env :: !VarEnv, control_stack :: !ControlStack }
+-- data EvalState = EvalState { global_env :: !VarEnv, control_stack :: !ControlStack }
+data EvalState = EvalState { control_stack :: !ControlStack }
 
-type Eval a = StateT EvalState (ContT () IO) a
+-- type Eval a = StateT EvalState (ContT () IO) a
+type Eval a = StateT EvalState (ContT Object IO) a
 
-type VarEnv = IORef (Map Ident ObjectRef)
+-- type VarEnv = IORef (Map Ident ObjectRef)
 type ObjectRef = IORef Object
 type Procedure = [Object] -> Eval Object
 -- XXX maybe this should be:
@@ -109,6 +117,11 @@ data Object
      { object_identity :: !Identity
      , object_hashTable :: !HashTable
      }
+   | Generator
+     { object_identity :: !Identity
+     , object_continuation :: !(IORef (Eval ()))
+     , object_stack_context :: !(IORef (ControlStack -> ControlStack))
+     }
    | None 
 
 -- For debugging only
@@ -123,4 +136,4 @@ instance Show Object where
    show obj@(String {}) = show (object_string obj) 
    show (None {}) = "None"
    show (Dictionary {}) = "dictionary"
-   -- show (Primitive {}) = "primitive"
+   show (Generator {}) = "generator"

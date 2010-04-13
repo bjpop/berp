@@ -1,11 +1,8 @@
 module Berp.Base.Start (start) where
 
-import Berp.Base.Builtins (builtins)
 import Berp.Base.Monad (run)
-import Berp.Base.SemanticTypes (Eval)
-import Berp.Base.Env (emptyVarEnv)
+import Berp.Base.SemanticTypes (Eval, Object)
+import Berp.Base.StdTypes.None (none)
 
-start :: Eval () -> IO ()
-start comp = do
-   env <- emptyVarEnv
-   run env (builtins >> comp)
+start :: Eval () -> IO Object 
+start comp = run (comp >> return none)

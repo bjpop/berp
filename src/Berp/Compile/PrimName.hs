@@ -15,8 +15,29 @@ prim :: String -> Exp
 -- prim = qvar berpModuleName . name 
 prim = var . name 
 
+dict :: Exp
+dict = prim "dictionary"
+
+unaryPlus :: Exp
+unaryPlus = prim "unaryPlus"
+
+unaryMinus :: Exp
+unaryMinus = prim "unaryMinus"
+
+invert :: Exp
+invert = prim "invert"
+
+mkGenerator :: Exp
+mkGenerator = prim "mkGenerator"
+
+yield :: Exp
+yield = prim "yield"
+
 for :: Exp
 for = prim "for"
+
+forElse :: Exp
+forElse = prim "forElse"
 
 break :: Exp
 break = prim "break"
@@ -106,7 +127,7 @@ init :: Exp
 init = var initName 
 
 ret :: Exp
-ret = prim "return"
+ret = prim "ret"
 
 ite :: Exp
 ite = prim "ifThenElse"

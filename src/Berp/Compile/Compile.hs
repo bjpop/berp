@@ -65,11 +65,20 @@ instance Compilable StatementSpan where
    type (CompileResult StatementSpan) = [Stmt] 
 
    compile stmt@(Fun {fun_name = fun, fun_args = params, fun_body = body}) = do
+      oldSeenYield <- getSeenYield
+      unSetSeenYield
       bindings <- checkEither $ funBindings params body
       compiledBody <- nestedScope bindings $ compileBlockDo $ Block body
       let args = Hask.PList $ map (identToMangledPatVar . paramIdent) params
-      let lambda = lamE bogusSrcLoc [args] compiledBody
-      returnStmt $ appFun Prim.def [identToMangledVar fun, intE $ fromIntegral $ length params, parens lambda]
+      isGenerator <- getSeenYield 
+      setSeenYield oldSeenYield
+      let lambdaBody = if isGenerator
+                          then app Prim.mkGenerator (parens compiledBody)
+                          else compiledBody
+      let lambda = lamE bogusSrcLoc [args] lambdaBody 
+      let arityExp = intE $ fromIntegral $ length params
+      let doc = docString body
+      returnStmt $ appFun Prim.def [identToMangledVar fun, arityExp, doc, parens lambda]
    compile (Assign { assign_to = target, assign_expr = expr }) = 
       compileAssign (head target) expr
    compile (Conditional { cond_guards = guards, cond_else = elseBranch })
@@ -86,14 +95,24 @@ instance Compilable StatementSpan where
       (stmts, compiledExpr) <- maybe (returnExp Prim.none) compileExprObject maybeExpr
       let newStmt = qualStmt $ app Prim.ret $ parens compiledExpr
       return (stmts ++ [newStmt])
-   {- We could implement a small optimisation to avoid generating code for pure expressions
-      which are used as statements. However this optimisation would not be warranted if
-      we are generating code for an interactive environment.
+   {- 
+      If we are not a the top level then stmt expressions can be elided, since they have no
+      observable effect. The only reason we keep them at the top level is because we could
+      be compiling code for some interactive enironment, where the value of the expression
+      would be printed out. XXX We could add a flag to the compiler to say whether we
+      were compiling code for interactive evaluation or not.
+
+      XXX this should only be true for expressions which are pure.
    -}
    compile (StmtExpr { stmt_expr = expr }) = do
-      (stmts, compiledExpr) <- compileExprComp expr
-      let newStmt = qualStmt $ app Prim.stmt $ parens compiledExpr
-      return (stmts ++ [newStmt])
+      -- topLevel <- isTopLevel
+      topLevel <- return True 
+      if topLevel 
+         then do
+            (stmts, compiledExpr) <- compileExprComp expr
+            let newStmt = qualStmt $ app Prim.stmt $ parens compiledExpr
+            return (stmts ++ [newStmt])
+         else return []
    compile (While { while_cond = cond, while_body = body, while_else = elseSuite }) = do
       condVal <- compileExprBlock cond
       bodyExp <- compileSuiteDo body
@@ -103,17 +122,15 @@ instance Compilable StatementSpan where
             elseExp <- compileSuiteDo elseSuite
             returnStmt $ appFun Prim.whileElse [parens condVal, parens bodyExp, parens elseExp]
    -- XXX fixme, only supports one target
-   compile (For { for_targets = [var@(Py.Var { })], for_generator = generator, for_body = body, for_else = elseSuite }) = do
-      (varStmts, compiledVar) <- compile var 
+   compile (For { for_targets = [var], for_generator = generator, for_body = body, for_else = elseSuite }) = do
       (generatorStmts, compiledGenerator) <- compileExprObject generator
       compiledBody <- compileSuiteDo body
-      compiledElse <- compileSuiteDo elseSuite
-      return (varStmts ++ generatorStmts ++ [qualStmt $ appFun Prim.for [compiledVar, compiledGenerator, parens compiledBody, parens compiledElse]])
-{-
-   compile stmt@(For {}) = do
-      desugared <- desugarFor stmt
-      concat <$> compile desugared 
--}
+      let compiledVar = identToMangledVar var
+      if isEmptySuite elseSuite
+         then return (generatorStmts ++ [qualStmt $ appFun Prim.for [compiledVar, compiledGenerator, parens compiledBody]])
+         else do
+            compiledElse <- compileSuiteDo elseSuite
+            return (generatorStmts ++ [qualStmt $ appFun Prim.forElse [compiledVar, compiledGenerator, parens compiledBody, parens compiledElse]])
    compile (Pass {}) = returnStmt Prim.pass
    compile (NonLocal {}) = return [] 
    compile (Global {}) = return [] 
@@ -125,12 +142,19 @@ instance Compilable StatementSpan where
       (argsStmtss, compiledArgs) <- mapAndUnzipM (compileExprObject . arg_expr) args
       compiledBody <- nestedScope bindings $ compile $ Block body
       let locals = Set.toList $ localVars bindings
-      attributes <- qualStmt <$> app Prim.pure <$> listE <$> mapM compile locals 
+      attributes <- qualStmt <$> app Prim.pure <$> listE <$> mapM compileClassLocal locals 
       let newStmt = qualStmt $ appFun Prim.klass
-                       [ identToMangledVar ident
+                       [ strE $ identString ident
+                       , identToMangledVar ident
                        , listE compiledArgs 
                        , parens $ doBlock $ compiledBody ++ [attributes]]
       return (concat argsStmtss ++ [newStmt])
+      where
+      compileClassLocal :: IdentString -> Compile Hask.Exp
+      compileClassLocal ident = do
+         hashedIdent <- compile ident
+         let mangledIdent = identToMangledVar ident
+         return $ tuple [hashedIdent, mangledIdent] 
    compile (Try { try_body = body, try_excepts = handlers, try_else = elseSuite, try_finally = finally }) = do
       bodyExp <- compileSuiteDo body
       asName <- freshHaskellVar
@@ -156,6 +180,11 @@ instance Compilable StatementSpan where
                  return (stmts1 ++ stmts2 ++ [newStmt])
    compile (Break {}) = returnStmt Prim.break
    compile (Continue {}) = returnStmt Prim.continue
+
+docString :: SuiteSpan -> Exp
+docString (StmtExpr { stmt_expr = Strings { strings_strings = ss }} : _)
+   = parens $ Prim.string $ trimString $ concat ss
+docString other = Prim.none
 
 mkTry :: Exp -> Exp -> [Stmt] -> [Stmt] -> Exp 
 mkTry body handler elseSuite finally = 
@@ -187,14 +216,8 @@ instance Compilable ExprSpan where
       returnExp $ Prim.string $ concat $ map trimString ss 
    compile (Py.Bool { bool_value = b}) = returnExp $ Prim.bool b
    compile (Py.Int { int_value = i}) = returnExp $ intE i
-   compile (Py.Var { var_ident = ident}) = do
-      global <- isGlobalIdent ident
-      if global 
-         then do
-            compiledIdent <- compile ident
-            returnExp $ app Prim.global compiledIdent
-         else 
-            returnExp $ app Prim.read $ identToMangledVar ident
+   compile (Py.Var { var_ident = ident}) =
+      returnExp $ app Prim.read $ identToMangledVar ident
    compile (Py.BinaryOp { operator = op, left_op_arg = leftExp, right_op_arg = rightExp }) 
       | Dot {} <- op, Py.Var { var_ident = method } <- rightExp = do
            (leftStmts, compiledLeft) <- compileExprObject leftExp
@@ -206,6 +229,10 @@ instance Compilable ExprSpan where
            (rightStmts, compiledRight) <- compileExprObject rightExp
            let newExp = infixApp compiledLeft (Prim.opExp op) compiledRight
            return (leftStmts ++ rightStmts, newExp)
+   compile (Py.UnaryOp { operator = op, op_arg = arg }) = do
+      (argStmts, compiledArg) <- compileExprObject arg 
+      let compiledOp = compileUnaryOp op
+      return (argStmts, app compiledOp compiledArg)
    compile (Call { call_fun = fun, call_args = args }) = do
       (funStmts, compiledFun) <- compileExprObject fun
       (argsStmtss, compiledArgs) <- mapAndUnzipM compile args 
@@ -220,18 +247,30 @@ instance Compilable ExprSpan where
       compiledBody <- nestedScope bindings $ compileExprBlock body
       let args = Hask.PList $ map (identToMangledPatVar . paramIdent) params
       let lambda = lamE bogusSrcLoc [args] compiledBody
-      returnExp $ app Prim.lambda $ parens lambda
+      returnExp $ appFun Prim.lambda [intE (fromIntegral $ length params), parens lambda]
    compile (Py.List { list_exprs = elements }) = do
       (stmtss, exprs) <- mapAndUnzipM compileExprObject elements 
       let newExp = app Prim.list $ listE exprs
       return (concat stmtss, newExp)
-
-   compile (Py.Subscript { subscriptee = obj_expr, subscript_expr = sub }) = do
+   compile (Py.Dictionary { dict_mappings = mappings }) = do
+      let compileExprObjectPair (e1, e2) = do
+             (stmts1, compiledE1) <- compileExprObject e1 
+             (stmts2, compiledE2) <- compileExprObject e2 
+             return (stmts1 ++ stmts2, (compiledE1, compiledE2))
+      (stmtss, exprPairs) <- mapAndUnzipM compileExprObjectPair mappings 
+      let newExp = app Prim.dict $ listE $ map (\(x,y) -> tuple [x,y]) exprPairs
+      return (concat stmtss, newExp)
+   compile (Subscript { subscriptee = obj_expr, subscript_expr = sub }) = do
       (stmtss, exprs) <- mapAndUnzipM compileExprObject [obj_expr, sub]
       let newExp = appFun Prim.subscript exprs
       return (concat stmtss, newExp)
-
+   compile (Yield { yield_expr = maybeExpr }) = do
+      (stmts, compiledExpr) <- maybe (returnExp Prim.none) compileExprObject maybeExpr
+      let newExpr = app Prim.yield $ parens compiledExpr
+      setSeenYield True
+      return (stmts, newExpr)
    compile (Py.Paren { paren_expr = e }) = compile e
+   compile (None {}) = returnExp Prim.none
    compile other = unsupported $ "compile: " ++ show other
 
 instance Compilable ArgumentSpan where
@@ -242,6 +281,7 @@ newtype Block = Block [StatementSpan]
 
 instance Compilable Block where
    type (CompileResult Block) = [Hask.Stmt]
+   compile (Block []) = returnStmt Prim.pass
    compile (Block stmts) = do
       scope <- getScope 
       let locals = localVars scope
@@ -275,7 +315,8 @@ compileExprObject exp
 compileHandlers :: Exp -> [HandlerSpan] -> Compile Exp 
 compileHandlers asName handlers = do
    validate handlers 
-   foldrM (compileHandler asName) Prim.pass handlers 
+   -- foldrM (compileHandler asName) Prim.pass handlers 
+   foldrM (compileHandler asName) (parens $ app Prim.raise asName) handlers 
 
 compileHandler :: Exp -> HandlerSpan -> Exp -> Compile Exp
 compileHandler asName handler@(Handler { handler_clause = clause, handler_suite = body }) nextHandler = do
@@ -309,79 +350,15 @@ compileAssign (Py.BinaryOp { operator = Dot {}
    let newStmt = qualStmt $ appFun Prim.setAttr [compiledLhs, compiledAttribute, compiledRhs]
    return (stmtsLhs ++ stmtsRhs ++ [newStmt])
 compileAssign (Py.Var { var_ident = ident}) expr = do
-   global <- isGlobalIdent ident 
    (exprStmts, compiledExp) <- compileExprObject expr
-   if global 
-      then do
-         compiledIdent <- compile ident
-         (binderStmts, binderExp) <- stmtBinder $ app Prim.globalRef compiledIdent 
-         let newStmt = qualStmt $ infixApp binderExp Prim.assignOp compiledExp
-         return (exprStmts ++ binderStmts ++ [newStmt])
-      else do
-         let newStmt = qualStmt $ infixApp (identToMangledVar ident) Prim.assignOp compiledExp
-         return (exprStmts ++ [newStmt])
-{-
-Compile for loops by desugaring into while loops.
+   let newStmt = qualStmt $ infixApp (identToMangledVar ident) Prim.assignOp compiledExp
+   return (exprStmts ++ [newStmt])
 
-   for vars in exp:
-      suite1
-   else:
-      suite2
-
-desugars to --->
-
-   fresh_var_1 = exp.__iter__()
-   fresh_var_2 = True
-   while fresh_var_2:
-      try:
-         vars = fresh_var_1.__next__()
-         suite1
-      except StopIteration:
-         fresh_var_2 = False
-   else:
-      suite2
-
-Note: the fresh_var_2 variable is used to break the loop instead of using a break statement
-because of the way that Python treats "else" blocks in while loops. The else block
-is only executed if the while loop terminates normally (not via break). (Yes it is
-weird). This transformation should handle break and continue correctly when they appear
-inside suite1
--}
-
-desugarFor :: StatementSpan -> Compile [StatementSpan]
-desugarFor (For { for_targets = targets, for_generator = generator, for_body = suite1, for_else = suite2}) = do
-
-   freshVar1 <- freshPythonVar
-   freshVar2 <- freshPythonVar
-
-   let annot = annot
-       freshVar1Exp = Py.Var { var_ident = freshVar1, expr_annot = annot }
-       dotOperator = Dot { op_annot = annot }
-       iter = Py.Var { var_ident = Py.Ident { ident_string = "__iter__", ident_annot = annot }, expr_annot = annot }
-       expDotIter = BinaryOp { operator = dotOperator, left_op_arg = generator,  
-                               right_op_arg = iter, expr_annot = annot } 
-       expDotIterCall = Call { call_fun = expDotIter, call_args = [], expr_annot = annot }
-       freshVar1Assign = Assign { assign_to = [freshVar1Exp], assign_expr = expDotIterCall, stmt_annot = annot }
-   
-       freshVar2Exp = Py.Var { var_ident = freshVar2, expr_annot = annot }
-       true = Py.Var { var_ident = Py.Ident { ident_string = "True", ident_annot = annot }, expr_annot = annot }
-       false = Py.Var { var_ident = Py.Ident { ident_string = "False", ident_annot = annot }, expr_annot = annot }
-       freshVar2AssignTrue = Assign { assign_to = [freshVar2Exp], assign_expr = true, stmt_annot = annot }
-
-       next = Py.Var { var_ident = Py.Ident { ident_string = "__next__", ident_annot = annot }, expr_annot = annot }
-       freshVar1DotNext = BinaryOp { operator = dotOperator, left_op_arg = freshVar1Exp,  
-                                     right_op_arg = next, expr_annot = annot }
-       freshVar1DotNextCall = Call { call_fun = freshVar1DotNext, call_args = [], expr_annot = annot }
-       freshVar2AssignFalse = Assign { assign_to = [freshVar2Exp], assign_expr = false, stmt_annot = annot }
-       stopIteration = Py.Var { var_ident = Py.Ident { ident_string = "StopIteration", ident_annot = annot }, expr_annot = annot }
-       targetsAssign = Assign { assign_to = targets, assign_expr = freshVar1DotNextCall, stmt_annot = annot }
-       stopIterationClause = ExceptClause { except_clause = Just (stopIteration, Nothing), except_clause_annot = annot }
-       stopIterationHandler = Handler { handler_clause = stopIterationClause, handler_suite = [freshVar2AssignFalse], handler_annot = annot } 
-
-       tryBlock = Try { try_body = targetsAssign:suite1, try_excepts = [stopIterationHandler], try_else = [], try_finally = [], stmt_annot = annot }
-
-       whileLoop = While { while_cond = freshVar2Exp, while_body = [tryBlock], while_else = suite2, stmt_annot = annot } 
-   return [freshVar1Assign, freshVar2AssignTrue, whileLoop]
+compileUnaryOp :: Py.OpSpan -> Hask.Exp
+compileUnaryOp (Plus {}) = Prim.unaryPlus
+compileUnaryOp (Minus {}) = Prim.unaryMinus
+compileUnaryOp (Invert {}) = Prim.invert
+compileUnaryOp other = error $ "Syntax Error: not a valid unary operator: " ++ show other
 
 stmtBinder :: Exp -> Compile ([Stmt], Exp)
 stmtBinder exp = do
@@ -398,6 +375,7 @@ compileBlockDo :: Block -> Compile Hask.Exp
 compileBlockDo block = doBlock <$> compile block 
 
 compileSuiteDo :: SuiteSpan -> Compile Exp
+compileSuiteDo [] = return Prim.pass
 compileSuiteDo stmts = do
    compiledStmtss <- compile stmts
    return $ doBlock $ concat compiledStmtss 
@@ -420,16 +398,22 @@ returnExp e = return ([], e)
 
 declareVar :: ToIdentString a => a -> Compile Hask.Stmt
 declareVar ident = do
+   let mangledPatVar = identToMangledPatVar ident
+   compiledIdent <- compile $ toIdentString ident
+   return $ genStmt bogusSrcLoc mangledPatVar (app Prim.variable compiledIdent)
+{-
    topLevel <- isTopLevel 
    let declaration = if topLevel then Prim.globalVariable else Prim.variable
        mangledPatVar = identToMangledPatVar ident
    compiledIdent <- compile $ toIdentString ident
    return $ genStmt bogusSrcLoc mangledPatVar (app declaration compiledIdent)
+-}
 
 compileGuard :: Hask.Exp -> (ExprSpan, SuiteSpan) -> Compile Hask.Exp
 compileGuard elseExp (guard, body) = 
    conditional <$> compileExprBlock guard <*> compileSuiteDo body <*> pure elseExp
 
+{-
 isGlobalIdent :: Py.IdentSpan -> Compile Bool
 isGlobalIdent ident = do
    scope <- getScope
@@ -446,6 +430,7 @@ isGlobalIdent ident = do
          -- XXX this might not strictly be necessary if the ident is not in the enclosings
          else identStr `Set.member` globals ||
               all (identStr `Set.notMember`) [locals, enclosings, params]
+-}
 
 imports :: [ImportDecl]
 imports = [importBerp, importPrelude]

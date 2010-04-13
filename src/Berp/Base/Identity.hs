@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -XTypeSynonymInstances #-}
 module Berp.Base.Identity (Identity, newIdentity) where
 
-import Data.Unique
+import Berp.Base.Unique
 import Berp.Base.Hash (Hash (..))
 
 type Identity = Unique

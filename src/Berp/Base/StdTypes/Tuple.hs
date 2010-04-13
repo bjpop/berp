@@ -2,12 +2,10 @@
 module Berp.Base.StdTypes.Tuple (tuple, tupleClass, emptyTuple) where
 
 import Data.List (intersperse)
-import Berp.Base.Monad (constant)
-import Berp.Base.Env (VarEnv, methodsFromList)
+import Berp.Base.Monad (constantIO)
 import Berp.Base.SemanticTypes (Procedure, Object (..))
 import Berp.Base.Prims (callMethod, primitive)
 import Berp.Base.StdTypes.String (string)
-import Berp.Base.StdTypes.Object (objectClass)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.Hash (hashedStr)
@@ -22,7 +20,7 @@ emptyTuple = tuple []
 
 {-# NOINLINE tuple #-}
 tuple :: [Object] -> Object
-tuple elements = constant $ do 
+tuple elements = constantIO $ do 
    identity <- newIdentity
    return $ 
       Tuple
@@ -33,7 +31,7 @@ tuple elements = constant $ do
 
 {-# NOINLINE tupleClass #-}
 tupleClass :: Object
-tupleClass = constant $ do 
+tupleClass = constantIO $ do 
    identity <- newIdentity
    dict <- attributes
    return $
@@ -59,6 +57,8 @@ str :: Object
 str = primitive 1 $ \[x] -> do
    objStrs <- mapM objectToStr $ object_tuple x
    let strings = map object_string objStrs
-   Prelude.return $ string $ "(" ++ concat (intersperse ", " strings) ++ ")"
+   case strings of
+      [oneString] -> return $ string $ "(" ++ oneString ++ ",)"
+      _other -> return $ string $ "(" ++ concat (intersperse ", " strings) ++ ")"
    where
    objectToStr obj = callMethod obj strName [] 

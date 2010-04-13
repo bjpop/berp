@@ -19,6 +19,8 @@ leName :: Hashed String
 leName = $(hashedStr "__le__")
 ltName :: Hashed String
 ltName = $(hashedStr "__lt__")
+cmpName :: Hashed String 
+cmpName = $(hashedStr "__cmp__")
 mulName :: Hashed String
 mulName = $(hashedStr "__mul__")
 orName :: Hashed String
@@ -29,3 +31,11 @@ strName :: Hashed String
 strName = $(hashedStr "__str__")
 subName :: Hashed String
 subName = $(hashedStr "__sub__")
+iterName :: Hashed String
+iterName = $(hashedStr "__iter__")
+nextName :: Hashed String
+nextName = $(hashedStr "__next__")
+modName :: Hashed String
+modName = $(hashedStr "__mod__")
+docName :: Hashed String
+docName = $(hashedStr "__doc__")

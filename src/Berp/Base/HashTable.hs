@@ -8,6 +8,8 @@ module Berp.Base.HashTable
    , fromList
    , stringTableFromList
    , stringLookup 
+   , stringInsert
+   , mappings
    ) where
 
 import Prelude hiding (lookup)
@@ -18,12 +20,17 @@ import Control.Applicative ((<$>))
 import Control.Monad (zipWithM, foldM)
 import Control.Monad.Trans (liftIO)
 import Berp.Base.SemanticTypes (Object (..), Eval, HashTable)
-import Berp.Base.Object (hasAttribute)
+import Berp.Base.Object (hasAttribute, objectEquality)
 import Berp.Base.Prims (callMethod)
 import Berp.Base.Identity (Identity)
 import Berp.Base.Truth (truth)
 import Berp.Base.Hash (hash, Hashed, hashedStr)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
+
+mappings :: HashTable -> Eval [(Object, Object)]
+mappings hashTable = do
+   map <- liftIO $ readIORef hashTable
+   return $ concat $ IntMap.elems map 
 
 hashObject :: Object -> Eval Int
 hashObject obj@(String {}) = return $ hash $ object_string obj
@@ -80,6 +87,16 @@ objectEqualityString _ _ = False
 -- XXX Potential space leak by not deleteing old versions of key in the table.
 -- maybe we can delete based on the identity of the object? That would not avoid
 -- the leak in all cases, but it might work in common cases.
+stringInsert :: Hashed String -> Object -> HashTable -> Eval ()
+stringInsert (hashValue, s) value hashTable = do
+   table <- liftIO $ readIORef hashTable
+   -- hashValue <- hashObject key 
+   let newTable = IntMap.insertWith (++) hashValue [(string s, value)] table
+   liftIO $ writeIORef hashTable newTable 
+
+-- XXX Potential space leak by not deleteing old versions of key in the table.
+-- maybe we can delete based on the identity of the object? That would not avoid
+-- the leak in all cases, but it might work in common cases.
 insert :: Object -> Object -> HashTable -> Eval ()
 insert key value hashTable = do
    table <- liftIO $ readIORef hashTable
@@ -121,40 +138,6 @@ delete key hashTable = do
          newMatches <- linearFilter key matches
          let newTable = IntMap.adjust (const newMatches) hashValue table
          liftIO $ writeIORef hashTable newTable
-
--- | Check if two objects are equal. For some objects we might have
---   to call the __eq__ (or __cmp__) method on the objects. This means
---   the result must be in the Eval monad.
-objectEquality :: Object -> Object -> Eval Bool
-objectEquality obj1@(Integer {}) obj2@(Integer {})
-   = return (object_integer obj1 == object_integer obj2)
-objectEquality obj1@(Bool {}) obj2@(Bool {})
-   = return (object_bool obj1 == object_bool obj2)
-objectEquality obj1@(Tuple {}) obj2@(Tuple {})
-   | object_identity obj1 == object_identity obj2 = return True
-   | object_length obj1 == object_length obj2 = 
-        and <$> zipWithM objectEquality (object_tuple obj1) (object_tuple obj2)
-   | otherwise = return False
-objectEquality obj1@(String {}) obj2@(String {})
-   = return (object_string obj1 == object_string obj2)
-objectEquality None None = return True
-objectEquality obj1 obj2 = do
-   canEq <- liftIO $ hasAttribute obj1 eqName 
-   if canEq 
-      then truth <$> callMethod obj1 eqName [obj2] 
-      else do
-         canCmp <- liftIO $ hasAttribute obj1 cmpName 
-         if canCmp
-            then do 
-               cmpResult <- callMethod obj1 cmpName [obj2]
-               case cmpResult of
-                  Integer {} -> return $ object_integer cmpResult == 0
-                  other -> fail $ "__cmp__ method on object does not return an integer: " ++ show obj1 
-            else return False -- XXX should this raise an exception?
-
-eqName, cmpName :: Hashed String
-eqName = $(hashedStr "__eq__")
-cmpName = $(hashedStr "__cmp__")
 
 {-
 isHashable :: Object -> IO Bool

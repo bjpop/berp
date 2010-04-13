@@ -3,12 +3,10 @@ module Berp.Base.StdTypes.Bool (bool, true, false, boolClass) where
 
 import Prelude hiding (and, or)
 import Control.Applicative ((<$>))
-import Berp.Base.Monad (constant)
-import Berp.Base.Env (VarEnv, methodsFromList)
+import Berp.Base.Monad (constantIO)
 import Berp.Base.Prims (binOp, primitive)
 import Berp.Base.SemanticTypes (Eval, Procedure, Object (..))
 import Berp.Base.StdTypes.String (string)
-import Berp.Base.StdTypes.Object (objectClass)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames
@@ -25,17 +23,17 @@ bool False = false
 {-# NOINLINE false #-}
 true, false :: Object
 true =
-   constant $ do
+   constantIO $ do
       identity <- newIdentity
       return $ Bool { object_identity = identity, object_bool = True }
 false =
-   constant $ do
+   constantIO $ do
       identity <- newIdentity
       return $ Bool { object_identity = identity, object_bool = False }
 
 {-# NOINLINE boolClass #-}
 boolClass :: Object
-boolClass = constant $ do
+boolClass = constantIO $ do
    identity <- newIdentity
    dict <- attributes
    return $

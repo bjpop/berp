@@ -1,10 +1,29 @@
-module Berp.Base.Builtins (builtins) where
+module Berp.Base.Builtins 
+   ( _s_print, _s_object, _s_BaseException, _s_Exception
+   , _s_StopIteration, _s_TypeError, _s_NameError ) 
+   where
 
-import Prelude hiding (print)
-import Berp.Base.SemanticTypes (Eval)
-import Berp.Base.Builtins.Print (print)
+import Berp.Base.SemanticTypes (ObjectRef)
+import Berp.Base.Builtins.Print (_s_print)
+import Berp.Base.Builtins.Utils (primConstant)
+import Berp.Base.Builtins.Exception 
+   (baseException, exception, stopIteration, typeError, nameError)
+import Berp.Base.StdTypes.Object (object)
 
-builtins :: Eval ()
-builtins = do
-   -- put built in things (functions, classes) here
-   print
+_s_object :: ObjectRef
+_s_object = primConstant object
+
+_s_BaseException :: ObjectRef
+_s_BaseException = primConstant baseException
+
+_s_Exception :: ObjectRef
+_s_Exception = primConstant exception
+
+_s_StopIteration :: ObjectRef
+_s_StopIteration = primConstant stopIteration 
+
+_s_TypeError :: ObjectRef
+_s_TypeError = primConstant typeError 
+
+_s_NameError :: ObjectRef
+_s_NameError = primConstant nameError 

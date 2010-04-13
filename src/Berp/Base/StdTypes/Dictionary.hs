@@ -1,15 +1,14 @@
 {-# OPTIONS_GHC -XTemplateHaskell #-}
-module Berp.Base.StdTypes.Dictionary (emptyDict, dict, dictClass) where
+module Berp.Base.StdTypes.Dictionary (emptyDictionary, dictionary, dictionaryClass) where
 
+import Data.List (intersperse)
 import Control.Monad.Trans (liftIO)
-import Berp.Base.Prims (primitive)
-import Berp.Base.Monad (constant)
-import Berp.Base.Env (VarEnv, methodsFromList)
+import Berp.Base.Prims (primitive, callMethod)
+import Berp.Base.Monad (constantIO)
 import Berp.Base.SemanticTypes (Procedure, Object (..), Eval)
 import Berp.Base.StdTypes.String (string)
-import Berp.Base.StdTypes.Object (objectClass)
 import Berp.Base.Identity (newIdentity)
-import Berp.Base.HashTable as Hash (fromList, empty)
+import Berp.Base.HashTable as Hash (fromList, empty, mappings, lookup)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (typeClass)
@@ -17,8 +16,8 @@ import {-# SOURCE #-} Berp.Base.StdTypes.ObjectBase (objectBase)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 -- import {-# SOURCE #-} Berp.Base.StdTypes.Primitive (primitive)
 
-emptyDict :: IO Object
-emptyDict = do 
+emptyDictionary :: IO Object
+emptyDictionary = do 
    identity <- newIdentity
    hashTable <- Hash.empty 
    return $ 
@@ -27,8 +26,8 @@ emptyDict = do
       , object_hashTable = hashTable 
       }
 
-dict :: [(Object, Object)] -> Eval Object
-dict elements = do 
+dictionary :: [(Object, Object)] -> Eval Object
+dictionary elements = do 
    identity <- liftIO $ newIdentity
    hashTable <- fromList elements
    return $ 
@@ -37,9 +36,9 @@ dict elements = do
       , object_hashTable = hashTable 
       }
 
-{-# NOINLINE dictClass #-}
-dictClass :: Object
-dictClass = constant $ do 
+{-# NOINLINE dictionaryClass #-}
+dictionaryClass :: Object
+dictionaryClass = constantIO $ do 
    identity <- newIdentity
    dict <- attributes
    return $
@@ -48,7 +47,7 @@ dictClass = constant $ do
       , object_type = typeClass
       , object_dict = dict 
       , object_bases = objectBase
-      , object_constructor = \_ -> liftIO emptyDict  
+      , object_constructor = \_ -> liftIO emptyDictionary
       , object_type_name = string "dict"
       }
 
@@ -56,10 +55,29 @@ attributes :: IO Object
 attributes = mkAttributes 
    [ (eqName, primitive 2 eq)
    , (strName, primitive 1 str)
+   , (getItemName, primitive 2 getItem)
    ]
 
 eq :: Procedure 
 eq = error "== on dict not defined"
 
 str :: Procedure 
-str = error "str on dict not defined" 
+str (obj:_) = do
+   ms <- mappings $ object_hashTable obj
+   strs <- mapM dictEntryString ms
+   return $ string ("{" ++ concat (intersperse ", " strs) ++ "}")
+   where
+   dictEntryString :: (Object, Object) -> Eval String
+   dictEntryString (obj1, obj2) = do
+      objStr1 <- objectToStr obj1
+      objStr2 <- objectToStr obj2
+      return (object_string objStr1 ++ ": " ++ object_string objStr2)
+   objectToStr obj = callMethod obj strName []
+
+getItem :: Procedure
+getItem (obj:index:_) = do
+   let ht = object_hashTable obj
+   maybeVal <- Hash.lookup index ht
+   case maybeVal of 
+      Nothing -> error "dict lookup failed" 
+      Just val -> return val  

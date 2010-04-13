@@ -11,7 +11,7 @@ import Control.Applicative hiding (empty)
 import Berp.Compile.VarSet (VarSet)
 import Berp.Compile.IdentString (IdentString (..))
 
-data State = State { unique :: !Integer }
+data State = State { unique :: !Integer, seen_yield :: !Bool }
 
 data Scope 
    = Scope 
@@ -37,25 +37,23 @@ emptyScope
 getScope :: Compile Scope
 getScope = ask 
 
-{-
-updateScope :: (Scope -> Scope) -> Compile ()
-updateScope f = modify (\state -> state { scope = f (scope state) })
--}
-
 initState :: State
-initState = State { unique = 0 } 
+initState = State { unique = 0, seen_yield = False } 
 
 type NestingLevel = Int
--- type Compile a = RWST Scope [Stmt] State IO a
 type Compile a = RWST Scope () State IO a
 
 runCompileMonad :: Compile a -> IO a
 runCompileMonad comp = fst <$> evalRWST comp emptyScope initState 
 
-{-
-nestingLevel :: Compile Int
-nestingLevel = ask
--}
+getSeenYield :: Compile Bool
+getSeenYield = gets seen_yield
+
+unSetSeenYield :: Compile ()
+unSetSeenYield = setSeenYield False 
+
+setSeenYield :: Bool -> Compile ()
+setSeenYield b = modify $ \state -> state { seen_yield = b }
 
 isTopLevel :: Compile Bool
 isTopLevel = asks ((== 1) . nestingLevel)
