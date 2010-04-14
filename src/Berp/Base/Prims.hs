@@ -169,7 +169,9 @@ whileElse cond loopBlock elseBlock = do
       loop
 
 stmt :: Eval Object -> Eval ()
-stmt comp = comp >> pass 
+-- stmt comp = comp >> pass 
+-- Extra strictness needed here to ensure the value of the comp is demanded (in case exceptions are raised etc).
+stmt comp = comp >>= (\obj -> seq obj pass)
 
 -- XXX could this be turned into a type class?
 binOp :: Object -> Object -> (Object -> t) -> (t -> t -> r) -> (r -> Eval Object) -> Eval Object

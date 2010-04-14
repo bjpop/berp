@@ -4,10 +4,11 @@ module Berp.Base.Operators
    , unaryMinus, unaryPlus, invert) 
    where
 
-import Berp.Base.Prims ((@@), callMethod)
+import Berp.Base.Prims ((@@), callMethod, raise)
 import Prelude hiding ((+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), or, and)
 import qualified Prelude ((==),(<),(>=),(/),(*),(+),(-),(<=),(>))
 import Control.Monad.Trans (liftIO)
+import Berp.Base.Builtins.Exception (exception)
 import Berp.Base.Ident (Ident)
 import Berp.Base.Object (lookupAttribute)
 import Berp.Base.SemanticTypes (Object (..), Eval)
@@ -15,6 +16,7 @@ import Berp.Base.Mangle (mangle)
 import Berp.Base.Hash (Hashed, hashedStr)
 import Berp.Base.StdTypes.Integer (int)
 import Berp.Base.StdTypes.Bool (bool)
+import Berp.Base.StdTypes.None (none)
 
 infixl 9  .
 infixl 7 *, /, %
@@ -47,8 +49,9 @@ binop str arg1 arg2 = callMethod arg1 str [arg2]
    return $ int (object_integer obj1 Prelude.* object_integer obj2)
 (*) x y = binop $(hashedStr "__mul__") x y
 
-(/) obj1@(Integer {}) obj2@(Integer {}) = 
-   return $ int (object_integer obj1 `Prelude.div` object_integer obj2)
+(/) obj1@(Integer { object_integer = int1 }) obj2@(Integer { object_integer = int2 })
+   | int2 Prelude.== 0 = raise exception >> return none
+   | otherwise = return $ int (int1 `Prelude.div` int2)
 (/) x y = binop $(hashedStr "__div__") x y
 
 (<=) obj1@(Integer {}) obj2@(Integer {}) = 
