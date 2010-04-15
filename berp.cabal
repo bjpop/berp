@@ -44,6 +44,7 @@ Library
       Berp.Base.Builtins.Utils
       Berp.Base.Class
       Berp.Base.ControlStack
+      Berp.Base.ExitCodes
       Berp.Base.HashTable
       Berp.Base.Ident 
       Berp.Base.Identity

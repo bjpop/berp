@@ -12,8 +12,9 @@ module Berp.Base.Prims
    , read, var, binOp, setattr, callMethod, subs
    , try, tryElse, tryFinally, tryElseFinally, except, exceptDefault
    , raise, reRaise, raiseFrom, primitive, generator, yield, generatorNext
-   , def, lambda, mkGenerator) where
+   , def, lambda, mkGenerator, printObject) where
 
+import System.Exit (exitWith)
 import Prelude hiding (break, read)
 import Control.Monad.State (gets)
 import Control.Monad.Cont (callCC)
@@ -21,6 +22,7 @@ import Control.Monad (join)
 import Control.Monad.Trans (liftIO)
 import Data.IORef  
 import Data.Maybe (maybe)
+import Berp.Base.ExitCodes (uncaughtExceptionError)
 import Berp.Base.Ident (Ident)
 import Berp.Base.SemanticTypes (Object (..), ObjectRef, Procedure, Eval, EvalState(..), ControlStack(..), Arity)
 import Berp.Base.Truth (truth)
@@ -28,7 +30,7 @@ import {-# SOURCE #-} Berp.Base.Object (typeOf, dictOf, lookupAttribute, objectE
 import Berp.Base.Hash (Hashed, hashedStr)
 import Berp.Base.Mangle (deMangle)
 import Berp.Base.ControlStack
-import Berp.Base.StdNames (docName) 
+import Berp.Base.StdNames (docName, strName) 
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 import {-# SOURCE #-} Berp.Base.StdTypes.Function (function)
 import {-# SOURCE #-} Berp.Base.HashTable as Hash (stringInsert, insert)
@@ -299,7 +301,9 @@ raise obj = do
    handleFrame exceptionObj stack
    where
    handleFrame :: Object -> ControlStack -> Eval ()
-   handleFrame exceptionObj EmptyStack = error ("uncaught exception: " ++ show exceptionObj)
+   handleFrame exceptionObj EmptyStack = do
+     printObject exceptionObj 
+     liftIO $ exitWith uncaughtExceptionError
    handleFrame exceptionObj (ExceptionHandler { exception_handler = handler, exception_finally = finally }) = do
       -- BELCH_EVAL("ExceptionHandler frame")
       case handler of
@@ -391,3 +395,10 @@ mkGenerator :: Eval () -> Eval ()
 mkGenerator cont = do
    generatorObj <- generator cont
    ret generatorObj
+
+printObject :: Object -> Eval ()
+printObject (String { object_string = str }) = liftIO $ putStr str
+printObject obj = do
+   -- liftIO $ putStrLn $ "Calling printObject on: " ++ show obj
+   strObj <- callMethod obj strName []
+   liftIO $ putStr $ object_string strObj

@@ -1,5 +1,5 @@
--- {-# OPTIONS_GHC -cpp -DDEBUG #-} 
-{-# OPTIONS_GHC -cpp #-}
+{-# OPTIONS_GHC -cpp -DDEBUG #-} 
+-- {-# OPTIONS_GHC -cpp #-}
 -- uncomment one of the two above lines to turn debugging on/off for this module
 #include "BerpDebug.h"
 
@@ -141,6 +141,7 @@ lookupAttributeMaybe object ident = do
       loopOverBases baseObjects
       where
       loopOverBases :: [Object] -> IO (Maybe Object)
+      -- XXX from here we need to search the bases of the bases and so on...
       loopOverBases [] = do
          BELCH_IO("Ident was not found in the bases of the type of the object")
          return Nothing
