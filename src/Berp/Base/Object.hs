@@ -1,5 +1,5 @@
-{-# OPTIONS_GHC -cpp -DDEBUG #-} 
--- {-# OPTIONS_GHC -cpp #-}
+-- {-# OPTIONS_GHC -cpp -DDEBUG #-} 
+{-# OPTIONS_GHC -cpp #-}
 -- uncomment one of the two above lines to turn debugging on/off for this module
 #include "BerpDebug.h"
 

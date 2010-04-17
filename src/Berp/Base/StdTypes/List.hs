@@ -5,7 +5,8 @@ import Control.Monad.Trans (liftIO)
 import Data.IORef (newIORef, readIORef, writeIORef)
 import Data.Array.MArray (newListArray, readArray, getElems, getBounds, writeArray, newArray_)
 import Data.List (intersperse)
-import Berp.Base.Prims (callMethod, primitive)
+-- import Data.Foldable (traverse_)
+import Berp.Base.Prims (callMethod, primitive, yield)
 import Berp.Base.Monad (constantIO)
 import Berp.Base.SemanticTypes (Procedure, Object (..), Eval, ObjectRef, ListArray)
 import Berp.Base.StdTypes.String (string)
@@ -15,6 +16,7 @@ import Berp.Base.StdNames
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (typeClass)
 import {-# SOURCE #-} Berp.Base.StdTypes.ObjectBase (objectBase)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
+import {-# SOURCE #-} Berp.Base.StdTypes.Generator (generator)
 
 list :: [Object] -> Eval Object
 list = liftIO . listIO
@@ -116,6 +118,7 @@ attributes = mkAttributes
    , (getItemName, primitive 2 getItem) 
    , (addName, primitive 2 add)
    , (setItemName, primitive 3 setItem)
+   , (iterName, primitive 1 iter)
    ]
 
 eq :: Object 
@@ -140,3 +143,24 @@ add (x:y:_) = listAppend x y
 
 setItem :: Procedure 
 setItem (x:y:z:_) = updateListElement x y z
+
+iter :: Procedure
+iter (x:_) = do
+   elements <- liftIO $ readIORef $ object_list_elements x
+   generator $ yieldElements elements
+   where
+   yieldElements :: ListArray -> Eval ()
+   yieldElements = traverse_ yield
+
+traverse_ :: (Object -> Eval Object) -> ListArray -> Eval ()
+traverse_ f a = do
+   (lo, hi) <- liftIO $ getBounds a
+   loop lo hi
+   where
+   loop :: Integer -> Integer -> Eval ()
+   loop index hi
+      | index > hi = return ()
+      | otherwise = do
+           element <- liftIO $ readArray a index
+           f element
+           loop (index + 1) hi
