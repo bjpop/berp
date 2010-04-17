@@ -5,7 +5,7 @@ import Control.Monad.Trans (liftIO)
 import Data.IORef (newIORef, readIORef, writeIORef)
 import Data.Array.MArray (newListArray, readArray, getElems, getBounds, writeArray, newArray_)
 import Data.List (intersperse)
--- import Data.Foldable (traverse_)
+import Data.Foldable (traverse_)
 import Berp.Base.Prims (callMethod, primitive, yield)
 import Berp.Base.Monad (constantIO)
 import Berp.Base.SemanticTypes (Procedure, Object (..), Eval, ObjectRef, ListArray)
@@ -146,21 +146,6 @@ setItem (x:y:z:_) = updateListElement x y z
 
 iter :: Procedure
 iter (x:_) = do
-   elements <- liftIO $ readIORef $ object_list_elements x
-   generator $ yieldElements elements
-   where
-   yieldElements :: ListArray -> Eval ()
-   yieldElements = traverse_ yield
-
-traverse_ :: (Object -> Eval Object) -> ListArray -> Eval ()
-traverse_ f a = do
-   (lo, hi) <- liftIO $ getBounds a
-   loop lo hi
-   where
-   loop :: Integer -> Integer -> Eval ()
-   loop index hi
-      | index > hi = return ()
-      | otherwise = do
-           element <- liftIO $ readArray a index
-           f element
-           loop (index + 1) hi
+   array <- liftIO $ readIORef $ object_list_elements x
+   elements <- liftIO $ getElems array
+   generator $ traverse_ yield elements
