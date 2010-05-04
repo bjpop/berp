@@ -14,21 +14,21 @@ import Berp.Base.Identity (Identity)
 data ControlStack
    = EmptyStack 
    | ProcedureCall 
-     { procedure_return :: Object -> Eval () 
+     { procedure_return :: Object -> Eval Object 
      , control_stack_tail :: ControlStack
      }
    | ExceptionHandler 
-     { exception_handler :: Maybe (Object -> Eval ())
-     , exception_finally :: Maybe (Eval ()) 
+     { exception_handler :: Maybe (Object -> Eval Object)
+     , exception_finally :: Maybe (Eval Object) 
      , control_stack_tail :: ControlStack
      }
    | WhileLoop 
-     { loop_start :: Eval ()
-     , loop_end :: Eval ()
+     { loop_start :: Eval Object
+     , loop_end :: Eval Object
      , control_stack_tail :: ControlStack
      }
    | GeneratorCall
-     { generator_yield :: Object -> Eval ()
+     { generator_yield :: Object -> Eval Object
      , generator_object :: Object
      , control_stack_tail :: ControlStack
      } 
@@ -119,7 +119,7 @@ data Object
      }
    | Generator
      { object_identity :: !Identity
-     , object_continuation :: !(IORef (Eval ()))
+     , object_continuation :: !(IORef (Eval Object))
      , object_stack_context :: !(IORef (ControlStack -> ControlStack))
      }
    | None 

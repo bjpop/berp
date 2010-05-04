@@ -15,7 +15,7 @@ import {-# SOURCE #-} Berp.Base.StdTypes.ObjectBase (objectBase)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 import {-# SOURCE #-} Berp.Base.StdTypes.Function (function)
 
-generator :: Eval () -> Eval Object 
+generator :: Eval Object -> Eval Object 
 generator continuation = liftIO $ do 
    identity <- newIdentity
    contRef <- newIORef continuation 

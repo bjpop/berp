@@ -105,6 +105,9 @@ global = prim "global"
 globalRef :: Exp
 globalRef = prim "globalRef"
 
+topVar :: Exp
+topVar = prim "topVar"
+
 variable :: Exp
 variable = prim "var"
 
@@ -117,8 +120,11 @@ tuple = prim "tuple"
 whileElse :: Exp
 whileElse = prim "whileElse"
 
-start :: Exp
-start = prim "start"
+runStmt :: Exp
+runStmt = prim "runStmt"
+
+interpretStmt :: Exp
+interpretStmt = prim "interpretStmt"
 
 initName :: Name
 initName = name "init"

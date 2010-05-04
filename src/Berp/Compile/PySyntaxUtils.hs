@@ -11,6 +11,8 @@ import Berp.Compile.CompileMonad (Scope (..), emptyScope)
 import Berp.Compile.IdentString (ToIdentString (..), IdentString (..))
 import Berp.Compile.VarSet (VarSet)
 
+data InterpreterStmt = InterpreterStmt Py.SuiteSpan
+
 isEmptySuite :: Suite a -> Bool
 isEmptySuite [] = True
 isEmptySuite _ = False

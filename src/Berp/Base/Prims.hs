@@ -12,7 +12,7 @@ module Berp.Base.Prims
    , read, var, binOp, setattr, callMethod, subs
    , try, tryElse, tryFinally, tryElseFinally, except, exceptDefault
    , raise, reRaise, raiseFrom, primitive, generator, yield, generatorNext
-   , def, lambda, mkGenerator, printObject) where
+   , def, lambda, mkGenerator, printObject, topVar) where
 
 import System.Exit (exitWith)
 import Prelude hiding (break, read)
@@ -44,47 +44,47 @@ primitive arity proc =
    function arity $ \args -> do
       result <- proc args
       ret result
+{-
       -- we need the result to be "Eval Object", 
       -- even though execution never gets here because of the preceeding return
       return none
+-}
 
 infix 1 =:  -- assignment
 infixl 8 @@ -- procedure application
 
-var :: Hashed Ident -> Eval ObjectRef
-var (_, s) = liftIO $ newIORef (error $ "undefined variable: " ++ deMangle s)
+topVar :: Ident -> IO ObjectRef
+topVar s = newIORef (error $ "undefined variable:" ++ s)
 
-{-
-globalVar :: Hashed Ident -> Eval ObjectRef
-globalVar ident@(_, s) = do
-   ref <- var ident
-   updateGlobalEnv s ref
-   return ref
--}
+var :: Ident -> Eval ObjectRef
+var s = liftIO $ newIORef (error $ "undefined variable: " ++ s)
 
 read :: ObjectRef -> Eval Object
 read = liftIO . readIORef 
 
-ret :: Object -> Eval ()
+ret :: Object -> Eval Object
 ret obj = do
    stack <- unwind isProcedureCall
    procedure_return stack obj
 
-pass :: Eval ()
-pass = return ()
+pass :: Eval Object
+pass = return none 
 
-break :: Eval ()
+break :: Eval Object
 break = do
    stack <- unwindPastWhileLoop 
    loop_end stack
 
-continue :: Eval ()
+continue :: Eval Object
 continue = do 
    stack <- unwindUpToWhileLoop 
    loop_start stack
 
-(=:) :: ObjectRef -> Object -> Eval ()
-ident =: obj = liftIO $ writeIORef ident obj 
+-- We return None because that works well in the interpreter. None values
+-- are not printed by default, so it matches the same behaviour as the
+-- CPython interpreter.
+(=:) :: ObjectRef -> Object -> Eval Object
+ident =: obj = liftIO $ writeIORef ident obj >> return none 
 
 -- XXX we could have specialised versions for certain small arities and thus
 -- dispense with the list of objects
@@ -97,17 +97,19 @@ obj @@ args = do
                    push $ ProcedureCall ret
                    proc args 
            -- XXX should be raise of arity, typeError exception
-           | otherwise -> raise typeError >> return none
+           -- | otherwise -> raise typeError >> return none
+           | otherwise -> raise typeError 
         Type { object_constructor = proc } -> proc args
         -- XXX should try to find "__call__" attribute on object
-        other -> raise typeError >> return none 
+        -- other -> raise typeError >> return none 
+        other -> raise typeError 
 
-ifThenElse :: Eval Object -> Eval () -> Eval () -> Eval () 
+ifThenElse :: Eval Object -> Eval Object -> Eval Object -> Eval Object 
 ifThenElse condComp trueComp falseComp = do
     cond <- condComp
     if truth cond then trueComp else falseComp
 
-ifThen :: Eval Object -> Eval () -> Eval ()
+ifThen :: Eval Object -> Eval Object -> Eval Object
 ifThen condComp trueComp = do
    cond <- condComp
    if truth cond then trueComp else pass 
@@ -134,27 +136,27 @@ desugars to --->
       suite2
 -}
 
-for :: ObjectRef -> Object -> Eval () -> Eval ()
-for var exp body = forElse var exp body (return ()) 
+for :: ObjectRef -> Object -> Eval Object -> Eval Object
+for var exp body = forElse var exp body pass 
 
-forElse :: ObjectRef -> Object -> Eval () -> Eval () -> Eval ()
+forElse :: ObjectRef -> Object -> Eval Object -> Eval Object -> Eval Object
 forElse var expObj suite1 suite2 = do
    iterObj <- callMethod expObj $(hashedStr "__iter__") [] -- this could be specialised
    cond <- liftIO $ newIORef true
    let tryBlock = do nextObj <- callMethod iterObj $(hashedStr "__next__") [] -- this could be specialised
                      liftIO $ writeIORef var nextObj
                      suite1
-   let handler e = except e stopIteration (liftIO $ writeIORef cond false) (raise e) 
+   let handler e = except e stopIteration ((liftIO $ writeIORef cond false) >> pass) (raise e) 
    let whileBlock = try tryBlock handler
    whileElse (liftIO $ readIORef cond) whileBlock suite2
 
-while :: Eval Object -> Eval () -> Eval () 
+while :: Eval Object -> Eval Object -> Eval Object 
 while cond loopBlock = whileElse cond loopBlock pass 
 
-whileElse :: Eval Object -> Eval () -> Eval () -> Eval () 
+whileElse :: Eval Object -> Eval Object -> Eval Object -> Eval Object 
 whileElse cond loopBlock elseBlock = do
    callCC $ \end -> do 
-      let afterLoop = end () 
+      let afterLoop = end none 
           loop = do condVal <- cond
                     if truth condVal
                        then do
@@ -170,42 +172,26 @@ whileElse cond loopBlock elseBlock = do
       push $ WhileLoop loop afterLoop
       loop
 
-stmt :: Eval Object -> Eval ()
+stmt :: Eval Object -> Eval Object
 -- stmt comp = comp >> pass 
 -- Extra strictness needed here to ensure the value of the comp is demanded (in case exceptions are raised etc).
-stmt comp = comp >>= (\obj -> seq obj pass)
+-- stmt comp = comp >>= (\obj -> seq obj pass)
+stmt = id 
 
 -- XXX could this be turned into a type class?
 binOp :: Object -> Object -> (Object -> t) -> (t -> t -> r) -> (r -> Eval Object) -> Eval Object
 binOp left right project fun build 
    = build (project left `fun` project right)
 
-{-
-global :: Hashed Ident -> Eval Object
-global ident = do
-   ref <- globalRef ident 
-   liftIO $ readIORef ref
--}
-
--- globalRef :: Ident -> Eval ObjectRef
-{-
-globalRef :: Hashed Ident -> Eval ObjectRef
-globalRef (_, ident) = do
-   globals <- gets global_env 
-   maybeRef <- lookupVarEnv ident globals 
-   case maybeRef of
-      Nothing -> fail $ "undefined variable: " ++ deMangle ident
-      Just ref -> return ref 
--}
-
 -- XXX this should also work on Type
 -- XXX need to support __setattr__ and descriptors
 -- setattr :: Object -> Ident -> Object -> Eval ()
-setattr :: Object -> Hashed String -> Object -> Eval ()
+setattr :: Object -> Hashed String -> Object -> Eval Object
 setattr target attribute value 
    | Just dict <- dictOf target = do
         let hashTable = object_hashTable dict
         Hash.stringInsert attribute value $ hashTable
+        return value
    | otherwise = error $ "setattr on object unimplemented: " ++ show (target, attribute)
 {-
 setattr target@(Object {}) attribute value = do
@@ -222,28 +208,28 @@ callMethod object ident args = do
 subs :: Object -> Object -> Eval Object
 subs obj subscript = callMethod obj $(hashedStr "__getitem__") [subscript]
 
-try :: Eval () -> (Object -> Eval ()) -> Eval ()
+try :: Eval Object -> (Object -> Eval Object) -> Eval Object
 try tryComp handler = tryWorker tryComp handler pass Nothing 
 
-tryElse :: Eval () -> (Object -> Eval ()) -> Eval () -> Eval ()
+tryElse :: Eval Object -> (Object -> Eval Object) -> Eval Object -> Eval Object
 tryElse tryComp handler elseComp = 
    tryWorker tryComp handler elseComp Nothing 
 
-tryFinally :: Eval () -> (Object -> Eval ()) -> Eval () -> Eval ()
+tryFinally :: Eval Object -> (Object -> Eval Object) -> Eval Object -> Eval Object
 tryFinally tryComp handler finallyComp 
    = tryWorker tryComp handler pass (Just finallyComp) 
 
-tryElseFinally :: Eval () -> (Object -> Eval ()) -> Eval () -> Eval () -> Eval ()
+tryElseFinally :: Eval Object -> (Object -> Eval Object) -> Eval Object -> Eval Object -> Eval Object
 tryElseFinally tryComp handler elseComp finallyComp 
    = tryWorker tryComp handler elseComp (Just finallyComp) 
 
-tryWorker :: Eval () -> (Object -> Eval ()) -> Eval () -> Maybe (Eval ()) -> Eval ()
+tryWorker :: Eval Object -> (Object -> Eval Object) -> Eval Object -> Maybe (Eval Object) -> Eval Object
 tryWorker tryComp handler elseComp maybeFinallyComp = do
    callCC $ \afterTry -> do
       push (ExceptionHandler 
               (Just $ \obj -> do
                    handler obj 
-                   afterTry ()) 
+                   afterTry none) 
               maybeFinallyComp)
       -- BELCH_EVAL("Before tryComp")
       tryComp
@@ -264,7 +250,7 @@ tryWorker tryComp handler elseComp maybeFinallyComp = do
 For an except clause with an expression, that expression is evaluated, and the clause matches the exception if the resulting object is “compatible” with the exception. An object is compatible with an exception if it is the class or a base class of the exception object or a tuple containing an item compatible with the exception.
 -}
 
-except :: Object -> Object -> Eval () -> Eval () -> Eval ()
+except :: Object -> Object -> Eval Object -> Eval Object -> Eval Object
 except exceptionObj baseObj match noMatch = do
    BELCH_EVAL("compatible check: " ++ show (exceptionObj, baseObj))
    isCompatible <- compatibleException exceptionObj baseObj
@@ -278,7 +264,7 @@ except exceptionObj baseObj match noMatch = do
       let typeOfException = typeOf exceptionObj
       objectEquality typeOfException baseObj 
 
-exceptDefault :: Eval () -> Eval () -> Eval ()
+exceptDefault :: Eval Object -> Eval Object -> Eval Object
 exceptDefault match _noMatch = match
 
 {-
@@ -290,7 +276,7 @@ Otherwise, raise evaluates the first expression as the exception object. It must
 The type of the exception is the exception instance’s class, the value is the instance itself.
 -}
 
-raise :: Object -> Eval ()
+raise :: Object -> Eval Object
 raise obj = do
    BELCH_EVAL("Raising: " ++ show obj)
    IF_DEBUG(dumpStack)
@@ -300,7 +286,7 @@ raise obj = do
    stack <- gets control_stack
    handleFrame exceptionObj stack
    where
-   handleFrame :: Object -> ControlStack -> Eval ()
+   handleFrame :: Object -> ControlStack -> Eval Object
    handleFrame exceptionObj EmptyStack = do
      printObject exceptionObj 
      liftIO $ exitWith uncaughtExceptionError
@@ -334,11 +320,11 @@ raise obj = do
 -- XXX fixme
 -- This requires that we store the last raised exception somewhere
 -- possibly in an activation record?
-reRaise :: Eval ()
+reRaise :: Eval Object
 reRaise = error "reRaise not implemented"
 
 -- XXX fixme
-raiseFrom :: Object -> Object -> Eval ()
+raiseFrom :: Object -> Object -> Eval Object
 raiseFrom = error "raiseFrom not implemented"
 
 yield :: Object -> Eval Object 
@@ -346,9 +332,9 @@ yield obj = do
    BELCH_EVAL("Yielding " ++ show obj)
    -- IF_DEBUG(dumpStack)
    callCC $ \next -> do
-      generatorYield <- unwindYieldContext (next ())
+      generatorYield <- unwindYieldContext (next none)
       generatorYield obj
-   return none 
+   -- return none 
 
 -- the next method for generators
 generatorNext :: [Object] -> Eval Object
@@ -364,23 +350,26 @@ generatorNext (obj:_) = do
             action
             -- BELCH_EVAL("raising exception")
             raise stopIteration 
-            return none
+            -- return none
    ret result
-   return none
+   -- return none
 
-def :: ObjectRef -> Arity -> Object -> ([ObjectRef] -> Eval ()) -> Eval () 
+def :: ObjectRef -> Arity -> Object -> ([ObjectRef] -> Eval Object) -> Eval Object 
 def ident arity docString fun = do
    let procedureObj = function arity closure
    setattr procedureObj docName docString
    liftIO $ writeIORef ident procedureObj
+   return none 
    where
    closure :: Procedure 
    closure params = do
       argsRefs <- liftIO $ mapM newIORef params 
       fun argsRefs 
+{-
       -- may not get here, but if you do, return None
       -- XXX revisit when considering tail call optimisation
       Prelude.return None 
+-}
 
 lambda :: Arity -> ([ObjectRef] -> Eval Object) -> Eval Object
 lambda arity fun = 
@@ -391,12 +380,12 @@ lambda arity fun =
       argsRefs <- liftIO $ mapM newIORef params 
       fun argsRefs
 
-mkGenerator :: Eval () -> Eval ()
+mkGenerator :: Eval Object -> Eval Object
 mkGenerator cont = do
    generatorObj <- generator cont
    ret generatorObj
 
-printObject :: Object -> Eval ()
+printObject :: Object -> Eval () 
 printObject (String { object_string = str }) = liftIO $ putStr str
 printObject obj = do
    -- liftIO $ putStrLn $ "Calling printObject on: " ++ show obj

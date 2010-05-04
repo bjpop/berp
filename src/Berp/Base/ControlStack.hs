@@ -13,6 +13,7 @@ import Control.Monad.State
 import Data.Maybe (maybe)
 import Data.IORef (writeIORef)
 import Berp.Base.SemanticTypes (ControlStack (..), Eval, EvalState (..), Object (..))
+import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
 
 isEmpty :: ControlStack -> Bool
 isEmpty EmptyStack = True
@@ -48,7 +49,7 @@ unwind pred = do
    unwindFrame EmptyStack = error $ "unwindFrame: empty control stack" 
    unwindFrame stack@(ExceptionHandler { exception_finally = maybeFinally }) = do
       pop
-      maybe (return ()) id maybeFinally
+      maybe (return none) id maybeFinally
       if pred stack
          then return stack 
          else unwind pred 
@@ -56,7 +57,7 @@ unwind pred = do
       | pred stack = pop >> return stack 
       | otherwise = pop >> unwind pred 
 
-unwindYieldContext :: Eval () -> Eval (Object -> Eval ()) 
+unwindYieldContext :: Eval Object -> Eval (Object -> Eval Object) 
 unwindYieldContext continuation = do
    stack <- gets control_stack
    let (generatorYield, generatorObj, newStack, context) = unwindYieldWorker stack
@@ -65,7 +66,7 @@ unwindYieldContext continuation = do
    setControlStack newStack
    return generatorYield 
    where
-   unwindYieldWorker :: ControlStack -> (Object -> Eval (), Object, ControlStack, ControlStack -> ControlStack) 
+   unwindYieldWorker :: ControlStack -> (Object -> Eval Object, Object, ControlStack, ControlStack -> ControlStack) 
    -- XXX this should be an exception
    unwindYieldWorker EmptyStack = error "unwindYieldWorker: empty control stack"
    unwindYieldWorker (ProcedureCall {}) = error "unwindYieldWorker: procedure call"
@@ -95,7 +96,7 @@ unwindUpToWhileLoop = do
    unwindFrame EmptyStack = error $ "unwindUpToWhileLoop: empty control stack"
    unwindFrame (ExceptionHandler { exception_finally = maybeFinally }) = do
       pop
-      maybe (return ()) id maybeFinally
+      maybe (return none) id maybeFinally
       unwindUpToWhileLoop
    unwindFrame stack@(WhileLoop {}) = return stack
    -- XXX should be an exception which mentions continue/break called outside of loop

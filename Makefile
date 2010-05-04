@@ -19,4 +19,4 @@ install:
 
 .PHONY : test
 test:
-	shelltest -j2 --execdir --with='berp --clobber' test/regression
+	shelltest -j2 --execdir --with='berpo --clobber' test/regression

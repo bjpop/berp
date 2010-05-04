@@ -14,12 +14,12 @@ build-type:          Simple
 stability:           experimental
 extra-source-files:  
 
-Executable berp 
+Executable berpo
   main-is:         Main.hs
-  hs-source-dirs:  src, src/Berp/Compile/
+  hs-source-dirs:  src, src/Berp/
   build-depends:   base, monads-tf, transformers, containers, language-python, 
                    haskell-src-exts, haskell98, parseargs, process, filepath,
-                   directory
+                   directory, ghc, haskeline, ghc-paths, extensible-exceptions
   other-modules:
       Berp.Compile.Compile
       Berp.Compile.CompileMonad
@@ -27,6 +27,7 @@ Executable berp
       Berp.Compile.PySyntaxUtils
       Berp.Compile.PrimName
       Berp.Compile.Utils
+      Berp.Interpreter.Interpreter
 
 Library
    include-dirs: src/include 
@@ -53,7 +54,6 @@ Library
       Berp.Base.Operators
       Berp.Base.Prims
       Berp.Base.SemanticTypes
-      Berp.Base.Start
       Berp.Base.StdNames
       Berp.Base.StdTypes.Bool
       Berp.Base.StdTypes.Dictionary

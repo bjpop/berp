@@ -1,5 +1,5 @@
 {-# LANGUAGE PatternGuards, TypeSynonymInstances, TypeFamilies, FlexibleInstances #-}
-module Berp.Compile.Compile (compiler) where
+module Berp.Compile.Compile (compiler, Compilable (..)) where
 
 import Prelude hiding (read, init, mapM)
 import Language.Python.Version3.Parser (parseModule)
@@ -40,6 +40,19 @@ instance Compilable a => Compilable (Maybe a) where
    type CompileResult (Maybe a) = Maybe (CompileResult a)
    compile = mapM compile
 
+instance Compilable InterpreterStmt where
+   type CompileResult InterpreterStmt = [Hask.Stmt]
+   compile (InterpreterStmt suite) = do 
+      bindings <- checkEither $ topBindings suite
+      (vars, stmts) <- nestedScope bindings $ compile $ TopBlock suite 
+      let init = initStmt $ doBlock stmts
+      return (vars ++ [init])
+      where
+      initStmt :: Hask.Exp -> Hask.Stmt
+      initStmt exp = letStmt [initDecl exp] 
+      initDecl :: Hask.Exp -> Hask.Decl
+      initDecl = patBind bogusSrcLoc $ pvar Prim.initName
+
 instance Compilable ModuleSpan where
    type CompileResult ModuleSpan = Hask.Module
    compile (Py.Module suite) = do
@@ -52,7 +65,7 @@ instance Compilable ModuleSpan where
       modName = ModuleName "Main"
       mainDecl :: Hask.Decl
       mainDecl = 
-         patBind bogusSrcLoc mainPatName $ app Prim.start Prim.init
+         patBind bogusSrcLoc mainPatName $ app Prim.runStmt Prim.init
          where
          mainPatName = pvar $ name "main"
       initDecl :: Hask.Exp -> Hask.Decl
@@ -96,23 +109,14 @@ instance Compilable StatementSpan where
       let newStmt = qualStmt $ app Prim.ret $ parens compiledExpr
       return (stmts ++ [newStmt])
    {- 
-      If we are not a the top level then stmt expressions can be elided, since they have no
-      observable effect. The only reason we keep them at the top level is because we could
-      be compiling code for some interactive enironment, where the value of the expression
-      would be printed out. XXX We could add a flag to the compiler to say whether we
-      were compiling code for interactive evaluation or not.
-
-      XXX this should only be true for expressions which are pure.
+      Even though it looks like we could eliminate stmt expressions, we do need to 
+      compile them to code just in case they have side effects (like raising exceptions).
    -}
    compile (StmtExpr { stmt_expr = expr }) = do
-      -- topLevel <- isTopLevel
-      topLevel <- return True 
-      if topLevel 
-         then do
-            (stmts, compiledExpr) <- compileExprComp expr
-            let newStmt = qualStmt $ app Prim.stmt $ parens compiledExpr
-            return (stmts ++ [newStmt])
-         else return []
+      (stmts, compiledExpr) <- compileExprComp expr
+      -- let newStmt = qualStmt $ app Prim.stmt $ parens compiledExpr
+      let newStmt = qualStmt $ compiledExpr
+      return (stmts ++ [newStmt])
    compile (While { while_cond = cond, while_body = body, while_else = elseSuite }) = do
       condVal <- compileExprBlock cond
       bodyExp <- compileSuiteDo body
@@ -278,10 +282,21 @@ instance Compilable ArgumentSpan where
    compile (ArgExpr { arg_expr = expr }) = compileExprObject expr
 
 newtype Block = Block [StatementSpan]
+newtype TopBlock = TopBlock [StatementSpan]
+
+instance Compilable TopBlock where
+   type (CompileResult TopBlock) = ([Hask.Stmt], [Hask.Stmt])
+   compile (TopBlock []) = return ([], [qualStmt Prim.pass]) 
+   compile (TopBlock stmts) = do
+      scope <- getScope 
+      let locals = localVars scope
+      varDecls <- mapM declareTopInterpreterVar $ Set.toList locals
+      haskStmtss <- compile stmts
+      return (varDecls, concat haskStmtss)
 
 instance Compilable Block where
    type (CompileResult Block) = [Hask.Stmt]
-   compile (Block []) = returnStmt Prim.pass
+   compile (Block []) = return [qualStmt Prim.pass] 
    compile (Block stmts) = do
       scope <- getScope 
       let locals = localVars scope
@@ -396,41 +411,21 @@ returnStmt e = return [qualStmt e]
 returnExp :: Exp -> Compile ([Stmt], Exp)
 returnExp e = return ([], e)
 
+declareTopInterpreterVar :: ToIdentString a => a -> Compile Hask.Stmt
+declareTopInterpreterVar ident = do
+   let mangledPatVar = identToMangledPatVar ident
+       str = strE $ identString ident
+   return $ genStmt bogusSrcLoc mangledPatVar $ app Prim.topVar str
+
 declareVar :: ToIdentString a => a -> Compile Hask.Stmt
 declareVar ident = do
    let mangledPatVar = identToMangledPatVar ident
-   compiledIdent <- compile $ toIdentString ident
-   return $ genStmt bogusSrcLoc mangledPatVar (app Prim.variable compiledIdent)
-{-
-   topLevel <- isTopLevel 
-   let declaration = if topLevel then Prim.globalVariable else Prim.variable
-       mangledPatVar = identToMangledPatVar ident
-   compiledIdent <- compile $ toIdentString ident
-   return $ genStmt bogusSrcLoc mangledPatVar (app declaration compiledIdent)
--}
+       str = strE $ identString ident
+   return $ genStmt bogusSrcLoc mangledPatVar $ app Prim.variable str 
 
 compileGuard :: Hask.Exp -> (ExprSpan, SuiteSpan) -> Compile Hask.Exp
 compileGuard elseExp (guard, body) = 
    conditional <$> compileExprBlock guard <*> compileSuiteDo body <*> pure elseExp
-
-{-
-isGlobalIdent :: Py.IdentSpan -> Compile Bool
-isGlobalIdent ident = do
-   scope <- getScope
-   topLevel <- isTopLevel 
-   let locals = localVars scope
-       enclosings = enclosingVars scope
-       globals = globalVars scope
-       params = paramVars scope
-       identStr = toIdentString ident
-   return $ 
-      if topLevel 
-         -- XXX could be an error if the variable is not defined yet 
-         then identStr `Set.notMember` locals
-         -- XXX this might not strictly be necessary if the ident is not in the enclosings
-         else identStr `Set.member` globals ||
-              all (identStr `Set.notMember`) [locals, enclosings, params]
--}
 
 imports :: [ImportDecl]
 imports = [importBerp, importPrelude]

@@ -6,7 +6,7 @@ import Data.IORef (newIORef, readIORef, writeIORef)
 import Data.Array.MArray (newListArray, readArray, getElems, getBounds, writeArray, newArray_)
 import Data.List (intersperse)
 import Data.Foldable (traverse_)
-import Berp.Base.Prims (callMethod, primitive, yield)
+import Berp.Base.Prims (callMethod, primitive, yield, pass)
 import Berp.Base.Monad (constantIO)
 import Berp.Base.SemanticTypes (Procedure, Object (..), Eval, ObjectRef, ListArray)
 import Berp.Base.StdTypes.String (string)
@@ -148,4 +148,4 @@ iter :: Procedure
 iter (x:_) = do
    array <- liftIO $ readIORef $ object_list_elements x
    elements <- liftIO $ getElems array
-   generator $ traverse_ yield elements
+   generator (traverse_ yield elements >> pass)
