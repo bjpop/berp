@@ -12,7 +12,7 @@ module Berp.Base.Prims
    , read, var, binOp, setattr, callMethod, subs
    , try, tryElse, tryFinally, tryElseFinally, except, exceptDefault
    , raise, reRaise, raiseFrom, primitive, generator, yield, generatorNext
-   , def, lambda, mkGenerator, printObject, topVar) where
+   , def, lambda, mkGenerator, printObject, topVar, pure) where
 
 import System.Exit (exitWith)
 import Prelude hiding (break, read)
@@ -20,6 +20,7 @@ import Control.Monad.State (gets)
 import Control.Monad.Cont (callCC)
 import Control.Monad (join)
 import Control.Monad.Trans (liftIO)
+import qualified Control.Applicative as Applicative (pure)
 import Data.IORef  
 import Data.Maybe (maybe)
 import Berp.Base.ExitCodes (uncaughtExceptionError)
@@ -38,6 +39,11 @@ import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
 import {-# SOURCE #-} Berp.Base.StdTypes.Bool (true, false)
 import {-# SOURCE #-} Berp.Base.StdTypes.Generator (generator)
 import {-# SOURCE #-} Berp.Base.Builtins.Exception (stopIteration, typeError)
+
+-- specialised to monomorphic type for the benefit of the interpreter.
+-- otherwise we'd need to add a type annotation in the generated code.
+pure :: Object -> Eval Object
+pure = Applicative.pure
 
 primitive :: Arity -> Procedure -> Object
 primitive arity proc =  

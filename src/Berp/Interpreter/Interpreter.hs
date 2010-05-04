@@ -65,7 +65,7 @@ repl inputState = do
                stmts <- liftGhcT $ compile $ InterpreterStmt pyStmts
                let finalStmt = qualStmt (app Prim.interpretStmt Prim.init)
                let stmtStrs = map oneLinePrinter (stmts ++ [finalStmt])
-               liftIO $ mapM_ putStrLn stmtStrs
+               -- liftIO $ mapM_ putStrLn stmtStrs
                mapM_ (\s -> runStmt s RunToCompletion) stmtStrs
          repl inputState
 

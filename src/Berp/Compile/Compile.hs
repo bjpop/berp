@@ -13,6 +13,7 @@ import Language.Haskell.Exts.Pretty
 import Control.Monad.RWS (get, put, gets, tell, listen, censor, local)
 import Control.Applicative
 import qualified Data.Set as Set
+import Data.Set ((\\))
 import Control.Monad hiding (mapM)
 import Control.Monad.Trans (liftIO)
 import qualified Berp.Compile.PrimName as Prim
@@ -43,9 +44,18 @@ instance Compilable a => Compilable (Maybe a) where
 instance Compilable InterpreterStmt where
    type CompileResult InterpreterStmt = [Hask.Stmt]
    compile (InterpreterStmt suite) = do 
-      bindings <- checkEither $ topBindings suite
-      (vars, stmts) <- nestedScope bindings $ compile $ TopBlock suite 
+      suiteBindings <- checkEither $ topBindings suite
+      oldScope <- getScope
+      let oldLocals = localVars oldScope 
+      let suiteLocals = localVars suiteBindings 
+          newLocals = suiteLocals \\ oldLocals
+          nestedBindings = suiteBindings { localVars = newLocals } 
+      -- liftIO $ print oldLocals
+      -- liftIO $ print newLocals
+      (vars, stmts) <- nestedScope nestedBindings $ compile $ TopBlock suite 
       let init = initStmt $ doBlock stmts
+      let accumLocals = oldLocals `Set.union` newLocals
+      setScope $ oldScope { localVars = accumLocals }
       return (vars ++ [init])
       where
       initStmt :: Hask.Exp -> Hask.Stmt
@@ -403,7 +413,11 @@ nestedScope bindings comp = do
                           paramVars outerScope
    let newLevel = nestingLevel outerScope + 1
        newScope = bindings { nestingLevel = newLevel, enclosingVars = newEnclosingVars }
-   local (const newScope) comp
+   -- local (const newScope) comp
+   setScope newScope
+   result <- comp
+   setScope outerScope
+   return result
 
 returnStmt :: Exp -> Compile [Stmt]
 returnStmt e = return [qualStmt e]

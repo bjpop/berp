@@ -3,7 +3,8 @@
 module Berp.Compile.CompileMonad where
 
 import Prelude hiding (catch)
-import Control.Monad.RWS as RWS -- should we use the Strict version?
+-- import Control.Monad.RWS as RWS -- should we use the Strict version?
+import Control.Monad.State.Strict as State hiding (State) -- should we use the Strict version?
 import Language.Python.Common.AST 
 import Language.Python.Common.SrcLocation
 import Language.Haskell.Exts.Syntax (Stmt, Name) 
@@ -17,7 +18,8 @@ import qualified MonadUtils (MonadIO (..))
 import Exception (ExceptionMonad (..))
 import Control.Exception.Extensible (block, unblock, catch)
 
-data State = State { unique :: !Integer, seen_yield :: !Bool }
+-- data State = State { unique :: !Integer, seen_yield :: !Bool }
+data State = State { unique :: !Integer, seen_yield :: !Bool, scope :: Scope }
 
 data Scope 
    = Scope 
@@ -41,17 +43,24 @@ emptyScope
      }
 
 getScope :: Compile Scope
-getScope = ask 
+-- getScope = ask 
+getScope = gets scope
+
+setScope :: Scope -> Compile ()
+setScope s = modify $ \state -> state { scope = s }
 
 initState :: State
-initState = State { unique = 0, seen_yield = False } 
+-- initState = State { unique = 0, seen_yield = False } 
+initState = State { unique = 0, seen_yield = False, scope = emptyScope } 
 
 type NestingLevel = Int
 
 newtype Compile a 
-   = Compile (RWST Scope () State IO a)
+   -- = Compile (RWST Scope () State IO a)
+   = Compile (StateT State IO a)
    deriving (Monad, Functor, MonadIO, ExceptionMonad, Applicative)
 
+{-
 -- the MonadReader and MonadState instances can't be derived by GHC
 -- because we're using the monads-tf (type families), and they 
 -- cause the GHC deriver to choke. Sigh.
@@ -60,6 +69,11 @@ instance MonadReader Compile where
    type (EnvType Compile) = Scope
    ask = Compile ask  
    local f (Compile m) = Compile $ local f m
+-}
+
+-- the MonadState instance can't be derived by GHC
+-- because we're using the monads-tf (type families), and they 
+-- cause the GHC deriver to choke. Sigh.
 
 instance MonadState Compile where
    type (StateType Compile) = State
@@ -68,18 +82,24 @@ instance MonadState Compile where
 
 -- needed to use Compile inside the GhcT monad transformer.
 instance MonadUtils.MonadIO Compile where
-   liftIO = RWS.liftIO 
+   liftIO = State.liftIO 
 
 -- needed to use Compile inside the GhcT monad transformer.
-instance (Monoid w) => ExceptionMonad (RWST r w s IO) where
+-- instance (Monoid w) => ExceptionMonad (RWST r w s IO) where
+instance ExceptionMonad (StateT s IO) where
+{-
     gcatch m f = RWST $ \r s -> runRWST m r s
                            `catch` \e -> runRWST (f e) r s
-    gblock       = mapRWST block
-    gunblock     = mapRWST unblock
+-}
+    gcatch m f = StateT $ \s -> runStateT m s
+                           `catch` \e -> runStateT (f e) s
+    gblock       = mapStateT block
+    gunblock     = mapStateT unblock
 
 runCompileMonad :: Compile a -> IO a
 runCompileMonad (Compile comp) = 
-   fst <$> evalRWST comp emptyScope initState 
+   -- fst <$> evalRWST comp emptyScope initState 
+   evalStateT comp initState 
 
 getSeenYield :: Compile Bool
 getSeenYield = gets seen_yield
@@ -92,7 +112,8 @@ setSeenYield b =
    modify $ \state -> state { seen_yield = b }
 
 isTopLevel :: Compile Bool
-isTopLevel = asks ((== 1) . nestingLevel)
+-- isTopLevel = asks ((== 1) . nestingLevel)
+isTopLevel = gets ((== 1) . nestingLevel . scope)
 
 incNestingLevel :: Scope -> Scope 
 incNestingLevel scope = 
