@@ -5,7 +5,8 @@ import HscTypes (liftGhcT)
 import GHC
    ( defaultErrorHandler, getSessionDynFlags, setSessionDynFlags
    , findModule, mkModuleName, setContext, Ghc, SingleStep (RunToCompletion)
-   , runStmt, GhcT (..), runGhcT)
+   , runStmt, GhcT (..), runGhcT, gcatch, RunResult (..))
+import Control.Exception.Extensible (ErrorCall (..), SomeException (..), Exception)
 import GHC.Paths ( libdir )
 import DynFlags ( defaultDynFlags )
 import IO (hSetBuffering, stdout, BufferMode (..))
@@ -13,6 +14,8 @@ import System.Console.Haskeline (InputT (..), runInputT)
 import System.Console.Haskeline.IO
 import System.Console.Haskeline as Haskeline (defaultSettings, getInputLine)
 import Language.Python.Version3.Parser (parseStmt)
+import Language.Python.Common.PrettyParseError 
+import Language.Python.Common.Pretty (prettyText)
 import Language.Python.Common.AST (StatementSpan)
 import Language.Haskell.Exts.Pretty 
    ( prettyPrintStyleMode, defaultMode, style, Style (..), PPHsMode (..)
@@ -66,12 +69,30 @@ repl inputState = do
                let finalStmt = qualStmt (app Prim.interpretStmt Prim.init)
                let stmtStrs = map oneLinePrinter (stmts ++ [finalStmt])
                -- liftIO $ mapM_ putStrLn stmtStrs
-               mapM_ (\s -> runStmt s RunToCompletion) stmtStrs
+               -- mapM_ (\s -> runStmt s RunToCompletion) stmtStrs
+               mapM_ runAndCatch stmtStrs
          repl inputState
+
+runAndCatch :: String -> Interpret ()
+runAndCatch stmt = do 
+   gcatch (runStmt stmt RunToCompletion >>= printRunResult) catcher
+   where
+   -- catcher :: ErrorCall -> Interpret ()
+   -- catcher :: Exception e => e -> Interpret ()
+   catcher :: SomeException -> Interpret ()
+   -- catcher e = liftIO $ print e
+   catcher e = liftIO $ print e 
+
+printRunResult :: RunResult -> Interpret ()
+printRunResult (RunException e) = liftIO $ putStrLn ("Exception " ++ show e)
+printRunResult other = return () 
+-- printRunResult (RunOk {}) = liftIO $ putStrLn "Ok" 
+-- printRunResult (RunFailed {}) = liftIO $ putStrLn "Failed" 
+-- printRunRestut (RunBreak {}) = liftIO $ putStrLn "Break"
 
 getInputLines :: InputState -> IO (Maybe String)
 getInputLines inputState = do
-   maybeInput <- liftIO $ queryInput inputState (getInputLine ">>> ")
+   maybeInput <- liftIO $ queryInput inputState $ getInputLine ">>> "
    case maybeInput of
       Nothing -> return Nothing
       Just line
@@ -83,7 +104,7 @@ getInputLines inputState = do
 
 getContinueLines :: InputState -> [String] -> IO [String]
 getContinueLines inputState acc = do
-   maybeInput <- liftIO $ queryInput inputState (getInputLine "... ")
+   maybeInput <- liftIO $ queryInput inputState $ getInputLine "... "
    case maybeInput of
       Nothing -> return $ reverse acc
       Just line
@@ -103,5 +124,5 @@ oneLinePrinter =
 parseAndCheckErrors :: String -> IO [StatementSpan]
 parseAndCheckErrors fileContents =
    case parseStmt fileContents "<stdin>" of
-      Left e -> print e >> return [] 
+      Left e -> (putStrLn $ prettyText e) >> return [] 
       Right (pyStmt, _comments) -> return pyStmt

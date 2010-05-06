@@ -12,7 +12,7 @@ module Berp.Base.Prims
    , read, var, binOp, setattr, callMethod, subs
    , try, tryElse, tryFinally, tryElseFinally, except, exceptDefault
    , raise, reRaise, raiseFrom, primitive, generator, yield, generatorNext
-   , def, lambda, mkGenerator, printObject, topVar, pure) where
+   , def, lambda, mkGenerator, printObject, topVar, pure, showObject ) where
 
 import System.Exit (exitWith)
 import Prelude hiding (break, read)
@@ -21,6 +21,7 @@ import Control.Monad.Cont (callCC)
 import Control.Monad (join)
 import Control.Monad.Trans (liftIO)
 import qualified Control.Applicative as Applicative (pure)
+import Control.Applicative ((<$>))
 import Data.IORef  
 import Data.Maybe (maybe)
 import Berp.Base.ExitCodes (uncaughtExceptionError)
@@ -32,6 +33,7 @@ import Berp.Base.Hash (Hashed, hashedStr)
 import Berp.Base.Mangle (deMangle)
 import Berp.Base.ControlStack
 import Berp.Base.StdNames (docName, strName) 
+import Berp.Base.Exception (RuntimeError (..), throw)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 import {-# SOURCE #-} Berp.Base.StdTypes.Function (function)
 import {-# SOURCE #-} Berp.Base.HashTable as Hash (stringInsert, insert)
@@ -294,8 +296,11 @@ raise obj = do
    where
    handleFrame :: Object -> ControlStack -> Eval Object
    handleFrame exceptionObj EmptyStack = do
-     printObject exceptionObj 
-     liftIO $ exitWith uncaughtExceptionError
+     str <- showObject exceptionObj
+     -- liftIO $ putStrLn ("Uncaught exception: " ++ str)
+     -- printObject exceptionObj 
+     -- liftIO $ exitWith uncaughtExceptionError
+     throw $ UncaughtException str
    handleFrame exceptionObj (ExceptionHandler { exception_handler = handler, exception_finally = finally }) = do
       -- BELCH_EVAL("ExceptionHandler frame")
       case handler of
@@ -395,5 +400,9 @@ printObject :: Object -> Eval ()
 printObject (String { object_string = str }) = liftIO $ putStr str
 printObject obj = do
    -- liftIO $ putStrLn $ "Calling printObject on: " ++ show obj
-   strObj <- callMethod obj strName []
-   liftIO $ putStr $ object_string strObj
+   -- strObj <- callMethod obj strName []
+   str <- showObject obj
+   liftIO $ putStr str 
+
+showObject :: Object -> Eval String
+showObject obj = object_string <$> callMethod obj strName []
