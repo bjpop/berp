@@ -39,3 +39,5 @@ modName :: Hashed String
 modName = $(hashedStr "__mod__")
 docName :: Hashed String
 docName = $(hashedStr "__doc__")
+init_name :: Hashed String
+init_name = $(hashedStr "__init__")

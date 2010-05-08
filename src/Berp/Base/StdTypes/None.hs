@@ -9,7 +9,7 @@ import Berp.Base.StdTypes.String (string)
 import Berp.Base.Identity (newIdentity, Identity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames
-import {-# SOURCE #-} Berp.Base.StdTypes.Type (typeClass)
+import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import {-# SOURCE #-} Berp.Base.StdTypes.ObjectBase (objectBase)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 
@@ -25,6 +25,8 @@ noneClass :: Object
 noneClass = constantIO $ do 
    identity <- newIdentity
    dict <- attributes
+   newType [string "NoneType", objectBase, dict]
+{-
    return $ 
       Type 
       { object_identity = identity 
@@ -34,6 +36,7 @@ noneClass = constantIO $ do
       , object_constructor = \_ -> error "None type does not provide constructor" 
       , object_type_name = string "NoneType"
       } 
+-}
 
 attributes :: IO Object 
 attributes = mkAttributes 

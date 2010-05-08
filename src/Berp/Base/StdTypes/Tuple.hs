@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -XTemplateHaskell #-}
-module Berp.Base.StdTypes.Tuple (tuple, tupleClass, emptyTuple) where
+module Berp.Base.StdTypes.Tuple (tuple, tupleClass, emptyTuple, getTupleElements) where
 
 import Data.List (intersperse)
 import Berp.Base.Monad (constantIO)
@@ -10,7 +10,7 @@ import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.Hash (hashedStr)
 import Berp.Base.StdNames
-import {-# SOURCE #-} Berp.Base.StdTypes.Type (typeClass)
+import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import {-# SOURCE #-} Berp.Base.StdTypes.ObjectBase (objectBase)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 -- import {-# SOURCE #-} Berp.Base.StdTypes.Primitive (primitive)
@@ -34,6 +34,8 @@ tupleClass :: Object
 tupleClass = constantIO $ do 
    identity <- newIdentity
    dict <- attributes
+   newType [string "tuple", objectBase, dict]
+{-
    return $
       Type 
       { object_identity = identity
@@ -43,6 +45,11 @@ tupleClass = constantIO $ do
       , object_constructor = \ _ -> return emptyTuple 
       , object_type_name = string "tuple"
       }
+-}
+
+getTupleElements :: Object -> [Object]
+getTupleElements (Tuple { object_tuple = objs }) = objs
+getTupleElements other = error "bases of object is not a tuple"
 
 attributes :: IO Object 
 attributes = mkAttributes 

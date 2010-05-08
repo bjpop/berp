@@ -10,7 +10,7 @@ import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames
 import Berp.Base.Prims (generatorNext, primitive)
-import {-# SOURCE #-} Berp.Base.StdTypes.Type (typeClass)
+import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import {-# SOURCE #-} Berp.Base.StdTypes.ObjectBase (objectBase)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 import {-# SOURCE #-} Berp.Base.StdTypes.Function (function)
@@ -33,6 +33,8 @@ generatorClass = constantIO $ do
    as <- attributes
    identity <- newIdentity 
    dict <- attributes
+   newType [string "generator", objectBase, dict]
+{-
    return $
       Type 
       { object_identity = identity 
@@ -42,6 +44,7 @@ generatorClass = constantIO $ do
       , object_constructor = \_ -> error "generator type does not provide a constructor" 
       , object_type_name = string "generator" 
       }
+-}
 
 -- XXX update my attributes
 attributes :: IO Object

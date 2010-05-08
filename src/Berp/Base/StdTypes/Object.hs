@@ -10,7 +10,7 @@ import Berp.Base.StdNames
 import Berp.Base.Prims (primitive)
 import Berp.Base.Object (identityOf)
 import {-# SOURCE #-} Berp.Base.StdTypes.Dictionary (emptyDictionary)
-import {-# SOURCE #-} Berp.Base.StdTypes.Type (typeClass)
+import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import {-# SOURCE #-} Berp.Base.StdTypes.Tuple (emptyTuple)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 
@@ -19,15 +19,7 @@ object :: Object
 object = constantIO $ do 
    identity <- newIdentity
    dict <- attributes 
-   return $ 
-      Type 
-      { object_identity = identity 
-      , object_type = typeClass
-      , object_dict = dict 
-      , object_bases = emptyTuple -- this should be empty! it is not a mistake.
-      , object_constructor = newObject 
-      , object_type_name = string "object"
-      }
+   newType [string "object", emptyTuple, dict]
 
 newObject :: Procedure
 newObject _ = liftIO $ do

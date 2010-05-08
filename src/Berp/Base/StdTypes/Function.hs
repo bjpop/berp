@@ -8,7 +8,7 @@ import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames
 import {-# SOURCE #-} Berp.Base.StdTypes.Dictionary (emptyDictionary)
-import {-# SOURCE #-} Berp.Base.StdTypes.Type (typeClass)
+import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import {-# SOURCE #-} Berp.Base.StdTypes.ObjectBase (objectBase)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 
@@ -31,6 +31,8 @@ functionClass = constantIO $ do
    as <- attributes
    identity <- newIdentity 
    dict <- attributes
+   newType [string "function", objectBase, dict]
+{-
    return $
       Type 
       { object_identity = identity 
@@ -40,6 +42,7 @@ functionClass = constantIO $ do
       , object_constructor = \_ -> error "function type does not provide a constructor" 
       , object_type_name = string "function" 
       }
+-}
 
 -- XXX update my attributes
 attributes :: IO Object 

@@ -87,6 +87,9 @@ subscript = prim "subs"
 pure :: Exp
 pure = prim "pure"
 
+pureObj :: Exp
+pureObj = prim "pureObject"
+
 primOp :: String -> QOp
 primOp = op . sym 
 

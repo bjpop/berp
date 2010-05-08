@@ -57,6 +57,7 @@ module Berp.Base.Builtins.Exception
    (baseException, exception, stopIteration, typeError, nameError) 
    where
 
+import Control.Monad.Trans (liftIO)
 import Berp.Base.Monad (constantEval)
 import Berp.Base.SemanticTypes (Object (..), Procedure, Eval)
 import Berp.Base.StdTypes.Type (newType)
@@ -68,7 +69,7 @@ import Berp.Base.StdTypes.String (string)
 mkExceptionType :: String -> [Object] -> Eval Object
 mkExceptionType name bases = do
    dict <- dictionary []
-   newType [string name, tuple bases, dict]
+   liftIO $ newType [string name, tuple bases, dict]
 
 baseException :: Object
 baseException = constantEval $ mkExceptionType "BaseException" [object]

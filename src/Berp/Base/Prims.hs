@@ -12,7 +12,7 @@ module Berp.Base.Prims
    , read, var, binOp, setattr, callMethod, subs
    , try, tryElse, tryFinally, tryElseFinally, except, exceptDefault
    , raise, reRaise, raiseFrom, primitive, generator, yield, generatorNext
-   , def, lambda, mkGenerator, printObject, topVar, pure, showObject ) where
+   , def, lambda, mkGenerator, printObject, topVar, Applicative.pure, pureObject, showObject ) where
 
 import System.Exit (exitWith)
 import Prelude hiding (break, read)
@@ -44,8 +44,8 @@ import {-# SOURCE #-} Berp.Base.Builtins.Exception (stopIteration, typeError)
 
 -- specialised to monomorphic type for the benefit of the interpreter.
 -- otherwise we'd need to add a type annotation in the generated code.
-pure :: Object -> Eval Object
-pure = Applicative.pure
+pureObject :: Object -> Eval Object
+pureObject = Applicative.pure
 
 primitive :: Arity -> Procedure -> Object
 primitive arity proc =  

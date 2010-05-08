@@ -9,9 +9,8 @@ import Berp.Base.Identity (newIdentity)
 import {-# SOURCE #-} Berp.Base.StdTypes.Bool (bool)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames
-import {-# SOURCE #-} Berp.Base.StdTypes.Type (typeClass)
+import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import {-# SOURCE #-} Berp.Base.StdTypes.ObjectBase (objectBase)
--- import {-# SOURCE #-} Berp.Base.StdTypes.Primitive (primitive)
 
 emptyString :: Object
 emptyString = string "" 
@@ -31,15 +30,7 @@ stringClass :: Object
 stringClass = constantIO $ do
    identity <- newIdentity
    dict <- attributes
-   return $
-      Type 
-      { object_identity = identity
-      , object_type = typeClass
-      , object_dict = dict 
-      , object_bases = objectBase 
-      , object_constructor = \ _ -> return emptyString 
-      , object_type_name = string "str"
-      }
+   newType [string "str", objectBase, dict]
 
 attributes :: IO Object 
 attributes = mkAttributes 

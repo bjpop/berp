@@ -11,10 +11,9 @@ import Berp.Base.Identity (newIdentity)
 import Berp.Base.HashTable as Hash (fromList, empty, mappings, lookup)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames
-import {-# SOURCE #-} Berp.Base.StdTypes.Type (typeClass)
+import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import {-# SOURCE #-} Berp.Base.StdTypes.ObjectBase (objectBase)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
--- import {-# SOURCE #-} Berp.Base.StdTypes.Primitive (primitive)
 
 emptyDictionary :: IO Object
 emptyDictionary = do 
@@ -41,6 +40,8 @@ dictionaryClass :: Object
 dictionaryClass = constantIO $ do 
    identity <- newIdentity
    dict <- attributes
+   newType [string "dict", objectBase, dict]
+{-
    return $
       Type 
       { object_identity = identity
@@ -50,6 +51,8 @@ dictionaryClass = constantIO $ do
       , object_constructor = \_ -> liftIO emptyDictionary
       , object_type_name = string "dict"
       }
+-}
+
 
 attributes :: IO Object 
 attributes = mkAttributes 

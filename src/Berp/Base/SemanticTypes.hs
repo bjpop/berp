@@ -40,25 +40,29 @@ instance Show ControlStack where
    show (WhileLoop {}) = "WhileLoop"
    show (GeneratorCall {}) = "GeneratorCall"
 
--- XXX can/should we make the env a dictionary/hashtable?
--- data EvalState = EvalState { global_env :: !VarEnv, control_stack :: !ControlStack }
 data EvalState = EvalState { control_stack :: !ControlStack }
 
--- type Eval a = StateT EvalState (ContT () IO) a
 type Eval a = StateT EvalState (ContT Object IO) a
 
--- type VarEnv = IORef (Map Ident ObjectRef)
 type ObjectRef = IORef Object
 type Procedure = [Object] -> Eval Object
+
 -- XXX maybe this should be:
 -- IORef (IntMap (IORef [(Object, Object)]))
 -- or even:
 -- IORef (IntMap (IORef [(Object, ObjectRef)]))
 type HashTable = IORef (IntMap [(Object, Object)])
+
 type ListArray = IOArray Integer Object
 type Arity = Int
 
 {-
+-- Here's another possible encoding of objects which is more abstract.
+-- It would make it easier to add new object types, and they could be added
+-- in separate modules. The problem is that it would make it slower for
+-- detecting the kind of object we have, compared to the Alegabraic approach
+-- which gives us a tag to match against.
+
 class ObjectLike t where
    identity :: t -> Identity
    ...
@@ -84,6 +88,7 @@ data Object
      , object_bases :: !Object -- tuple 
      , object_constructor :: !Procedure 
      , object_type_name :: !Object -- string
+     , object_mro :: !Object -- tuple. Method Resolution Order.
      }
    | Integer
      { object_identity :: !Identity
@@ -126,14 +131,22 @@ data Object
 
 -- For debugging only
 instance Show Object where
-   show obj@(Object {}) = "object of type: " ++ show (object_type obj)
-   show obj@(Type {}) = show (object_type_name obj)
-   show obj@(Integer {}) = show (object_integer obj)
-   show obj@(Bool {}) = show (object_bool obj)
+   show obj@(Object {}) = "object of(" ++ show (object_type obj) ++ ")"
+   show obj@(Type {}) = "type(" ++ show (object_type_name obj) ++ ")"
+   show obj@(Integer {}) = "integer(" ++ show (object_integer obj) ++ ")"
+   show obj@(Bool {}) = "bool(" ++ show (object_bool obj) ++ ")"
    show (Tuple {}) = "tuple"
    show (List {}) = "list"
    show (Function {}) = "function"
-   show obj@(String {}) = show (object_string obj) 
-   show (None {}) = "None"
+   show obj@(String {}) = "string(" ++ show (object_string obj) ++ ")"
    show (Dictionary {}) = "dictionary"
    show (Generator {}) = "generator"
+   show (None {}) = "None"
+
+-- equality instance for objects
+-- NOTE: use with care. This does not call the user defined equality
+-- on the objet. It only uses identity equality.
+
+instance Eq Object where
+   None {} == None {} = True
+   obj1 == obj2 = object_identity obj1 == object_identity obj2

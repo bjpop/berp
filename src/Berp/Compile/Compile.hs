@@ -322,7 +322,7 @@ compileExprComp :: Py.ExprSpan -> Compile ([Stmt], Exp)
 compileExprComp exp 
    | isAtomicExpr exp = do
         (stmts, compiledExp) <- compile exp
-        return (stmts, app Prim.pure $ parens compiledExp)
+        return (stmts, app Prim.pureObj $ parens compiledExp)
    | otherwise = compile exp
 
 -- This compiles an expression to something with type Object. In cases where
