@@ -100,7 +100,7 @@ ident =: obj = liftIO $ writeIORef ident obj >> return none
 obj @@ args = do
     case obj of 
         Function { object_procedure = proc, object_arity = arity }
-           | arity == length args -> 
+           | arity == -1 || arity == length args -> 
                 callCC $ \ret -> do 
                    push $ ProcedureCall ret
                    proc args 

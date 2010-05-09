@@ -41,6 +41,7 @@ Library
       Berp.Base.Attributes
       Berp.Base.Builtins
       Berp.Base.Builtins.Exception
+      Berp.Base.Builtins.Input
       Berp.Base.Builtins.Print
       Berp.Base.Builtins.Utils
       Berp.Base.Class
