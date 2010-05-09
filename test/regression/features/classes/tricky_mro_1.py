@@ -10,3 +10,4 @@ class D(O): pass
 class C(D,F): pass
 class B(D,E): pass
 class A(B,C): pass
+print(A.mro())

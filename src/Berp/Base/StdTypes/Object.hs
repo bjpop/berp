@@ -46,6 +46,9 @@ str (x:_) =
       Type {} -> do
          let typeName = object_string $ object_type_name x
          return $ string $ "<class " ++ typeName ++ ">" 
+      Function {} -> do 
+         let identity = identityOf x 
+         return $ string $ "<function with identity " ++ show identity ++ ">"
       -- This should never happen because all other object types have a specialised
       -- str method.
       other -> return $ string "<unknown object>"

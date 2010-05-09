@@ -83,7 +83,7 @@ or obj1@(Bool {}) obj2@(Bool {}) =
 or x y = binop $(hashedStr "__or__") x y
 
 (.) :: Object -> Hashed String -> Eval Object
-(.) object ident = liftIO $ lookupAttribute object ident
+(.) object ident = lookupAttribute object ident
 
 unaryMinus :: Object -> Eval Object
 unaryMinus obj@(Integer {}) = return $ int $ negate $ object_integer obj

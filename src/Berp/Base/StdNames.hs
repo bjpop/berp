@@ -41,3 +41,5 @@ docName :: Hashed String
 docName = $(hashedStr "__doc__")
 init_name :: Hashed String
 init_name = $(hashedStr "__init__")
+mro_name :: Hashed String
+mro_name = $(hashedStr "mro")

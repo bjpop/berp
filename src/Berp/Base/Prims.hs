@@ -9,7 +9,7 @@
 module Berp.Base.Prims 
    ( (=:), stmt, ifThenElse, ret, pass, break
    , continue, while, whileElse, for, forElse, ifThen, (@@)
-   , read, var, binOp, setattr, callMethod, subs
+   , read, var, binOp, setattr, callMethod, callMethodMaybe, subs
    , try, tryElse, tryFinally, tryElseFinally, except, exceptDefault
    , raise, reRaise, raiseFrom, primitive, generator, yield, generatorNext
    , def, lambda, mkGenerator, printObject, topVar, Applicative.pure, pureObject, showObject ) where
@@ -28,7 +28,7 @@ import Berp.Base.ExitCodes (uncaughtExceptionError)
 import Berp.Base.Ident (Ident)
 import Berp.Base.SemanticTypes (Object (..), ObjectRef, Procedure, Eval, EvalState(..), ControlStack(..), Arity)
 import Berp.Base.Truth (truth)
-import {-# SOURCE #-} Berp.Base.Object (typeOf, dictOf, lookupAttribute, objectEquality)
+import {-# SOURCE #-} Berp.Base.Object (typeOf, dictOf, lookupAttribute, lookupAttributeMaybe, objectEquality)
 import Berp.Base.Hash (Hashed, hashedStr)
 import Berp.Base.Mangle (deMangle)
 import Berp.Base.ControlStack
@@ -210,8 +210,16 @@ setattr other attribute value = error $ "setattr on object unimplemented: " ++ s
 
 callMethod :: Object -> Hashed String -> [Object] -> Eval Object
 callMethod object ident args = do
-   proc <- liftIO $ lookupAttribute object ident
+   proc <- lookupAttribute object ident
    proc @@ args
+
+-- XXX inefficient because we lookup the attribute twice.
+callMethodMaybe :: Object -> Hashed String -> [Object] -> Eval Object 
+callMethodMaybe object ident args = do
+   maybeProc <- liftIO $ lookupAttributeMaybe object ident
+   case maybeProc of
+      Nothing -> return none 
+      Just {} -> callMethod object ident args
 
 subs :: Object -> Object -> Eval Object
 subs obj subscript = callMethod obj $(hashedStr "__getitem__") [subscript]

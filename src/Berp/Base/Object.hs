@@ -5,10 +5,10 @@
 
 module Berp.Base.Object 
    (lookupAttribute, lookupAttributeMaybe, 
-    typeOf, identityOf, hasAttribute, objectEquality, dictOf) where
+    typeOf, identityOf, objectEquality, dictOf) where
 
 import Berp.Base.Truth (truth)
-import Berp.Base.Prims (callMethod)
+import Berp.Base.Prims (callMethod, showObject)
 import Berp.Base.Ident
 import Data.Map as Map (lookup)
 import Data.IORef (readIORef)
@@ -24,7 +24,7 @@ import Berp.Base.StdNames (eqName, cmpName)
 import {-# SOURCE #-} Berp.Base.HashTable (stringLookup)
 import {-# SOURCE #-} Berp.Base.StdTypes.Integer (intClass)
 import {-# SOURCE #-} Berp.Base.StdTypes.Bool (boolClass)
-import {-# SOURCE #-} Berp.Base.StdTypes.Tuple (tupleClass)
+import {-# SOURCE #-} Berp.Base.StdTypes.Tuple (tupleClass, getTupleElements)
 import {-# SOURCE #-} Berp.Base.StdTypes.Function (functionClass)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (stringClass)
 import {-# SOURCE #-} Berp.Base.StdTypes.None (noneClass, noneIdentity)
@@ -59,14 +59,16 @@ dictOf obj@(Type {}) = Just $ object_dict obj
 dictOf obj@(Function {}) = Just $ object_dict obj
 dictOf other = Nothing
 
-lookupAttribute :: Object -> Hashed String -> IO Object
+lookupAttribute :: Object -> Hashed String -> Eval Object
 lookupAttribute obj ident@(_, identStr) = do
    -- liftIO $ putStrLn ("here: " ++ show (obj, identStr))
-   maybeObj <- lookupAttributeMaybe obj ident
+   maybeObj <- liftIO $ lookupAttributeMaybe obj ident
    -- liftIO $ putStrLn ("here: " ++ show (obj, identStr, maybeObj))
    case maybeObj of
       -- XXX This should raise a proper catchable exception 
-      Nothing -> fail $ show obj ++ " has no attribute called " ++ deMangle identStr
+      Nothing -> do
+         objStr <- showObject obj
+         fail $ objStr ++ " has no attribute called " ++ deMangle identStr
       Just attributeObj -> do
          -- liftIO $ putStrLn ("here: " ++ show (obj, identStr))
          case attributeObj of
@@ -76,6 +78,28 @@ lookupAttribute obj ident@(_, identStr) = do
             _other -> do
                -- liftIO $ putStrLn ("here: " ++ show (obj, identStr))
                return attributeObj 
+
+{-
+lookupAttribute :: Object -> Hashed String -> IO Object
+lookupAttribute obj ident@(_, identStr) = do
+   -- liftIO $ putStrLn ("here: " ++ show (obj, identStr))
+   maybeObj <- lookupAttributeMaybe obj ident
+   -- liftIO $ putStrLn ("here: " ++ show (obj, identStr, maybeObj))
+   case maybeObj of
+      -- XXX This should raise a proper catchable exception 
+      Nothing -> do
+         objStr <- showObject obj
+         fail $ objStr ++ " has no attribute called " ++ deMangle identStr
+      Just attributeObj -> do
+         -- liftIO $ putStrLn ("here: " ++ show (obj, identStr))
+         case attributeObj of
+            -- XXX this should return a bound method object
+            Function { object_procedure = proc, object_arity = arity } -> 
+               return attributeObj { object_procedure = \args -> proc (obj:args), object_arity = arity - 1 }
+            _other -> do
+               -- liftIO $ putStrLn ("here: " ++ show (obj, identStr))
+               return attributeObj 
+-}
 
 -- XXX does not handle descriptors or getattr/getattribute.
 -- XXX MRO needs to be supported.
@@ -108,6 +132,33 @@ lookupAttributeMaybe object ident = do
    where
    objectType :: Object
    objectType = typeOf object
+   lookupAttributeType :: IO (Maybe Object)
+   lookupAttributeType = do
+      BELCH_IO("Looking in dict of the type: " ++ show objectType)
+      let mroList = getTupleElements $ object_mro objectType
+      searchMRO mroList
+   searchMRO :: [Object] -> IO (Maybe Object)
+   searchMRO [] = do
+      BELCH_IO("Ident was not found in the mro of the type of the object")
+      return Nothing
+   searchMRO (klass:rest) = do
+      BELCH_IO("Looking in the dict of the type: " ++ show klass)
+      case dictOf klass of
+         Nothing -> do
+            BELCH_IO("Type does not have a dictionary")
+            searchMRO rest 
+         Just dict -> do
+            BELCH_IO("Type does have a dictionary")
+            dictResult <- stringLookup ident $ object_hashTable dict
+            case dictResult of
+               Nothing -> do
+                  BELCH_IO("Ident not found in dictionary of type")
+                  searchMRO rest 
+               Just _ -> do
+                  BELCH_IO("Ident was found in dictionary of type")
+                  return dictResult
+
+{-
    lookupAttributeType :: IO (Maybe Object)
    lookupAttributeType = do
       BELCH_IO("Looking in dict of the type: " ++ show objectType)
@@ -161,6 +212,7 @@ lookupAttributeMaybe object ident = do
                   Just _ -> do
                      BELCH_IO("Ident was found in dictionary of base")
                      return dictResult
+-}
 
 hasAttribute :: Object -> Hashed String -> IO Bool
 hasAttribute object ident = isJust <$> lookupAttributeMaybe object ident

@@ -20,7 +20,7 @@ import Control.Applicative ((<$>))
 import Control.Monad (zipWithM, foldM)
 import Control.Monad.Trans (liftIO)
 import Berp.Base.SemanticTypes (Object (..), Eval, HashTable)
-import Berp.Base.Object (hasAttribute, objectEquality)
+import Berp.Base.Object (objectEquality)
 import Berp.Base.Prims (callMethod)
 import Berp.Base.Identity (Identity)
 import Berp.Base.Truth (truth)
@@ -138,25 +138,3 @@ delete key hashTable = do
          newMatches <- linearFilter key matches
          let newTable = IntMap.adjust (const newMatches) hashValue table
          liftIO $ writeIORef hashTable newTable
-
-{-
-isHashable :: Object -> IO Bool
-isHashable (String {}) = return True
-isHashable (Integer {}) = return True
-isHashable (Bool {}) = return True
-isHashable (None {}) = return True
-isHashable (Function {}) = return True
-isHashable (Dictionary {}) = return False
-isHashable (List {}) = return False
--- An object is hashable if it has a __hash__ method and
--- (it has an __eq__ method or a __comp__ method).
-isHashable object = do
-   canHash <- hasAttribute object "__hash__" 
-   if canHash
-      then do
-         canEq <- hasAttribute object "__eq__"
-         if canEq 
-            then return True
-            else hasAttribute object "__cmp__"
-      else return False
--}

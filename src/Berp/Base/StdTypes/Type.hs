@@ -9,6 +9,8 @@ import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.Hash (hashedStr)
 import Berp.Base.Object (typeOf)
+import Berp.Base.Prims (primitive, callMethodMaybe)
+import Berp.Base.StdNames (mro_name, init_name)
 import {-# SOURCE #-} Berp.Base.StdTypes.Object (object)
 import {-# SOURCE #-} Berp.Base.StdTypes.Dictionary (emptyDictionary)
 import {-# SOURCE #-} Berp.Base.StdTypes.ObjectBase (objectBase)
@@ -31,7 +33,6 @@ typeClass = constantIO $ do
       , object_mro = tuple [typeClass, object]
       }
 
--- newType :: Procedure
 newType :: [Object] -> IO Object 
 newType args
    | [obj] <- args = return $ typeOf obj 
@@ -45,6 +46,8 @@ newType args
              , object_bases = bases
              , object_constructor = instantiate theType 
              , object_type_name = name 
+
+             -- XXX we should force the eval of the mro here to catch any errors up front.
              , object_mro = tuple $ mro theType $ getTupleElements bases 
              }  
         return theType 
@@ -55,18 +58,24 @@ getTupleElements (Tuple { object_tuple = objs }) = objs
 getTupleElements other = error "bases of object is not a tuple"
 
 instantiate :: Object -> Procedure
-instantiate objectType _ = liftIO $ do
-   identity <- newIdentity
-   dict <- emptyDictionary
-   return $
-      Object
-      { object_identity = identity
-      , object_type = objectType 
-      , object_dict = dict
-      }
+instantiate objectType _ = do
+   identity <- liftIO $ newIdentity
+   dict <- liftIO $ emptyDictionary
+   let object =
+         Object
+         { object_identity = identity
+         , object_type = objectType 
+         , object_dict = dict
+         }
+   callMethodMaybe object init_name []
+   return object
 
 attributes :: IO Object
-attributes = mkAttributes []
+attributes = 
+   mkAttributes [ (mro_name, primitive 1 mroMethod) ]
+
+mroMethod :: Procedure
+mroMethod (obj:_) = return $ object_mro obj 
 
 {- Compute the linearization of a class with respect to its base classes.
 

@@ -32,17 +32,6 @@ functionClass = constantIO $ do
    identity <- newIdentity 
    dict <- attributes
    newType [string "function", objectBase, dict]
-{-
-   return $
-      Type 
-      { object_identity = identity 
-      , object_type = typeClass
-      , object_dict = dict 
-      , object_bases = objectBase 
-      , object_constructor = \_ -> error "function type does not provide a constructor" 
-      , object_type_name = string "function" 
-      }
--}
 
 -- XXX update my attributes
 attributes :: IO Object 

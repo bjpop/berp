@@ -10,7 +10,7 @@ import Control.Monad.Trans (liftIO)
 import Data.Map (fromList)
 import Berp.Base.Ident
 import Berp.Base.SemanticTypes (Eval, Procedure, Object (..), ObjectRef)
-import Berp.Base.Prims ((@@), printObject)
+import Berp.Base.Prims (printObject)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Hash (Hashed, hashedStr)
 import Berp.Base.Attributes (mkAttributes)
@@ -19,13 +19,16 @@ import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 import {-# SOURCE #-} Berp.Base.StdTypes.Dictionary (emptyDictionary)
 import {-# SOURCE #-} Berp.Base.StdTypes.Tuple (emptyTuple, tuple)
 import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
+import {-# SOURCE #-} Berp.Base.StdTypes.Object (object)
 
 klass :: Ident -> ObjectRef -> [Object] -> Eval [(Hashed String, ObjectRef)] -> Eval Object 
-klass className ident bases attributesComp = do
+klass className ident srcBases attributesComp = do
+   -- if the source lists no bases for the class, then force it to be (object)
+   let trueBases = if null srcBases then [object] else srcBases 
    attributes <- attributesComp 
    attributesObjects <- liftIO $ mapM getIdentObj attributes
    classDict <- liftIO $ mkAttributes attributesObjects
-   typeObject <- liftIO $ newType [string className, tuple bases, classDict]
+   typeObject <- liftIO $ newType [string className, tuple trueBases, classDict]
    liftIO $ writeIORef ident $ typeObject 
    IF_DEBUG((printObject $ object_mro typeObject) >> (liftIO $ putStr "\n"))
    return none
