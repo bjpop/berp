@@ -1,7 +1,6 @@
 {-# OPTIONS_GHC -XTemplateHaskell #-}
 module Berp.Base.StdTypes.Integer (int, intClass) where
 
-import Control.Monad.Trans (liftIO)
 import Berp.Base.Monad (constantIO)
 import Berp.Base.Prims (binOp, primitive)
 import Berp.Base.SemanticTypes (Eval, Procedure, Object (..))
@@ -33,20 +32,8 @@ int i = constantIO $ do
 intClass :: Object
 intClass = constantIO $ do
    identity <- newIdentity
-   as <- attributes
    dict <- attributes
    newType [string "int", objectBase, dict]
-{-
-   return $
-      Type 
-      { object_identity = identity
-      , object_type = typeClass
-      , object_dict = dict 
-      , object_bases = objectBase 
-      , object_constructor = \_ -> return (int 0)
-      , object_type_name = string "int"
-      }
--}
 
 attributes :: IO Object 
 attributes = mkAttributes 
@@ -97,3 +84,4 @@ modulus = binOpInteger mod
 
 str :: Object 
 str = primitive 1 $ \[x] -> return $ string $ show $ object_integer x
+-- str = primitive 1 $ \[x] -> return $ string "wazza"

@@ -2,8 +2,7 @@
 module Berp.Base.StdTypes.Dictionary (emptyDictionary, dictionary, dictionaryClass) where
 
 import Data.List (intersperse)
-import Control.Monad.Trans (liftIO)
-import Berp.Base.Prims (primitive, callMethod)
+import Berp.Base.Prims (primitive, callMethod, showObject)
 import Berp.Base.Monad (constantIO)
 import Berp.Base.SemanticTypes (Procedure, Object (..), Eval)
 import Berp.Base.StdTypes.String (string)
@@ -27,7 +26,7 @@ emptyDictionary = do
 
 dictionary :: [(Object, Object)] -> Eval Object
 dictionary elements = do 
-   identity <- liftIO $ newIdentity
+   identity <- newIdentity
    hashTable <- fromList elements
    return $ 
       Dictionary 
@@ -41,18 +40,6 @@ dictionaryClass = constantIO $ do
    identity <- newIdentity
    dict <- attributes
    newType [string "dict", objectBase, dict]
-{-
-   return $
-      Type 
-      { object_identity = identity
-      , object_type = typeClass
-      , object_dict = dict 
-      , object_bases = objectBase
-      , object_constructor = \_ -> liftIO emptyDictionary
-      , object_type_name = string "dict"
-      }
--}
-
 
 attributes :: IO Object 
 attributes = mkAttributes 
@@ -72,10 +59,9 @@ str (obj:_) = do
    where
    dictEntryString :: (Object, Object) -> Eval String
    dictEntryString (obj1, obj2) = do
-      objStr1 <- objectToStr obj1
-      objStr2 <- objectToStr obj2
-      return (object_string objStr1 ++ ": " ++ object_string objStr2)
-   objectToStr obj = callMethod obj strName []
+      objStr1 <- showObject obj1
+      objStr2 <- showObject obj2
+      return (objStr1 ++ ": " ++ objStr2)
 
 getItem :: Procedure
 getItem (obj:index:_) = do

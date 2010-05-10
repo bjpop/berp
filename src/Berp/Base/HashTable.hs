@@ -10,27 +10,30 @@ module Berp.Base.HashTable
    , stringLookup 
    , stringInsert
    , mappings
+   , keys
    ) where
 
 import Prelude hiding (lookup)
 import Data.IntMap (IntMap)
 import qualified Data.IntMap as IntMap 
-import Data.IORef
 import Control.Applicative ((<$>))
 import Control.Monad (zipWithM, foldM)
-import Control.Monad.Trans (liftIO)
 import Berp.Base.SemanticTypes (Object (..), Eval, HashTable)
 import Berp.Base.Object (objectEquality)
 import Berp.Base.Prims (callMethod)
 import Berp.Base.Identity (Identity)
 import Berp.Base.Truth (truth)
 import Berp.Base.Hash (hash, Hashed, hashedStr)
+import Berp.Base.LiftedIO (MonadIO, readIORef, writeIORef, newIORef)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 
 mappings :: HashTable -> Eval [(Object, Object)]
 mappings hashTable = do
-   map <- liftIO $ readIORef hashTable
+   map <- readIORef hashTable
    return $ concat $ IntMap.elems map 
+
+keys :: HashTable -> Eval [Object]
+keys hashTable = map fst <$> mappings hashTable
 
 hashObject :: Object -> Eval Int
 hashObject obj@(String {}) = return $ hash $ object_string obj
@@ -44,32 +47,33 @@ hashObject object = do
       Integer {} -> return $ fromInteger $ object_integer hashResult
       other -> fail $ "__hash__ method on object does not return an integer: " ++ show object
 
-empty :: IO HashTable 
+empty :: MonadIO m => m HashTable 
 empty = newIORef IntMap.empty
 
 fromList :: [(Object, Object)] -> Eval HashTable
 fromList pairs = do
    keysVals <- mapM toKeyVal pairs
-   liftIO $ newIORef $ IntMap.fromListWith (++) keysVals
+   newIORef $ IntMap.fromListWith (++) keysVals
    where
    toKeyVal :: (Object, Object) -> Eval (Int, [(Object, Object)])
    toKeyVal pair@(key, val) = do
       hashValue <- hashObject key
       return (hashValue, [pair])
 
-stringTableFromList :: [(Hashed String, Object)] -> IO HashTable
+stringTableFromList :: MonadIO m => [(Hashed String, Object)] -> m HashTable
 stringTableFromList pairs = do
-   keysVals <- mapM toKeyVal pairs
-   liftIO $ newIORef $ IntMap.fromListWith (++) keysVals
+   let keysVals = map toKeyVal pairs
+   newIORef $ IntMap.fromListWith (++) keysVals
    where
-   toKeyVal :: (Hashed String, Object) -> IO (Int, [(Object, Object)])
-   toKeyVal ((hashValue,strKey), val) = do
-      let strObj = string strKey 
-      return (hashValue, [(strObj, val)])
+   toKeyVal :: (Hashed String, Object) -> (Int, [(Object, Object)])
+   toKeyVal ((hashValue,strKey), val) = 
+      (hashValue, [(strObj, val)])
+      where
+      strObj = string strKey 
 
-stringLookup :: Hashed String -> HashTable -> IO (Maybe Object)
+stringLookup :: MonadIO m => Hashed String -> HashTable -> m (Maybe Object)
 stringLookup (hashValue, str) hashTable = do
-   table <- liftIO $ readIORef hashTable
+   table <- readIORef hashTable
    case IntMap.lookup hashValue table of
       Nothing -> return Nothing
       Just matches -> return $ linearSearchString str matches
@@ -89,24 +93,24 @@ objectEqualityString _ _ = False
 -- the leak in all cases, but it might work in common cases.
 stringInsert :: Hashed String -> Object -> HashTable -> Eval ()
 stringInsert (hashValue, s) value hashTable = do
-   table <- liftIO $ readIORef hashTable
+   table <- readIORef hashTable
    -- hashValue <- hashObject key 
    let newTable = IntMap.insertWith (++) hashValue [(string s, value)] table
-   liftIO $ writeIORef hashTable newTable 
+   writeIORef hashTable newTable 
 
 -- XXX Potential space leak by not deleteing old versions of key in the table.
 -- maybe we can delete based on the identity of the object? That would not avoid
 -- the leak in all cases, but it might work in common cases.
 insert :: Object -> Object -> HashTable -> Eval ()
 insert key value hashTable = do
-   table <- liftIO $ readIORef hashTable
+   table <- readIORef hashTable
    hashValue <- hashObject key 
    let newTable = IntMap.insertWith (++) hashValue [(key,value)] table
-   liftIO $ writeIORef hashTable newTable 
+   writeIORef hashTable newTable 
 
 lookup :: Object -> HashTable -> Eval (Maybe Object)
 lookup key hashTable = do
-   table <- liftIO $ readIORef hashTable
+   table <- readIORef hashTable
    hashValue <- hashObject key 
    case IntMap.lookup hashValue table of
       Nothing -> return Nothing
@@ -130,11 +134,11 @@ linearFilter object matches = foldM collectNotEquals [] matches
 
 delete :: Object -> HashTable -> Eval ()
 delete key hashTable = do
-   table <- liftIO $ readIORef hashTable
+   table <- readIORef hashTable
    hashValue <- hashObject key
    case IntMap.lookup hashValue table of
       Nothing -> return ()
       Just matches -> do
          newMatches <- linearFilter key matches
          let newTable = IntMap.adjust (const newMatches) hashValue table
-         liftIO $ writeIORef hashTable newTable
+         writeIORef hashTable newTable

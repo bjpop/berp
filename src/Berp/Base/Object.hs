@@ -5,23 +5,24 @@
 
 module Berp.Base.Object 
    (lookupAttribute, lookupAttributeMaybe, 
-    typeOf, identityOf, objectEquality, dictOf) where
+    typeOf, identityOf, objectEquality, dictOf, dir) where
 
 import Berp.Base.Truth (truth)
 import Berp.Base.Prims (callMethod, showObject)
 import Berp.Base.Ident
 import Data.Map as Map (lookup)
+import Data.List (nub)
 import Data.IORef (readIORef)
 import Control.Monad (zipWithM)
-import Control.Monad.Trans (liftIO)
 import Control.Applicative ((<$>))
-import Data.Maybe (isJust)
+import Data.Maybe (isJust, catMaybes)
 import Berp.Base.SemanticTypes (ObjectRef, Object (..), Eval)
 import Berp.Base.Mangle (deMangle)
 import Berp.Base.Identity (Identity)
 import Berp.Base.Hash (Hashed)
 import Berp.Base.StdNames (eqName, cmpName)
-import {-# SOURCE #-} Berp.Base.HashTable (stringLookup)
+import Berp.Base.LiftedIO (MonadIO)
+import {-# SOURCE #-} Berp.Base.HashTable (stringLookup, keys)
 import {-# SOURCE #-} Berp.Base.StdTypes.Integer (intClass)
 import {-# SOURCE #-} Berp.Base.StdTypes.Bool (boolClass)
 import {-# SOURCE #-} Berp.Base.StdTypes.Tuple (tupleClass, getTupleElements)
@@ -30,8 +31,9 @@ import {-# SOURCE #-} Berp.Base.StdTypes.String (stringClass)
 import {-# SOURCE #-} Berp.Base.StdTypes.None (noneClass, noneIdentity)
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (typeClass)
 import {-# SOURCE #-} Berp.Base.StdTypes.Dictionary (dictionaryClass)
-import {-# SOURCE #-} Berp.Base.StdTypes.List (listClass)
+import {-# SOURCE #-} Berp.Base.StdTypes.List (listClass, list)
 import {-# SOURCE #-} Berp.Base.StdTypes.Generator (generatorClass)
+import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 
 -- Python allows the type of an object to change in a limited set of circumstances.
 -- But we will ignore that for the moment and make it a pure function.
@@ -61,53 +63,27 @@ dictOf other = Nothing
 
 lookupAttribute :: Object -> Hashed String -> Eval Object
 lookupAttribute obj ident@(_, identStr) = do
-   -- liftIO $ putStrLn ("here: " ++ show (obj, identStr))
-   maybeObj <- liftIO $ lookupAttributeMaybe obj ident
-   -- liftIO $ putStrLn ("here: " ++ show (obj, identStr, maybeObj))
-   case maybeObj of
-      -- XXX This should raise a proper catchable exception 
-      Nothing -> do
-         objStr <- showObject obj
-         fail $ objStr ++ " has no attribute called " ++ deMangle identStr
-      Just attributeObj -> do
-         -- liftIO $ putStrLn ("here: " ++ show (obj, identStr))
-         case attributeObj of
-            -- XXX this should return a bound method object
-            Function { object_procedure = proc, object_arity = arity } -> 
-               return attributeObj { object_procedure = \args -> proc (obj:args), object_arity = arity - 1 }
-            _other -> do
-               -- liftIO $ putStrLn ("here: " ++ show (obj, identStr))
-               return attributeObj 
-
-{-
-lookupAttribute :: Object -> Hashed String -> IO Object
-lookupAttribute obj ident@(_, identStr) = do
-   -- liftIO $ putStrLn ("here: " ++ show (obj, identStr))
    maybeObj <- lookupAttributeMaybe obj ident
-   -- liftIO $ putStrLn ("here: " ++ show (obj, identStr, maybeObj))
    case maybeObj of
       -- XXX This should raise a proper catchable exception 
       Nothing -> do
          objStr <- showObject obj
          fail $ objStr ++ " has no attribute called " ++ deMangle identStr
       Just attributeObj -> do
-         -- liftIO $ putStrLn ("here: " ++ show (obj, identStr))
          case attributeObj of
             -- XXX this should return a bound method object
             Function { object_procedure = proc, object_arity = arity } -> 
                return attributeObj { object_procedure = \args -> proc (obj:args), object_arity = arity - 1 }
             _other -> do
-               -- liftIO $ putStrLn ("here: " ++ show (obj, identStr))
                return attributeObj 
--}
 
 -- XXX does not handle descriptors or getattr/getattribute.
--- XXX MRO needs to be supported.
 -- XXX Hack: If the result of the lookup is a function, then 
 --     turn it into a bound method on return, by supplying the
 --     object as the first argument. This is not ideal, but
 --     it will work until descriptors are supported
-lookupAttributeMaybe :: Object -> Hashed String -> IO (Maybe Object)
+
+lookupAttributeMaybe :: MonadIO m => Object -> Hashed String -> m (Maybe Object)
 lookupAttributeMaybe object ident = do
    BELCH_IO("Looking for: " ++ show ident ++ " in: " ++ show object)
    BELCH_IO("Looking in dictionary of object")
@@ -132,12 +108,12 @@ lookupAttributeMaybe object ident = do
    where
    objectType :: Object
    objectType = typeOf object
-   lookupAttributeType :: IO (Maybe Object)
+   lookupAttributeType :: MonadIO m => m (Maybe Object)
    lookupAttributeType = do
       BELCH_IO("Looking in dict of the type: " ++ show objectType)
       let mroList = getTupleElements $ object_mro objectType
       searchMRO mroList
-   searchMRO :: [Object] -> IO (Maybe Object)
+   searchMRO :: MonadIO m => [Object] -> m (Maybe Object)
    searchMRO [] = do
       BELCH_IO("Ident was not found in the mro of the type of the object")
       return Nothing
@@ -158,63 +134,7 @@ lookupAttributeMaybe object ident = do
                   BELCH_IO("Ident was found in dictionary of type")
                   return dictResult
 
-{-
-   lookupAttributeType :: IO (Maybe Object)
-   lookupAttributeType = do
-      BELCH_IO("Looking in dict of the type: " ++ show objectType)
-      case dictOf objectType of
-         -- The type of the object has no dictionary (weird).
-         Nothing -> do
-            BELCH_IO("Type does not have a dictionary")
-            lookupAttributeBases
-         -- The type of the object has a dictionary; look in there.
-         Just typeDict -> do
-            BELCH_IO("Type does have a dictionary")
-            typeDictResult <- stringLookup ident $ object_hashTable typeDict 
-            case typeDictResult of
-               -- The ident was not found in the type of the object, look in the bases.
-               Nothing -> do
-                  BELCH_IO("Ident not found in dictionary of type")
-                  lookupAttributeBases
-               -- The ident was found in the type of the object; return it.
-               Just _ -> do
-                  BELCH_IO("Ident was found in dictionary of type")
-                  return typeDictResult 
-   -- Look in the dictionaries of all the bases of the object
-   -- XXX we should look in the bases of bases recursively if necessary
-   lookupAttributeBases :: IO (Maybe Object)
-   lookupAttributeBases = do
-      -- XXX this could fail badly if the type of the object is malformed.
-      -- we could check for the proper form of the type but that would slow us down
-      -- and this code will be called often.
-      BELCH_IO("Looking in the bases of the type of the object")
-      let baseObjects = object_tuple $ object_bases objectType
-      loopOverBases baseObjects
-      where
-      loopOverBases :: [Object] -> IO (Maybe Object)
-      -- XXX from here we need to search the bases of the bases and so on...
-      loopOverBases [] = do
-         BELCH_IO("Ident was not found in the bases of the type of the object")
-         return Nothing
-      loopOverBases (base:rest) = do
-         BELCH_IO("Looking in the dict of the base: " ++ show base)
-         case dictOf base of
-            Nothing -> do
-               BELCH_IO("Base does not have a dictionary")
-               loopOverBases rest 
-            Just dict -> do
-               BELCH_IO("Base does have a dictionary")
-               dictResult <- stringLookup ident $ object_hashTable dict
-               case dictResult of
-                  Nothing -> do
-                     BELCH_IO("Ident not found in dictionary of base")
-                     loopOverBases rest 
-                  Just _ -> do
-                     BELCH_IO("Ident was found in dictionary of base")
-                     return dictResult
--}
-
-hasAttribute :: Object -> Hashed String -> IO Bool
+hasAttribute :: (Functor m, MonadIO m) => Object -> Hashed String -> m Bool
 hasAttribute object ident = isJust <$> lookupAttributeMaybe object ident
 
 -- | Check if two objects are equal. For some objects we might have
@@ -236,11 +156,11 @@ objectEquality None None = return True
 objectEquality obj1 obj2 
    | object_identity obj1 == object_identity obj2 = return True
    | otherwise = do
-        canEq <- liftIO $ hasAttribute obj1 eqName
+        canEq <- hasAttribute obj1 eqName
         if canEq
            then truth <$> callMethod obj1 eqName [obj2]
            else do
-              canCmp <- liftIO $ hasAttribute obj1 cmpName
+              canCmp <- hasAttribute obj1 cmpName
               if canCmp
                  then do
                     cmpResult <- callMethod obj1 cmpName [obj2]
@@ -248,3 +168,13 @@ objectEquality obj1 obj2
                        Integer {} -> return $ object_integer cmpResult == 0
                        other -> fail $ "__cmp__ method on object does not return an integer: " ++ show obj1
                  else return False -- XXX should this raise an exception?
+
+dir :: Object -> Eval Object
+dir object = do
+   let maybeObjDict = dictOf object
+   let objectBasesDicts = map dictOf $ getTupleElements $ object_mro $ typeOf object
+   let allDicts = catMaybes (maybeObjDict : objectBasesDicts)
+   let hashTables = map object_hashTable allDicts 
+   keyObjects <- concat <$> mapM keys hashTables
+   let keyStrings = nub $ map (deMangle . object_string) keyObjects
+   list $ map string keyStrings 

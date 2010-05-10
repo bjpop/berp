@@ -50,8 +50,6 @@ instance Compilable InterpreterStmt where
       let suiteLocals = localVars suiteBindings 
           newLocals = suiteLocals \\ oldLocals
           nestedBindings = suiteBindings { localVars = newLocals } 
-      -- liftIO $ print oldLocals
-      -- liftIO $ print newLocals
       (vars, stmts) <- nestedScope nestedBindings $ compile $ TopBlock suite 
       let init = initStmt $ doBlock stmts
       let accumLocals = oldLocals `Set.union` newLocals

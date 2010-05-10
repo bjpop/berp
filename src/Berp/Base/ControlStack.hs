@@ -13,6 +13,7 @@ import Control.Monad.State
 import Data.Maybe (maybe)
 import Data.IORef (writeIORef)
 import Berp.Base.SemanticTypes (ControlStack (..), Eval, EvalState (..), Object (..))
+import Berp.Base.LiftedIO as LIO (writeIORef, putStrLn)
 import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
 
 isEmpty :: ControlStack -> Bool
@@ -61,8 +62,8 @@ unwindYieldContext :: Eval Object -> Eval (Object -> Eval Object)
 unwindYieldContext continuation = do
    stack <- gets control_stack
    let (generatorYield, generatorObj, newStack, context) = unwindYieldWorker stack
-   liftIO $ writeIORef (object_continuation generatorObj) continuation 
-   liftIO $ writeIORef (object_stack_context generatorObj) context
+   LIO.writeIORef (object_continuation generatorObj) continuation 
+   LIO.writeIORef (object_stack_context generatorObj) context
    setControlStack newStack
    return generatorYield 
    where
@@ -131,16 +132,16 @@ nullifyTopHandler = do
 
 dumpStack :: Eval ()
 dumpStack = do
-   liftIO $ putStrLn "--- Bottom of stack ---"
+   LIO.putStrLn "--- Bottom of stack ---"
    stack <- gets control_stack
    mapStackM printer stack
-   liftIO $ putStrLn "--- Top of stack ---"
+   LIO.putStrLn "--- Top of stack ---"
    where
    printer :: ControlStack -> Eval ()
-   printer (ProcedureCall {}) = liftIO $ putStrLn "ProcedureCall" 
-   printer (ExceptionHandler {}) = liftIO $ putStrLn "ExceptionHandler" 
-   printer (WhileLoop {}) = liftIO $ putStrLn "WhileLoop" 
-   printer (GeneratorCall {}) = liftIO $ putStrLn "GeneratorCall" 
+   printer (ProcedureCall {}) = LIO.putStrLn "ProcedureCall" 
+   printer (ExceptionHandler {}) = LIO.putStrLn "ExceptionHandler" 
+   printer (WhileLoop {}) = LIO.putStrLn "WhileLoop" 
+   printer (GeneratorCall {}) = LIO.putStrLn "GeneratorCall" 
 
 mapStackM :: Monad m => (ControlStack -> m ()) -> ControlStack -> m ()
 mapStackM f EmptyStack = return ()

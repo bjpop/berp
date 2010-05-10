@@ -9,20 +9,19 @@
 module Berp.Base.Prims 
    ( (=:), stmt, ifThenElse, ret, pass, break
    , continue, while, whileElse, for, forElse, ifThen, (@@)
-   , read, var, binOp, setattr, callMethod, callMethodMaybe, subs
+   , read, var, binOp, setattr, callMethod, subs
    , try, tryElse, tryFinally, tryElseFinally, except, exceptDefault
    , raise, reRaise, raiseFrom, primitive, generator, yield, generatorNext
    , def, lambda, mkGenerator, printObject, topVar, Applicative.pure, pureObject, showObject ) where
 
 import System.Exit (exitWith)
-import Prelude hiding (break, read)
+import Prelude hiding (break, read, putStr)
 import Control.Monad.State (gets)
 import Control.Monad.Cont (callCC)
 import Control.Monad (join)
-import Control.Monad.Trans (liftIO)
+import Berp.Base.LiftedIO (readIORef, writeIORef, newIORef, putStr)
 import qualified Control.Applicative as Applicative (pure)
 import Control.Applicative ((<$>))
-import Data.IORef  
 import Data.Maybe (maybe)
 import Berp.Base.ExitCodes (uncaughtExceptionError)
 import Berp.Base.Ident (Ident)
@@ -65,10 +64,10 @@ topVar :: Ident -> IO ObjectRef
 topVar s = newIORef (error $ "undefined variable:" ++ s)
 
 var :: Ident -> Eval ObjectRef
-var s = liftIO $ newIORef (error $ "undefined variable: " ++ s)
+var s = newIORef (error $ "undefined variable: " ++ s)
 
 read :: ObjectRef -> Eval Object
-read = liftIO . readIORef 
+read = readIORef 
 
 ret :: Object -> Eval Object
 ret obj = do
@@ -92,7 +91,7 @@ continue = do
 -- are not printed by default, so it matches the same behaviour as the
 -- CPython interpreter.
 (=:) :: ObjectRef -> Object -> Eval Object
-ident =: obj = liftIO $ writeIORef ident obj >> return none 
+ident =: obj = writeIORef ident obj >> return none 
 
 -- XXX we could have specialised versions for certain small arities and thus
 -- dispense with the list of objects
@@ -150,13 +149,13 @@ for var exp body = forElse var exp body pass
 forElse :: ObjectRef -> Object -> Eval Object -> Eval Object -> Eval Object
 forElse var expObj suite1 suite2 = do
    iterObj <- callMethod expObj $(hashedStr "__iter__") [] -- this could be specialised
-   cond <- liftIO $ newIORef true
+   cond <- newIORef true
    let tryBlock = do nextObj <- callMethod iterObj $(hashedStr "__next__") [] -- this could be specialised
-                     liftIO $ writeIORef var nextObj
+                     writeIORef var nextObj
                      suite1
-   let handler e = except e stopIteration ((liftIO $ writeIORef cond false) >> pass) (raise e) 
+   let handler e = except e stopIteration ((writeIORef cond false) >> pass) (raise e) 
    let whileBlock = try tryBlock handler
-   whileElse (liftIO $ readIORef cond) whileBlock suite2
+   whileElse (readIORef cond) whileBlock suite2
 
 while :: Eval Object -> Eval Object -> Eval Object 
 while cond loopBlock = whileElse cond loopBlock pass 
@@ -213,13 +212,15 @@ callMethod object ident args = do
    proc <- lookupAttribute object ident
    proc @@ args
 
+{-
 -- XXX inefficient because we lookup the attribute twice.
 callMethodMaybe :: Object -> Hashed String -> [Object] -> Eval Object 
 callMethodMaybe object ident args = do
-   maybeProc <- liftIO $ lookupAttributeMaybe object ident
+   maybeProc <- lookupAttributeMaybe object ident
    case maybeProc of
       Nothing -> return none 
       Just {} -> callMethod object ident args
+-}
 
 subs :: Object -> Object -> Eval Object
 subs obj subscript = callMethod obj $(hashedStr "__getitem__") [subscript]
@@ -305,9 +306,9 @@ raise obj = do
    handleFrame :: Object -> ControlStack -> Eval Object
    handleFrame exceptionObj EmptyStack = do
      str <- showObject exceptionObj
-     -- liftIO $ putStrLn ("Uncaught exception: " ++ str)
+     -- putStrLn ("Uncaught exception: " ++ str)
      -- printObject exceptionObj 
-     -- liftIO $ exitWith uncaughtExceptionError
+     -- exitWith uncaughtExceptionError
      throw $ UncaughtException str
    handleFrame exceptionObj (ExceptionHandler { exception_handler = handler, exception_finally = finally }) = do
       -- BELCH_EVAL("ExceptionHandler frame")
@@ -329,7 +330,7 @@ raise obj = do
    -- if we walk past a GeneratorCall then we need to smash the continuation to always raise an
    -- exception
    handleFrame exceptionObj (GeneratorCall { generator_object = genObj }) = do
-      liftIO $ writeIORef (object_continuation genObj) (raise stopIteration)
+      writeIORef (object_continuation genObj) (raise stopIteration)
       pop >> raise exceptionObj
    handleFrame exceptionObj other = do
       -- BELCH_EVAL("other frame")
@@ -362,10 +363,10 @@ generatorNext (obj:_) = do
       case obj of
          Generator {} -> do
             -- BELCH_EVAL("Starting generator")
-            stackContext <- liftIO $ readIORef $ object_stack_context obj
+            stackContext <- readIORef $ object_stack_context obj
             push (stackContext . GeneratorCall next obj)
             -- BELCH_EVAL("calling continuation")
-            action <- liftIO $ readIORef $ object_continuation obj
+            action <- readIORef $ object_continuation obj
             action
             -- BELCH_EVAL("raising exception")
             raise stopIteration 
@@ -377,12 +378,12 @@ def :: ObjectRef -> Arity -> Object -> ([ObjectRef] -> Eval Object) -> Eval Obje
 def ident arity docString fun = do
    let procedureObj = function arity closure
    setattr procedureObj docName docString
-   liftIO $ writeIORef ident procedureObj
+   writeIORef ident procedureObj
    return none 
    where
    closure :: Procedure 
    closure params = do
-      argsRefs <- liftIO $ mapM newIORef params 
+      argsRefs <- mapM newIORef params 
       fun argsRefs 
 {-
       -- may not get here, but if you do, return None
@@ -396,7 +397,7 @@ lambda arity fun =
    where
    closure :: Procedure 
    closure params = do
-      argsRefs <- liftIO $ mapM newIORef params 
+      argsRefs <- mapM newIORef params 
       fun argsRefs
 
 mkGenerator :: Eval Object -> Eval Object
@@ -405,12 +406,13 @@ mkGenerator cont = do
    ret generatorObj
 
 printObject :: Object -> Eval () 
-printObject (String { object_string = str }) = liftIO $ putStr str
 printObject obj = do
-   -- liftIO $ putStrLn $ "Calling printObject on: " ++ show obj
+   -- putStrLn $ "Calling printObject on: " ++ show obj
    -- strObj <- callMethod obj strName []
    str <- showObject obj
-   liftIO $ putStr str 
+   putStr str 
 
 showObject :: Object -> Eval String
+-- XXX this should really choose the right quotes based on the content of the string.
+showObject obj@(String {}) = return ("'" ++ object_string obj ++ "'")
 showObject obj = object_string <$> callMethod obj strName []

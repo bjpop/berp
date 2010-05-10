@@ -40,6 +40,7 @@ Library
    other-modules:
       Berp.Base.Attributes
       Berp.Base.Builtins
+      Berp.Base.Builtins.Dir
       Berp.Base.Builtins.Exception
       Berp.Base.Builtins.Input
       Berp.Base.Builtins.Print
@@ -51,6 +52,7 @@ Library
       Berp.Base.HashTable
       Berp.Base.Ident 
       Berp.Base.Identity
+      Berp.Base.LiftedIO
       Berp.Base.Monad
       Berp.Base.Object
       Berp.Base.Operators

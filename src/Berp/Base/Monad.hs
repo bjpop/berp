@@ -2,10 +2,10 @@ module Berp.Base.Monad (runExpr, runStmt, interpretStmt, constantIO, constantEva
 
 import Control.Monad.State.Strict (evalStateT)
 import Control.Monad.Cont (runContT)
-import Control.Monad.Trans (liftIO)
 import System.IO.Unsafe (unsafePerformIO)
 import Berp.Base.SemanticTypes (Object (..), Eval, EvalState (..), ControlStack(EmptyStack))
 import Berp.Base.Prims (printObject)
+import Berp.Base.LiftedIO as LIO (putStr)
 import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
 
 runExpr :: Eval Object -> IO Object 
@@ -29,7 +29,7 @@ interpretStmt comp = do
          None {} -> return () 
          _other  -> do 
             printObject obj
-            liftIO $ putStr "\n"
+            LIO.putStr "\n"
       return obj
    return ()
 

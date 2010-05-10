@@ -1,18 +1,23 @@
 module Berp.Base.Builtins 
-   ( _s_print, _s_input, _s_object, _s_BaseException, _s_Exception
+   ( _s_print, _s_input, _s_object, _s_dir, _s_type, _s_BaseException, _s_Exception
    , _s_StopIteration, _s_TypeError, _s_NameError ) 
    where
 
 import Berp.Base.SemanticTypes (ObjectRef)
 import Berp.Base.Builtins.Print (_s_print)
+import Berp.Base.Builtins.Dir (_s_dir)
 import Berp.Base.Builtins.Input (_s_input)
 import Berp.Base.Builtins.Utils (primConstant)
 import Berp.Base.Builtins.Exception 
    (baseException, exception, stopIteration, typeError, nameError)
 import Berp.Base.StdTypes.Object (object)
+import Berp.Base.StdTypes.Type (typeClass)
 
 _s_object :: ObjectRef
 _s_object = primConstant object
+
+_s_type :: ObjectRef
+_s_type = primConstant typeClass 
 
 _s_BaseException :: ObjectRef
 _s_BaseException = primConstant baseException

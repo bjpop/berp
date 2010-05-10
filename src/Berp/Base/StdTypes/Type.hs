@@ -9,8 +9,8 @@ import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.Hash (hashedStr)
 import Berp.Base.Object (typeOf)
-import Berp.Base.Prims (primitive, callMethodMaybe)
-import Berp.Base.StdNames (mro_name, init_name)
+import Berp.Base.Prims (primitive, callMethod)
+import Berp.Base.StdNames (mroName, initName)
 import {-# SOURCE #-} Berp.Base.StdTypes.Object (object)
 import {-# SOURCE #-} Berp.Base.StdTypes.Dictionary (emptyDictionary)
 import {-# SOURCE #-} Berp.Base.StdTypes.ObjectBase (objectBase)
@@ -67,12 +67,14 @@ instantiate objectType _ = do
          , object_type = objectType 
          , object_dict = dict
          }
-   callMethodMaybe object init_name []
+   -- callMethodMaybe object initName []
+   -- everything should have an init??
+   callMethod object initName []
    return object
 
 attributes :: IO Object
 attributes = 
-   mkAttributes [ (mro_name, primitive 1 mroMethod) ]
+   mkAttributes [ (mroName, primitive 1 mroMethod) ]
 
 mroMethod :: Procedure
 mroMethod (obj:_) = return $ object_mro obj 

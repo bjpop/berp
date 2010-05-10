@@ -2,11 +2,11 @@
 module Berp.Base.StdTypes.List (list, listClass, listIndex) where
 
 import Control.Monad.Trans (liftIO)
-import Data.IORef (newIORef, readIORef, writeIORef)
+import Berp.Base.LiftedIO (newIORef, readIORef, writeIORef)
 import Data.Array.MArray (newListArray, readArray, getElems, getBounds, writeArray, newArray_)
 import Data.List (intersperse)
 import Data.Foldable (traverse_)
-import Berp.Base.Prims (callMethod, primitive, yield, pass)
+import Berp.Base.Prims (callMethod, primitive, yield, pass, showObject)
 import Berp.Base.Monad (constantIO)
 import Berp.Base.SemanticTypes (Procedure, Object (..), Eval, ObjectRef, ListArray)
 import Berp.Base.StdTypes.String (string)
@@ -135,11 +135,9 @@ str (x:_) = do
    elements <- liftIO $ do
       array <- readIORef $ object_list_elements x  
       getElems array
-   objStrs <- mapM objectToStr elements 
-   let strings = map object_string objStrs
+   strings <- mapM showObject elements 
+   -- let strings = map object_string objStrs
    Prelude.return $ string $ "[" ++ concat (intersperse ", " strings) ++ "]"
-   where
-   objectToStr obj = callMethod obj strName []
 
 add :: Procedure 
 add (x:y:_) = listAppend x y 
@@ -149,6 +147,6 @@ setItem (x:y:z:_) = updateListElement x y z
 
 iter :: Procedure
 iter (x:_) = do
-   array <- liftIO $ readIORef $ object_list_elements x
+   array <- readIORef $ object_list_elements x
    elements <- liftIO $ getElems array
    generator (traverse_ yield elements >> pass)

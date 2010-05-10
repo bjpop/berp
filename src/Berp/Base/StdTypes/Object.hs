@@ -1,18 +1,21 @@
 {-# OPTIONS_GHC -XTemplateHaskell #-}
 module Berp.Base.StdTypes.Object (object) where
 
+import Prelude hiding (init)
 import Control.Monad.Trans (liftIO)
 import Berp.Base.SemanticTypes (Procedure, Object (..), Eval)
 import Berp.Base.Monad (constantIO)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
-import Berp.Base.StdNames
+import Berp.Base.StdNames (strName, eqName, initName)
 import Berp.Base.Prims (primitive)
 import Berp.Base.Object (identityOf)
 import {-# SOURCE #-} Berp.Base.StdTypes.Dictionary (emptyDictionary)
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import {-# SOURCE #-} Berp.Base.StdTypes.Tuple (emptyTuple)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
+import {-# SOURCE #-} Berp.Base.StdTypes.Bool (bool)
+import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
 
 {-# NOINLINE object #-}
 object :: Object
@@ -34,7 +37,17 @@ newObject _ = liftIO $ do
 
 attributes :: IO Object
 attributes = mkAttributes 
-   [ (strName, primitive 1 str) ]
+   [ (strName, primitive 1 str) 
+   , (eqName, primitive 2 eq)
+   , (initName, primitive 1 init)
+   ]
+
+-- does nothing
+init :: Procedure
+init _ = return none
+
+eq :: Procedure
+eq (obj1:obj2:_) = return $ bool (identityOf obj1 == identityOf obj2)
 
 str :: Procedure
 str (x:_) = 

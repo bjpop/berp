@@ -4,7 +4,7 @@ module Berp.Base.StdTypes.Tuple (tuple, tupleClass, emptyTuple, getTupleElements
 import Data.List (intersperse)
 import Berp.Base.Monad (constantIO)
 import Berp.Base.SemanticTypes (Procedure, Object (..))
-import Berp.Base.Prims (callMethod, primitive)
+import Berp.Base.Prims (callMethod, primitive, showObject)
 import Berp.Base.StdTypes.String (string)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
@@ -62,10 +62,7 @@ eq = error "== on tuple not defined"
 
 str :: Object 
 str = primitive 1 $ \[x] -> do
-   objStrs <- mapM objectToStr $ object_tuple x
-   let strings = map object_string objStrs
+   strings <- mapM showObject $ object_tuple x
    case strings of
       [oneString] -> return $ string $ "(" ++ oneString ++ ",)"
       _other -> return $ string $ "(" ++ concat (intersperse ", " strings) ++ ")"
-   where
-   objectToStr obj = callMethod obj strName [] 

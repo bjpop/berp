@@ -3,11 +3,12 @@ module Berp.Base.Identity (Identity, newIdentity) where
 
 import Berp.Base.Unique
 import Berp.Base.Hash (Hash (..))
+import Berp.Base.LiftedIO (MonadIO, liftIO)
 
 type Identity = Unique
 
-newIdentity :: IO Unique
-newIdentity = newUnique
+newIdentity :: MonadIO m => m Unique
+newIdentity = liftIO newUnique
 
 instance Hash Identity where
    hash = hashUnique

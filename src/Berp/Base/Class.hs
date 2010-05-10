@@ -5,8 +5,9 @@
 
 module Berp.Base.Class (klass) where
 
-import Data.IORef (writeIORef, newIORef, readIORef)
-import Control.Monad.Trans (liftIO)
+-- import Data.IORef (writeIORef, newIORef, readIORef)
+
+import Berp.Base.LiftedIO (liftIO, MonadIO, writeIORef, readIORef, newIORef)
 import Data.Map (fromList)
 import Berp.Base.Ident
 import Berp.Base.SemanticTypes (Eval, Procedure, Object (..), ObjectRef)
@@ -26,14 +27,14 @@ klass className ident srcBases attributesComp = do
    -- if the source lists no bases for the class, then force it to be (object)
    let trueBases = if null srcBases then [object] else srcBases 
    attributes <- attributesComp 
-   attributesObjects <- liftIO $ mapM getIdentObj attributes
-   classDict <- liftIO $ mkAttributes attributesObjects
+   attributesObjects <- mapM getIdentObj attributes
+   classDict <- mkAttributes attributesObjects
    typeObject <- liftIO $ newType [string className, tuple trueBases, classDict]
-   liftIO $ writeIORef ident $ typeObject 
-   IF_DEBUG((printObject $ object_mro typeObject) >> (liftIO $ putStr "\n"))
+   writeIORef ident $ typeObject 
+   IF_DEBUG((printObject $ object_mro typeObject) >> putStr "\n")
    return none
    where
-   getIdentObj :: (a, ObjectRef) -> IO (a, Object) 
+   getIdentObj :: MonadIO m => (a, ObjectRef) -> m (a, Object) 
    getIdentObj (ident, ref) = do
       obj <- readIORef ref
       return (ident, obj)

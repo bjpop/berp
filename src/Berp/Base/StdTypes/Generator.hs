@@ -1,8 +1,6 @@
 {-# OPTIONS_GHC -XTemplateHaskell #-}
 module Berp.Base.StdTypes.Generator (generator, generatorClass) where
 
-import Control.Monad.Trans (liftIO)
-import Data.IORef (newIORef)
 import Berp.Base.Monad (constantIO)
 import Berp.Base.SemanticTypes (Object (..), Procedure, Eval)
 import Berp.Base.StdTypes.None (none)
@@ -10,13 +8,14 @@ import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames
 import Berp.Base.Prims (generatorNext, primitive)
+import Berp.Base.LiftedIO (newIORef)
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import {-# SOURCE #-} Berp.Base.StdTypes.ObjectBase (objectBase)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 import {-# SOURCE #-} Berp.Base.StdTypes.Function (function)
 
 generator :: Eval Object -> Eval Object 
-generator continuation = liftIO $ do 
+generator continuation = do 
    identity <- newIdentity
    contRef <- newIORef continuation 
    stackRef <- newIORef id
