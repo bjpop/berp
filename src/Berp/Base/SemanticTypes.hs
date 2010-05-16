@@ -131,7 +131,7 @@ data Object
 
 -- For debugging only
 instance Show Object where
-   show obj@(Object {}) = "object of(" ++ show (object_type obj) ++ ")"
+   show obj@(Object {}) = "object of (" ++ show (object_type obj) ++ ")"
    show obj@(Type {}) = "type(" ++ show (object_type_name obj) ++ ")"
    show obj@(Integer {}) = "integer(" ++ show (object_integer obj) ++ ")"
    show obj@(Bool {}) = "bool(" ++ show (object_bool obj) ++ ")"

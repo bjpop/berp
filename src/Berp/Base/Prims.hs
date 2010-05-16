@@ -2,7 +2,6 @@
 
 -- {-# OPTIONS_GHC -cpp -DDEBUG #-}
 {-# OPTIONS_GHC -cpp #-}
-
 -- uncomment one of the two above lines to turn debugging on/off for this module
 #include "BerpDebug.h"
 
@@ -19,7 +18,7 @@ import Prelude hiding (break, read, putStr)
 import Control.Monad.State (gets)
 import Control.Monad.Cont (callCC)
 import Control.Monad (join)
-import Berp.Base.LiftedIO (readIORef, writeIORef, newIORef, putStr)
+import Berp.Base.LiftedIO as LIO (readIORef, writeIORef, newIORef, putStr, putStrLn {- needed for BELCH -})
 import qualified Control.Applicative as Applicative (pure)
 import Control.Applicative ((<$>))
 import Data.Maybe (maybe)
@@ -256,14 +255,12 @@ tryWorker tryComp handler elseComp maybeFinallyComp = do
                    handler obj 
                    afterTry none) 
               maybeFinallyComp)
-      -- BELCH_EVAL("Before tryComp")
       tryComp
       -- XXX checkme. we want to be absolutely certain that the top of the stack will
       -- be the just pushed handler frame.
       -- we have to nullify the top handler because the elseComp should not be
       -- executed in the context of the recently pushed handler. We can't simply
       -- pop the stack because we may have to execute a finally clause.
-      -- BELCH_EVAL("after tryComp")
       nullifyTopHandler
       -- this is only executed if the tryComp does not raise an exception. Control
       -- would not reach here if an exception was raised.
@@ -277,7 +274,7 @@ For an except clause with an expression, that expression is evaluated, and the c
 
 except :: Object -> Object -> Eval Object -> Eval Object -> Eval Object
 except exceptionObj baseObj match noMatch = do
-   BELCH_EVAL("compatible check: " ++ show (exceptionObj, baseObj))
+   BELCH("compatible check: " ++ show (exceptionObj, baseObj))
    isCompatible <- compatibleException exceptionObj baseObj
    if isCompatible
       then match
@@ -303,7 +300,7 @@ The type of the exception is the exception instance’s class, the value is the 
 
 raise :: Object -> Eval Object
 raise obj = do
-   BELCH_EVAL("Raising: " ++ show obj)
+   BELCH("Raising: " ++ show obj)
    IF_DEBUG(dumpStack)
    exceptionObj <- case obj of
       Type { object_constructor = cons } -> cons []
@@ -319,7 +316,7 @@ raise obj = do
      -- exitWith uncaughtExceptionError
      throw $ UncaughtException str
    handleFrame exceptionObj (ExceptionHandler { exception_handler = handler, exception_finally = finally }) = do
-      -- BELCH_EVAL("ExceptionHandler frame")
+      -- BELCH("ExceptionHandler frame")
       case handler of
          -- this is a nullified handler. We (possibly) execute the finally clause 
          -- and keep unwinding.
@@ -341,7 +338,7 @@ raise obj = do
       writeIORef (object_continuation genObj) (raise stopIteration)
       pop >> raise exceptionObj
    handleFrame exceptionObj other = do
-      -- BELCH_EVAL("other frame")
+      -- BELCH("other frame")
       pop >> raise exceptionObj
    
 
@@ -357,7 +354,7 @@ raiseFrom = error "raiseFrom not implemented"
 
 yield :: Object -> Eval Object 
 yield obj = do
-   BELCH_EVAL("Yielding " ++ show obj)
+   BELCH("Yielding " ++ show obj)
    -- IF_DEBUG(dumpStack)
    callCC $ \next -> do
       generatorYield <- unwindYieldContext (next none)
@@ -370,17 +367,15 @@ generatorNext (obj:_) = do
    result <- callCC $ \next ->
       case obj of
          Generator {} -> do
-            -- BELCH_EVAL("Starting generator")
+            BELCH("Starting generator")
             stackContext <- readIORef $ object_stack_context obj
             push (stackContext . GeneratorCall next obj)
-            -- BELCH_EVAL("calling continuation")
+            BELCH("calling continuation")
             action <- readIORef $ object_continuation obj
             action
-            -- BELCH_EVAL("raising exception")
+            BELCH("raising exception")
             raise stopIteration 
-            -- return none
    ret result
-   -- return none
 
 def :: ObjectRef -> Arity -> Object -> ([ObjectRef] -> Eval Object) -> Eval Object 
 def ident arity docString fun = do
