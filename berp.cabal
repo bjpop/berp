@@ -14,7 +14,7 @@ build-type:          Simple
 stability:           experimental
 extra-source-files:  
 
-Executable berpo
+Executable berp
   main-is:         Main.hs
   hs-source-dirs:  src, src/Berp/
   build-depends:   base, monads-tf, transformers, containers, language-python, 
@@ -40,10 +40,9 @@ Library
    other-modules:
       Berp.Base.Attributes
       Berp.Base.Builtins
-      Berp.Base.Builtins.Dir
-      Berp.Base.Builtins.Exception
-      Berp.Base.Builtins.Input
-      Berp.Base.Builtins.Print
+      Berp.Base.Builtins.Constants
+      Berp.Base.Builtins.Exceptions
+      Berp.Base.Builtins.Functions
       Berp.Base.Builtins.Utils
       Berp.Base.Class
       Berp.Base.ControlStack

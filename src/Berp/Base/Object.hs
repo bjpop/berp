@@ -4,7 +4,7 @@
 #include "BerpDebug.h"
 
 module Berp.Base.Object 
-   (lookupAttribute, lookupAttributeMaybe, 
+   (lookupAttribute, lookupSpecialAttribute, lookupAttributeMaybe, 
     typeOf, identityOf, objectEquality, dictOf, dir) where
 
 import Berp.Base.Truth (truth)
@@ -63,8 +63,17 @@ dictOf other = Nothing
 
 lookupAttribute :: Object -> Hashed String -> Eval Object
 lookupAttribute obj ident@(_, identStr) = do
-   maybeObj <- lookupAttributeMaybe obj ident
-   case maybeObj of
+   lookupResult <- lookupAttributeMaybe obj ident
+   checkLookup obj ident lookupResult 
+
+lookupSpecialAttribute :: Object -> Hashed String -> Eval Object
+lookupSpecialAttribute obj ident@(_, identStr) = do
+   lookupResult <- lookupSpecialAttributeMaybe obj ident
+   checkLookup obj ident lookupResult 
+
+checkLookup :: Object -> Hashed String -> Maybe Object -> Eval Object
+checkLookup obj ident@(_, identStr) lookupResult =
+   case lookupResult of
       -- XXX This should raise a proper catchable exception 
       Nothing -> do
          objStr <- showObject obj
@@ -83,6 +92,11 @@ lookupAttribute obj ident@(_, identStr) = do
 --     object as the first argument. This is not ideal, but
 --     it will work until descriptors are supported
 
+lookupSpecialAttributeMaybe :: MonadIO m => Object -> Hashed String -> m (Maybe Object)
+lookupSpecialAttributeMaybe object ident = do
+   BELCH_IO("Looking for special attribute: " ++ show ident ++ " in: " ++ show object)
+   lookupAttributeType object ident
+
 lookupAttributeMaybe :: MonadIO m => Object -> Hashed String -> m (Maybe Object)
 lookupAttributeMaybe object ident = do
    BELCH_IO("Looking for: " ++ show ident ++ " in: " ++ show object)
@@ -96,7 +110,7 @@ lookupAttributeMaybe object ident = do
             -- The ident was not found in the object, look in the type, then the bases.
             Nothing -> do
                BELCH_IO("Ident not found in dictionary of object")
-               lookupAttributeType 
+               lookupAttributeType object ident
             -- The ident was found in the object; return it.
             Just _ -> do
                BELCH_IO("Ident was found in dictionary of object")
@@ -104,15 +118,16 @@ lookupAttributeMaybe object ident = do
       -- The object does not have a dictionary; look in the type, then the bases.
       Nothing -> do
          BELCH_IO("Object does not have a dictionary")
-         lookupAttributeType
+         lookupAttributeType object ident
+
+lookupAttributeType :: MonadIO m => Object -> Hashed String -> m (Maybe Object)
+lookupAttributeType object ident = do
+   BELCH_IO("Looking in dict of the type: " ++ show objectType)
+   let mroList = getTupleElements $ object_mro objectType
+   searchMRO mroList
    where
    objectType :: Object
    objectType = typeOf object
-   lookupAttributeType :: MonadIO m => m (Maybe Object)
-   lookupAttributeType = do
-      BELCH_IO("Looking in dict of the type: " ++ show objectType)
-      let mroList = getTupleElements $ object_mro objectType
-      searchMRO mroList
    searchMRO :: MonadIO m => [Object] -> m (Maybe Object)
    searchMRO [] = do
       BELCH_IO("Ident was not found in the mro of the type of the object")

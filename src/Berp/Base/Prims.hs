@@ -9,7 +9,7 @@
 module Berp.Base.Prims 
    ( (=:), stmt, ifThenElse, ret, pass, break
    , continue, while, whileElse, for, forElse, ifThen, (@@)
-   , read, var, binOp, setattr, callMethod, subs
+   , read, var, binOp, setattr, callMethod, callSpecialMethod, subs
    , try, tryElse, tryFinally, tryElseFinally, except, exceptDefault
    , raise, reRaise, raiseFrom, primitive, generator, yield, generatorNext
    , def, lambda, mkGenerator, printObject, topVar, Applicative.pure, pureObject, showObject ) where
@@ -27,7 +27,9 @@ import Berp.Base.ExitCodes (uncaughtExceptionError)
 import Berp.Base.Ident (Ident)
 import Berp.Base.SemanticTypes (Object (..), ObjectRef, Procedure, Eval, EvalState(..), ControlStack(..), Arity)
 import Berp.Base.Truth (truth)
-import {-# SOURCE #-} Berp.Base.Object (typeOf, dictOf, lookupAttribute, lookupAttributeMaybe, objectEquality)
+import {-# SOURCE #-} Berp.Base.Object 
+   ( typeOf, dictOf, lookupAttribute, lookupSpecialAttribute
+   , lookupAttributeMaybe, objectEquality)
 import Berp.Base.Hash (Hashed, hashedStr)
 import Berp.Base.Mangle (deMangle)
 import Berp.Base.ControlStack
@@ -39,7 +41,7 @@ import {-# SOURCE #-} Berp.Base.HashTable as Hash (stringInsert, insert)
 import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
 import {-# SOURCE #-} Berp.Base.StdTypes.Bool (true, false)
 import {-# SOURCE #-} Berp.Base.StdTypes.Generator (generator)
-import {-# SOURCE #-} Berp.Base.Builtins.Exception (stopIteration, typeError)
+import {-# SOURCE #-} Berp.Base.Builtins.Exceptions (stopIteration, typeError)
 
 -- specialised to monomorphic type for the benefit of the interpreter.
 -- otherwise we'd need to add a type annotation in the generated code.
@@ -210,6 +212,12 @@ setattr other attribute value = error $ "setattr on object unimplemented: " ++ s
 callMethod :: Object -> Hashed String -> [Object] -> Eval Object
 callMethod object ident args = do
    proc <- lookupAttribute object ident
+   proc @@ args
+
+-- this one goes straight to the type, skipping the dictionary of the object
+callSpecialMethod :: Object -> Hashed String -> [Object] -> Eval Object
+callSpecialMethod object ident args = do
+   proc <- lookupSpecialAttribute object ident
    proc @@ args
 
 {-
@@ -415,4 +423,5 @@ printObject obj = do
 showObject :: Object -> Eval String
 -- XXX this should really choose the right quotes based on the content of the string.
 showObject obj@(String {}) = return ("'" ++ object_string obj ++ "'")
-showObject obj = object_string <$> callMethod obj strName []
+-- showObject obj = object_string <$> callMethod obj strName []
+showObject obj = object_string <$> callSpecialMethod obj strName []

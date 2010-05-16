@@ -1,4 +1,4 @@
-module Berp.Base.Builtins.Exception 
+module Berp.Base.Builtins.Exceptions
    (baseException, exception, stopIteration, typeError) 
    where
 

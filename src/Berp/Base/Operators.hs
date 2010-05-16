@@ -7,7 +7,7 @@ module Berp.Base.Operators
 import Berp.Base.Prims ((@@), callMethod, raise)
 import Prelude hiding ((+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), or, and)
 import qualified Prelude ((==),(<),(>=),(/),(*),(+),(-),(<=),(>))
-import Berp.Base.Builtins.Exception (exception)
+import Berp.Base.Builtins.Exceptions (exception)
 import Berp.Base.Ident (Ident)
 import Berp.Base.Object (lookupAttribute)
 import Berp.Base.SemanticTypes (Object (..), Eval)

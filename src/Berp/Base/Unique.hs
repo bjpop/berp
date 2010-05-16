@@ -3,7 +3,7 @@
 
 module Berp.Base.Unique (
    -- * Unique objects
-   Unique,              -- instance (Eq, Ord)
+   Unique (..),         -- instance (Eq, Ord)
    newUnique,           -- :: IO Unique
    hashUnique           -- :: Unique -> Int
  ) where
@@ -18,7 +18,7 @@ import GHC.Num
 
 -- | An abstract unique object.  Objects of type 'Unique' may be
 -- compared for equality and ordering and hashed into 'Int'.
-newtype Unique = Unique Integer deriving (Eq,Ord)
+newtype Unique = Unique { uniqueInteger :: Integer } deriving (Eq,Ord)
 
 -- not safe, but needed for printing purposes. 
 instance Show Unique where
