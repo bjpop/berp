@@ -14,7 +14,7 @@ Contact information
 
 Email Bernie Pope:
 
-   bjpop <at> unimelb <dot> edu <dot> au
+   florbitous <at> gmail <dot> com
 
 Building and installing
 -----------------------
