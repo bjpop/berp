@@ -12,7 +12,7 @@ import System.Cmd
 import System.Exit (ExitCode (..), exitWith)
 import System.FilePath ((</>), (<.>), takeBaseName)
 import System.Directory (removeFile)
-import Berp.Interpreter.Interpreter (interpreter)
+import Berp.Interpreter.Repl (repl)
 
 main :: IO ()
 main = do
@@ -21,7 +21,7 @@ main = do
    giveHelp argMap
    maybeInputDetails <- getInputDetails argMap
    case maybeInputDetails of
-      Nothing -> interpreter
+      Nothing -> repl 
       Just (sourceName, fileContents) -> 
          compileAndExecute argMap sourceName fileContents
  

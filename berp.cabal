@@ -27,7 +27,9 @@ Executable berp
       Berp.Compile.PySyntaxUtils
       Berp.Compile.PrimName
       Berp.Compile.Utils
-      Berp.Interpreter.Interpreter
+      Berp.Interpreter.Input
+      Berp.Interpreter.Monad
+      Berp.Interpreter.Repl
 
 Library
    include-dirs: src/include 
@@ -37,6 +39,7 @@ Library
       Berp.Base
       Berp.Base.Hash
       Berp.Base.Mangle
+      Berp.Version
    other-modules:
       Berp.Base.Attributes
       Berp.Base.Builtins
