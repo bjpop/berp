@@ -25,10 +25,12 @@ getInputLines = do
       Just line
          | null line -> return $ Just [] 
          | Right (tokens, state) <- lexResult,
-           lastTokenIsColon tokens || nonEmptyParenStack state -> do
-             -- liftIO $ print tokens 
-             restLines <- getContinueLines state []
-             -- liftIO $ putStrLn $ unlines (line:restLines)
+           lastTokenIsColon tokens -> do
+             restLines <- getIndentContinueLines state []
+             return $ Just $ unlines (line:restLines)
+         | Right (tokens, state) <- lexResult,
+           nonEmptyParenStack state -> do
+             restLines <- getParenContinueLines state []
              return $ Just $ unlines (line:restLines)
          | otherwise -> return $ Just line
          where
@@ -56,6 +58,11 @@ isEmptyLine other = False
 nonEmptyParenStack :: ParseState -> Bool
 nonEmptyParenStack state = not $ null $ parenStack state
 
+nonEmptyIndentStack :: ParseState -> Bool
+-- nonEmptyIndentStack state = length (indentStack state) > 1
+nonEmptyIndentStack state = True 
+
+{-
 getContinueLines :: ParseState -> [String] -> Repl [String]
 getContinueLines state acc = do
    maybeInput <- prompt "... " 
@@ -63,9 +70,44 @@ getContinueLines state acc = do
       Nothing -> return $ reverse acc
       Just line
          | Right (tokens, newState) <- lexResult,
-           not (isEmptyLine tokens) || nonEmptyParenStack newState -> do
+           nonEmptyParenStack newState || length line > 0 -> do
+              -- liftIO $ print newState
               -- liftIO $ print tokens 
               getContinueLines newState (line:acc)
+         | otherwise -> return $ reverse (line:acc)
+         where
+         lexResult = runParser lexer $ stateWithLine 
+         stateWithLine = state { input = '\n':line }
+-}
+
+getIndentContinueLines :: ParseState -> [String] -> Repl [String]
+getIndentContinueLines state acc = do
+   maybeInput <- prompt "... " 
+   case maybeInput of
+      Nothing -> return $ reverse acc
+      Just line
+         | Right (tokens, newState) <- lexResult,
+           nonEmptyParenStack newState -> do
+              getIndentContinueLines newState (line:acc)
+         | Right (tokens, newState) <- lexResult,
+           length line > 0 -> do
+              -- liftIO $ print newState
+              -- liftIO $ print tokens 
+              getIndentContinueLines newState (line:acc)
+         | otherwise -> return $ reverse (line:acc)
+         where
+         lexResult = runParser lexer $ stateWithLine 
+         stateWithLine = state { input = '\n':line }
+
+getParenContinueLines :: ParseState -> [String] -> Repl [String]
+getParenContinueLines state acc = do
+   maybeInput <- prompt "... " 
+   case maybeInput of
+      Nothing -> return $ reverse acc
+      Just line
+         | Right (tokens, newState) <- lexResult,
+           nonEmptyParenStack newState ->
+              getParenContinueLines newState (line:acc)
          | otherwise -> return $ reverse (line:acc)
          where
          lexResult = runParser lexer $ stateWithLine 
