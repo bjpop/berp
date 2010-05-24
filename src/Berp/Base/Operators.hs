@@ -1,4 +1,18 @@
-{-# OPTIONS_GHC -XTemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base.Operators
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- Implementation of Python's operators. Where possible we should try to
+-- specialise them to commonly used types.
+--
+-----------------------------------------------------------------------------
+
 module Berp.Base.Operators 
    ( (+), (-), (*), (/), (==), (<), (>), (<=), (>=), (.), and, or, (%)
    , unaryMinus, unaryPlus, invert) 

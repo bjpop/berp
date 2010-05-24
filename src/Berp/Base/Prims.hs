@@ -2,7 +2,20 @@
 
 -- {-# OPTIONS_GHC -cpp -DDEBUG #-}
 {-# OPTIONS_GHC -cpp #-}
--- uncomment one of the two above lines to turn debugging on/off for this module
+
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base.Prims
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- Implementation of primitive functions.
+--
+-----------------------------------------------------------------------------
+
 #include "BerpDebug.h"
 
 module Berp.Base.Prims 

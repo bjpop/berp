@@ -1,4 +1,18 @@
-{-# OPTIONS_GHC -XTemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell #-}
+
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base.HashTable
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- Mutable hashtable for the implementation of Python's dictionaries. 
+--
+-----------------------------------------------------------------------------
+
 module Berp.Base.HashTable 
    ( empty
    , insert

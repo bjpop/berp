@@ -1,4 +1,8 @@
-# A convenience makefile for berp.
+# Copyright   : (c) 2010 Bernie Pope
+# License     : BSD-style
+# Maintainer  : florbitous@gmail.com 
+
+# A convenience Makefile.
 # Mostly a wrapper for cabal, except for the running of test cases.
 
 .PHONY : all 

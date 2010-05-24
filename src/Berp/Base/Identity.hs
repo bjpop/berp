@@ -1,4 +1,23 @@
 {-# OPTIONS_GHC -XTypeSynonymInstances #-}
+
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base.Identity
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- A unique identity. All Python objects have a unique identity. In CPython
+-- the identity is the machine address of the object. That relies on the 
+-- object being kept at a fixed virtual address in memory. We can't do the
+-- same thing in Haskell because the garbage collector can move data around.
+--
+-- TODO: consider lazy identities, which are only constructed on demand.
+--
+-----------------------------------------------------------------------------
+
 module Berp.Base.Identity (Identity, newIdentity) where
 
 import Berp.Base.Unique

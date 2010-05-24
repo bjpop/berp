@@ -1,3 +1,17 @@
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base.LiftedIO
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- Lifted versions of standard IO functions. Allows them to be used in any
+-- MonadIO context. Saves us from having to write "liftIO" everywhere.
+--
+-----------------------------------------------------------------------------
+
 module Berp.Base.LiftedIO 
    ( liftIO, putStr, putStrLn, putChar, IORef, readIORef
    , writeIORef, newIORef, MonadIO, hFlush, getLine

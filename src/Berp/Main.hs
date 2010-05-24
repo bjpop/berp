@@ -1,3 +1,17 @@
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Main 
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- The Main module of Berp. Both the compiler and the interactive interpreter
+-- are started from here.
+--
+-----------------------------------------------------------------------------
+
 module Main where
 
 import Language.Python.Version3.Parser (parseModule)

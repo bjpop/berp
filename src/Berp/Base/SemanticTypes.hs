@@ -1,3 +1,20 @@
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base.SemanticTypes
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- The core types used to represent the state of Python programs. We put
+-- them all here in one file because they tend to be mutually recursive.
+-- Using one file for such types tends to avoid problems with unbreakable
+-- cycles in the Haskell module imports. Try not to put functions in here
+-- (except perhaps type class instances).
+--
+-----------------------------------------------------------------------------
+
 module Berp.Base.SemanticTypes 
    ( Procedure, ControlStack (..), EvalState (..), Object (..), Eval, ObjectRef
    , HashTable, ListArray, Arity )  where

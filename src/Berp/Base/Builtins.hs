@@ -1,3 +1,16 @@
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base.Builtins
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- A common export point for the builtin functions.
+--
+-----------------------------------------------------------------------------
+
 module Berp.Base.Builtins 
    ( module Exceptions, module Functions, module Constants )
    where

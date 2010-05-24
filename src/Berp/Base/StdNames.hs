@@ -1,4 +1,18 @@
 {-# LANGUAGE TemplateHaskell #-}
+
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base.StdNames
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- Hashed versions of standard Python identifiers.
+--
+-----------------------------------------------------------------------------
+
 module Berp.Base.StdNames where
 
 import Berp.Base.Hash (hashedStr, Hashed)

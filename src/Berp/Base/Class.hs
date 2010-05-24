@@ -1,11 +1,24 @@
 -- {-# OPTIONS_GHC -cpp -DDEBUG #-}
 {-# OPTIONS_GHC -cpp #-}
 -- uncomment one of the two above lines to turn debugging on/off for this module
+
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base.Class
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- Implementation of the Python "class" keyword. We call it "klass" (with a k) 
+-- because "class" is a keyword in Haskell.
+--
+-----------------------------------------------------------------------------
+
 #include "BerpDebug.h"
 
 module Berp.Base.Class (klass) where
-
--- import Data.IORef (writeIORef, newIORef, readIORef)
 
 import Berp.Base.LiftedIO (liftIO, MonadIO, writeIORef, readIORef, newIORef)
 import Data.Map (fromList)

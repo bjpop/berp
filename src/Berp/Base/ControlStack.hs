@@ -1,5 +1,19 @@
 -- {-# OPTIONS_GHC -cpp -DDEBUG #-}
 {-# OPTIONS_GHC -cpp #-}
+
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base.ControlStack
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- Operations on the control stack.
+--
+-----------------------------------------------------------------------------
+
 #include "BerpDebug.h"
 
 module Berp.Base.ControlStack 

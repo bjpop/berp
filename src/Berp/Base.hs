@@ -1,3 +1,18 @@
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com 
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- This module exports all the primitive functions which are needed by
+-- the compiled programs. Avoid putting extraneous exports in this file
+-- because it is imported by all compiled programs.
+--
+-----------------------------------------------------------------------------
+
 module Berp.Base
    ( module Builtins, int, none, string, true, false, def, lambda, (=:), stmt, ifThenElse, ret, pass, break
    , continue, while, whileElse, for, forElse, ifThen, (@@), tailCall, tuple, read, var

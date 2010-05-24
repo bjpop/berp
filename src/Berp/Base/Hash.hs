@@ -1,4 +1,17 @@
-{-# OPTIONS_GHC -XTemplateHaskell -XMagicHash -XTypeSynonymInstances #-}
+{-# LANGUAGE TemplateHaskell, MagicHash, TypeSynonymInstances #-}
+
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base.Hash
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- Hashing functions.
+--
+-----------------------------------------------------------------------------
 
 module Berp.Base.Hash (Hash (..), Hashed, hashedStr) where
 

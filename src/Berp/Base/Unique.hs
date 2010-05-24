@@ -1,5 +1,19 @@
 {-# LANGUAGE MagicHash #-}
+
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- A thread-safe supply of unique values.
 -- Same as the version in GHC but with added show instance.
+--
+-----------------------------------------------------------------------------
+
 
 module Berp.Base.Unique (
    -- * Unique objects
