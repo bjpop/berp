@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, FlexibleInstances, TypeFamilies #-}
 
-module Berp.Compile.CompileMonad where
+module Berp.Compile.Monad where
 
 import Prelude hiding (catch)
 -- import Control.Monad.RWS as RWS -- should we use the Strict version?

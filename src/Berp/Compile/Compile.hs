@@ -17,7 +17,7 @@ import Data.Set ((\\))
 import Control.Monad hiding (mapM)
 import Control.Monad.Trans (liftIO)
 import qualified Berp.Compile.PrimName as Prim
-import Berp.Compile.CompileMonad
+import Berp.Compile.Monad
 import Berp.Compile.HsSyntaxUtils
 import Berp.Compile.PySyntaxUtils
 import Berp.Compile.Utils

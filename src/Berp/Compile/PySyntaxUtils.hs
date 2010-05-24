@@ -7,7 +7,7 @@ import Data.Set as Set
 import Berp.Compile.Utils
 import Data.List (intersperse, foldl')
 import Data.Monoid
-import Berp.Compile.CompileMonad (Scope (..), emptyScope)
+import Berp.Compile.Monad (Scope (..), emptyScope)
 import Berp.Compile.IdentString (ToIdentString (..), IdentString (..))
 import Berp.Compile.VarSet (VarSet)
 

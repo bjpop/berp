@@ -22,7 +22,7 @@ Executable berp
                    directory, ghc, haskeline, ghc-paths, extensible-exceptions
   other-modules:
       Berp.Compile.Compile
-      Berp.Compile.CompileMonad
+      Berp.Compile.Monad
       Berp.Compile.HsSyntaxUtils
       Berp.Compile.PySyntaxUtils
       Berp.Compile.PrimName

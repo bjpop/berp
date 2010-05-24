@@ -8,7 +8,7 @@ import GHC (GhcT (..), runGhcT)
 import HscTypes (liftGhcT)
 import System.Console.Haskeline as Haskeline (defaultSettings)
 import System.Console.Haskeline.IO (initializeInput, InputState)
-import Berp.Compile.CompileMonad (Compile, runCompileMonad)
+import Berp.Compile.Monad (Compile, runCompileMonad)
 
 type Repl a = GhcT (StateT ReplState Compile) a
 
