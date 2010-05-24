@@ -1,7 +1,7 @@
 {-# LANGUAGE PatternGuards, TypeSynonymInstances, TypeFamilies, FlexibleInstances #-}
 module Berp.Compile.Compile (compiler, Compilable (..)) where
 
-import Prelude hiding (read, init, mapM)
+import Prelude hiding (read, init, mapM, putStrLn)
 import Language.Python.Version3.Parser (parseModule)
 import Language.Python.Common.AST as Py
 import Data.Traversable
@@ -15,7 +15,6 @@ import Control.Applicative
 import qualified Data.Set as Set
 import Data.Set ((\\))
 import Control.Monad hiding (mapM)
-import Control.Monad.Trans (liftIO)
 import qualified Berp.Compile.PrimName as Prim
 import Berp.Compile.Monad
 import Berp.Compile.HsSyntaxUtils
@@ -25,6 +24,7 @@ import Berp.Base.Mangle (mangle)
 import Berp.Base.Hash (Hash (..))
 import Berp.Compile.VarSet (VarSet)
 import Berp.Compile.IdentString (IdentString (..), ToIdentString (..), identString)
+import Berp.Base.LiftedIO (putStrLn)
 
 compiler :: Compilable a => a -> IO (CompileResult a)
 compiler = runCompileMonad . compile 
@@ -112,13 +112,21 @@ instance Compilable StatementSpan where
            elseExp <- compileSuiteDo elseBranch
            condExp <- foldM compileGuard elseExp $ reverse guards
            returnStmt condExp
-   compile (Return { return_expr = maybeExpr }) = do
-      (stmts, compiledExpr) <- maybe (returnExp Prim.none) compileExprObject maybeExpr
-      let newStmt = qualStmt $ app Prim.ret $ parens compiledExpr
-      return (stmts ++ [newStmt])
+   compile (Return { return_expr = maybeExpr }) 
+      | Just call@(Call {}) <- maybeExpr = do
+           (stmts, compiledExpr) <- compileTailCall call 
+           let newStmt = qualStmt compiledExpr
+           return (stmts ++ [newStmt]) 
+      | otherwise = do
+           (stmts, compiledExpr) <- maybe (returnExp Prim.none) compileExprObject maybeExpr
+           let newStmt = qualStmt $ app Prim.ret $ parens compiledExpr
+           return (stmts ++ [newStmt])
    {- 
       Even though it looks like we could eliminate stmt expressions, we do need to 
       compile them to code just in case they have side effects (like raising exceptions).
+      It is very hard to determine that an expression is effect free. Constant values
+      are the easy case, but probably not worth the effort. Furthermore, top-level
+      constant expressions must be preserved for the repl of the interpreter.
    -}
    compile (StmtExpr { stmt_expr = expr }) = do
       (stmts, compiledExpr) <- compileExprComp expr
@@ -284,6 +292,14 @@ instance Compilable ExprSpan where
    compile (Py.Paren { paren_expr = e }) = compile e
    compile (None {}) = returnExp Prim.none
    compile other = unsupported $ "compile: " ++ show other
+
+compileTailCall :: ExprSpan -> Compile ([Stmt], Exp)
+compileTailCall (Call { call_fun = fun, call_args = args }) = do
+      (funStmts, compiledFun) <- compileExprObject fun
+      (argsStmtss, compiledArgs) <- mapAndUnzipM compile args 
+      -- let newExp = infixApp compiledFun Prim.apply (listE compiledArgs)
+      let newExp = appFun Prim.tailCall [compiledFun, listE compiledArgs]
+      return (funStmts ++ concat argsStmtss, newExp) 
 
 instance Compilable ArgumentSpan where
    type (CompileResult ArgumentSpan) = ([Stmt], Exp)

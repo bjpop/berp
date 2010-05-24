@@ -7,7 +7,7 @@
 
 module Berp.Base.Prims 
    ( (=:), stmt, ifThenElse, ret, pass, break
-   , continue, while, whileElse, for, forElse, ifThen, (@@)
+   , continue, while, whileElse, for, forElse, ifThen, (@@), tailCall
    , read, var, binOp, setattr, callMethod, callSpecialMethod, subs
    , try, tryElse, tryFinally, tryElseFinally, except, exceptDefault
    , raise, reRaise, raiseFrom, primitive, generator, yield, generatorNext
@@ -106,6 +106,17 @@ obj @@ args = do
                    proc args 
            -- XXX should be raise of arity, typeError exception
            -- | otherwise -> raise typeError >> return none
+           | otherwise -> raise typeError 
+        Type { object_constructor = proc } -> proc args
+        -- XXX should try to find "__call__" attribute on object
+        -- other -> raise typeError >> return none 
+        other -> raise typeError 
+
+tailCall :: Object -> [Object] -> Eval Object 
+tailCall obj args = do
+    case obj of 
+        Function { object_procedure = proc, object_arity = arity }
+           | arity == -1 || arity == length args -> proc args
            | otherwise -> raise typeError 
         Type { object_constructor = proc } -> proc args
         -- XXX should try to find "__call__" attribute on object

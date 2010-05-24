@@ -15,6 +15,9 @@ prim :: String -> Exp
 -- prim = qvar berpModuleName . name 
 prim = var . name 
 
+tailCall :: Exp
+tailCall = prim "tailCall"
+
 dict :: Exp
 dict = prim "dictionary"
 
