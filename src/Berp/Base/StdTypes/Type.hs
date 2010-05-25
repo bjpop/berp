@@ -58,7 +58,7 @@ getTupleElements (Tuple { object_tuple = objs }) = objs
 getTupleElements other = error "bases of object is not a tuple"
 
 instantiate :: Object -> Procedure
-instantiate objectType _ = do
+instantiate objectType args = do
    identity <- liftIO $ newIdentity
    dict <- liftIO $ emptyDictionary
    let object =
@@ -69,7 +69,7 @@ instantiate objectType _ = do
          }
    -- callMethodMaybe object initName []
    -- everything should have an init??
-   callMethod object initName []
+   callMethod object initName args 
    return object
 
 attributes :: IO Object

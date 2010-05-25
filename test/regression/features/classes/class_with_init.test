@@ -2,5 +2,7 @@ berp class_with_init.py
 <<<
 >>>
 3
+48
+(True, 'fred')
 >>>2
 >>>=0
