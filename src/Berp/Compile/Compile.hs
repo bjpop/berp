@@ -1,4 +1,18 @@
 {-# LANGUAGE PatternGuards, TypeSynonymInstances, TypeFamilies, FlexibleInstances #-}
+
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Compile.Compile
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- The compiler for berp. The compiler translates Python 3 into Haskell.
+--
+-----------------------------------------------------------------------------
+
 module Berp.Compile.Compile (compiler, Compilable (..)) where
 
 import Prelude hiding (read, init, mapM, putStrLn)

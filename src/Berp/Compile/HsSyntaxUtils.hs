@@ -1,3 +1,16 @@
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Compile.HsSyntaxUtils
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- Utilities for processing Haskell syntax.
+--
+-----------------------------------------------------------------------------
+
 module Berp.Compile.HsSyntaxUtils  where
 
 import Language.Haskell.Exts.Syntax

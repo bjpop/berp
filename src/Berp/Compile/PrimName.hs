@@ -1,7 +1,19 @@
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Compile.PrimName
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- Names for primtive functions used in the output of the compiler.
+--
+-----------------------------------------------------------------------------
+
 module Berp.Compile.PrimName where
 
 import Language.Haskell.Exts.Syntax as Hask
--- import Language.Python.Version3.Syntax.AST as Py
 import Language.Python.Common.AST as Py
 import Prelude hiding (read, init)
 import Language.Haskell.Exts.Build
@@ -12,7 +24,6 @@ berpModuleName = ModuleName "Berp.Base"
 preludeModuleName = ModuleName "Prelude"
 
 prim :: String -> Exp
--- prim = qvar berpModuleName . name 
 prim = var . name 
 
 tailCall :: Exp

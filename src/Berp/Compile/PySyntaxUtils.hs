@@ -1,7 +1,20 @@
 {-# LANGUAGE TypeSynonymInstances #-}
+
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Compile.PySyntaxUtils
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- Utilities for processing Python syntax.
+--
+-----------------------------------------------------------------------------
+
 module Berp.Compile.PySyntaxUtils where
 
--- import Language.Python.Version3.Syntax.AST as Py
 import Language.Python.Common.AST as Py
 import Data.Set as Set 
 import Berp.Compile.Utils
