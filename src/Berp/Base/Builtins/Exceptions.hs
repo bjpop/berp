@@ -1,3 +1,16 @@
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base.Builtins.Exceptions
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- Standard Python exception classes.
+--
+-----------------------------------------------------------------------------
+
 {-
 
 From http://docs.python.org/dev/3.0/library/exceptions.html

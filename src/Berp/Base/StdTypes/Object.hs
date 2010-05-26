@@ -1,4 +1,16 @@
-{-# OPTIONS_GHC -XTemplateHaskell #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base.StdTypes.Object
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- The standard object type (the base of all types).
+--
+-----------------------------------------------------------------------------
+
 module Berp.Base.StdTypes.Object (object) where
 
 import Prelude hiding (init)

@@ -1,5 +1,19 @@
 {-# LANGUAGE PatternGuards #-}
 
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Interpreter.Input
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- Prompt for and read input lines. Handle input continuations for multi-line
+-- statemtents. 
+--
+-----------------------------------------------------------------------------
+
 module Berp.Interpreter.Input (getInputLines) where
 
 import Control.Monad (when)

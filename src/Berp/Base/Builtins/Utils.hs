@@ -1,3 +1,16 @@
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base.Builtins.Utils
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- Support code for making builtins.
+--
+-----------------------------------------------------------------------------
+
 module Berp.Base.Builtins.Utils (primFun, primConstant) where
 
 import Data.IORef (newIORef)

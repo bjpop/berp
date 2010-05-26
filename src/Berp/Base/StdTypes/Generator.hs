@@ -1,4 +1,16 @@
-{-# OPTIONS_GHC -XTemplateHaskell #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base.StdTypes.Generator
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- The standard generator type.
+--
+-----------------------------------------------------------------------------
+
 module Berp.Base.StdTypes.Generator (generator, generatorClass) where
 
 import Berp.Base.Monad (constantIO)

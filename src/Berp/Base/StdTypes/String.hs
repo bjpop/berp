@@ -1,4 +1,16 @@
-{-# OPTIONS_GHC -XTemplateHaskell #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base.StdTypes.String
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- The standard string type.
+--
+-----------------------------------------------------------------------------
+
 module Berp.Base.StdTypes.String (string, stringClass, emptyString) where
 
 import Berp.Base.Prims (primitive)

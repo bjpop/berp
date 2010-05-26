@@ -1,3 +1,16 @@
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base.Builtins.Functions
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- Builtin functions.
+--
+-----------------------------------------------------------------------------
+
 module Berp.Base.Builtins.Functions 
    (_s_print, _s_dir, _s_input, _s_id) 
    where

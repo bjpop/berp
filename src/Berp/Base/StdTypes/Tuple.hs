@@ -1,4 +1,16 @@
-{-# OPTIONS_GHC -XTemplateHaskell #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base.StdTypes.Tuple
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- The standard tuple type.
+--
+-----------------------------------------------------------------------------
+
 module Berp.Base.StdTypes.Tuple (tuple, tupleClass, emptyTuple, getTupleElements) where
 
 import Data.List (intersperse)

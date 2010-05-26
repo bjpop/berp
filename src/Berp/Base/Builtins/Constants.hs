@@ -1,3 +1,16 @@
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base.Builtins.Constants
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- Constant builtin values (typically constant objects).
+--
+-----------------------------------------------------------------------------
+
 module Berp.Base.Builtins.Constants
    (_s_object, _s_type)
    where

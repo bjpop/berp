@@ -1,4 +1,16 @@
-{-# OPTIONS_GHC -XTemplateHaskell #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base.StdTypes.None
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- The standard none type.
+--
+-----------------------------------------------------------------------------
+
 module Berp.Base.StdTypes.None (none, noneIdentity, noneClass) where
 
 import Berp.Base.Prims (primitive)

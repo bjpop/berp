@@ -1,4 +1,16 @@
-{-# OPTIONS_GHC -XTemplateHaskell -XPatternGuards #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base.StdTypes.Type
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- The standard "type" type.
+--
+-----------------------------------------------------------------------------
+
 module Berp.Base.StdTypes.Type (typeClass, newType) where
 
 import Data.List (delete, foldl')

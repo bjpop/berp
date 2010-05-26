@@ -1,4 +1,16 @@
-{-# OPTIONS_GHC -XTemplateHaskell #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base.StdTypes.Dictionary
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- The standard dictionary type.
+--
+-----------------------------------------------------------------------------
+
 module Berp.Base.StdTypes.Dictionary (emptyDictionary, dictionary, dictionaryClass) where
 
 import Data.List (intersperse)

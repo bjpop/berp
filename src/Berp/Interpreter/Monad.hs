@@ -1,3 +1,16 @@
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Interpreter.Monad
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- Monad type and routines for the interpreter.
+--
+-----------------------------------------------------------------------------
+
 module Berp.Interpreter.Monad (Repl, runRepl, withInputState) where
 
 import Exception (ExceptionMonad (..))

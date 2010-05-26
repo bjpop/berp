@@ -1,4 +1,16 @@
-{-# OPTIONS_GHC -XTemplateHaskell #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      : Berp.Base.StdTypes.List
+-- Copyright   : (c) 2010 Bernie Pope
+-- License     : BSD-style
+-- Maintainer  : florbitous@gmail.com
+-- Stability   : experimental
+-- Portability : ghc
+--
+-- The standard list type.
+--
+-----------------------------------------------------------------------------
+
 module Berp.Base.StdTypes.List (list, listClass, listIndex) where
 
 import Control.Monad.Trans (liftIO)
