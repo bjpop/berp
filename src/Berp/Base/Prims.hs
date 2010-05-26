@@ -24,7 +24,8 @@ module Berp.Base.Prims
    , read, var, binOp, setattr, callMethod, callSpecialMethod, subs
    , try, tryElse, tryFinally, tryElseFinally, except, exceptDefault
    , raise, reRaise, raiseFrom, primitive, generator, yield, generatorNext
-   , def, lambda, mkGenerator, printObject, topVar, Applicative.pure, pureObject, showObject ) where
+   , def, lambda, mkGenerator, printObject, topVar, Applicative.pure
+   , pureObject, showObject, returningProcedure ) where
 
 import System.Exit (exitWith)
 import Prelude hiding (break, read, putStr)
@@ -61,15 +62,12 @@ pureObject :: Object -> Eval Object
 pureObject = Applicative.pure
 
 primitive :: Arity -> Procedure -> Object
-primitive arity proc =  
-   function arity $ \args -> do
-      result <- proc args
-      ret result
-{-
-      -- we need the result to be "Eval Object", 
-      -- even though execution never gets here because of the preceeding return
-      return none
--}
+primitive arity = function arity . returningProcedure 
+
+returningProcedure :: Procedure -> Procedure
+returningProcedure proc args = do
+   result <- proc args
+   ret result
 
 infix 1 =:  -- assignment
 infixl 8 @@ -- procedure application
@@ -114,16 +112,18 @@ obj @@ args = do
     case obj of 
         Function { object_procedure = proc, object_arity = arity }
            | arity == -1 || arity == length args -> 
-                callCC $ \ret -> do 
-                   push $ ProcedureCall ret
-                   proc args 
+                callProcedure proc args 
            -- XXX should be raise of arity, typeError exception
-           -- | otherwise -> raise typeError >> return none
            | otherwise -> raise typeError 
-        Type { object_constructor = proc } -> proc args
+        Type { object_constructor = proc } -> callProcedure proc args
         -- XXX should try to find "__call__" attribute on object
-        -- other -> raise typeError >> return none 
         other -> raise typeError 
+
+callProcedure :: Procedure -> [Object] -> Eval Object
+callProcedure proc args = 
+   callCC $ \ret -> do 
+      push $ ProcedureCall ret
+      proc args 
 
 tailCall :: Object -> [Object] -> Eval Object 
 tailCall obj args = do
@@ -133,7 +133,6 @@ tailCall obj args = do
            | otherwise -> raise typeError 
         Type { object_constructor = proc } -> proc args
         -- XXX should try to find "__call__" attribute on object
-        -- other -> raise typeError >> return none 
         other -> raise typeError 
 
 ifThenElse :: Eval Object -> Eval Object -> Eval Object -> Eval Object 
@@ -217,7 +216,6 @@ binOp left right project fun build
 
 -- XXX this should also work on Type
 -- XXX need to support __setattr__ and descriptors
--- setattr :: Object -> Ident -> Object -> Eval ()
 setattr :: Object -> Hashed String -> Object -> Eval Object
 setattr target attribute value 
    | Just dict <- dictOf target = do
@@ -225,12 +223,6 @@ setattr target attribute value
         Hash.stringInsert attribute value $ hashTable
         return value
    | otherwise = error $ "setattr on object unimplemented: " ++ show (target, attribute)
-{-
-setattr target@(Object {}) attribute value = do
-   let hashTable = object_hashTable $ object_dict target
-   Hash.stringInsert attribute value $ hashTable
-setattr other attribute value = error $ "setattr on object unimplemented: " ++ show other 
--}
 
 callMethod :: Object -> Hashed String -> [Object] -> Eval Object
 callMethod object ident args = do
@@ -242,16 +234,6 @@ callSpecialMethod :: Object -> Hashed String -> [Object] -> Eval Object
 callSpecialMethod object ident args = do
    proc <- lookupSpecialAttribute object ident
    proc @@ args
-
-{-
--- XXX inefficient because we lookup the attribute twice.
-callMethodMaybe :: Object -> Hashed String -> [Object] -> Eval Object 
-callMethodMaybe object ident args = do
-   maybeProc <- lookupAttributeMaybe object ident
-   case maybeProc of
-      Nothing -> return none 
-      Just {} -> callMethod object ident args
--}
 
 subs :: Object -> Object -> Eval Object
 subs obj subscript = callMethod obj $(hashedStr "__getitem__") [subscript]
@@ -327,7 +309,8 @@ raise obj = do
    BELCH("Raising: " ++ show obj)
    IF_DEBUG(dumpStack)
    exceptionObj <- case obj of
-      Type { object_constructor = cons } -> cons []
+      Type { object_constructor = cons } -> 
+         callProcedure cons []
       other -> return other
    stack <- gets control_stack
    handleFrame exceptionObj stack
@@ -383,7 +366,6 @@ yield obj = do
    callCC $ \next -> do
       generatorYield <- unwindYieldContext (next none)
       generatorYield obj
-   -- return none 
 
 -- the next method for generators
 generatorNext :: [Object] -> Eval Object
@@ -412,11 +394,6 @@ def ident arity docString fun = do
    closure params = do
       argsRefs <- mapM newIORef params 
       fun argsRefs 
-{-
-      -- may not get here, but if you do, return None
-      -- XXX revisit when considering tail call optimisation
-      Prelude.return None 
--}
 
 lambda :: Arity -> ([ObjectRef] -> Eval Object) -> Eval Object
 lambda arity fun = 
@@ -434,13 +411,10 @@ mkGenerator cont = do
 
 printObject :: Object -> Eval () 
 printObject obj = do
-   -- putStrLn $ "Calling printObject on: " ++ show obj
-   -- strObj <- callMethod obj strName []
    str <- showObject obj
    putStr str 
 
 showObject :: Object -> Eval String
 -- XXX this should really choose the right quotes based on the content of the string.
 showObject obj@(String {}) = return ("'" ++ object_string obj ++ "'")
--- showObject obj = object_string <$> callMethod obj strName []
 showObject obj = object_string <$> callSpecialMethod obj strName []

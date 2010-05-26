@@ -9,7 +9,7 @@ import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.Hash (hashedStr)
 import Berp.Base.Object (typeOf)
-import Berp.Base.Prims (primitive, callMethod)
+import Berp.Base.Prims (primitive, callMethod, returningProcedure)
 import Berp.Base.StdNames (mroName, initName)
 import {-# SOURCE #-} Berp.Base.StdTypes.Object (object)
 import {-# SOURCE #-} Berp.Base.StdTypes.Dictionary (emptyDictionary)
@@ -28,7 +28,7 @@ typeClass = constantIO $ do
       , object_type = typeClass  -- yes it is recursive!
       , object_dict = dict
       , object_bases = objectBase 
-      , object_constructor = \args -> liftIO $ newType args
+      , object_constructor = returningProcedure (\args -> liftIO $ newType args)
       , object_type_name = string "type"
       , object_mro = tuple [typeClass, object]
       }
@@ -44,7 +44,7 @@ newType args
              , object_type = typeClass
              , object_dict = dict
              , object_bases = bases
-             , object_constructor = instantiate theType 
+             , object_constructor = returningProcedure $ instantiate theType 
              , object_type_name = name 
 
              -- XXX we should force the eval of the mro here to catch any errors up front.
