@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -XTypeSynonymInstances #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 -----------------------------------------------------------------------------
 -- |
