@@ -1,3 +1,5 @@
+{-# LANGUAGE PatternGuards #-}
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      : Berp.Base.StdTypes.Type

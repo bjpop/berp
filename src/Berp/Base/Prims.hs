@@ -25,7 +25,7 @@ module Berp.Base.Prims
    , try, tryElse, tryFinally, tryElseFinally, except, exceptDefault
    , raise, reRaise, raiseFrom, primitive, generator, yield, generatorNext
    , def, lambda, mkGenerator, printObject, topVar, Applicative.pure
-   , pureObject, showObject, returningProcedure ) where
+   , pureObject, showObject, returningProcedure, pyCallCC ) where
 
 import System.Exit (exitWith)
 import Prelude hiding (break, read, putStr)
@@ -418,3 +418,14 @@ showObject :: Object -> Eval String
 -- XXX this should really choose the right quotes based on the content of the string.
 showObject obj@(String {}) = return ("'" ++ object_string obj ++ "'")
 showObject obj = object_string <$> callSpecialMethod obj strName []
+
+pyCallCC :: Object -> Eval Object
+pyCallCC fun = 
+   callCC $ \ret -> do
+      context <- getControlStack 
+      let cont = function 1 $ \(obj:_) -> do
+                    -- XXX should this run finalisers on the way out?
+                    setControlStack context
+                    ret obj
+      -- XXX can this be a tail call?
+      fun @@ [cont]

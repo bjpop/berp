@@ -12,7 +12,7 @@
 -----------------------------------------------------------------------------
 
 module Berp.Base.Builtins.Functions 
-   (_s_print, _s_dir, _s_input, _s_id) 
+   (_s_print, _s_dir, _s_input, _s_id, _s_callCC)
    where
 
 import Data.List (null)
@@ -21,7 +21,7 @@ import System.IO (stdout)
 import Data.List (intersperse)
 import Berp.Base.SemanticTypes (Object (..), Procedure, Eval, ObjectRef)
 import Berp.Base.Mangle (mangle)
-import qualified Berp.Base.Prims as Prims (callMethod, printObject)
+import qualified Berp.Base.Prims as Prims (callMethod, printObject, pyCallCC)
 import Berp.Base.Builtins.Utils (primFun)
 import Berp.Base.StdNames (strName)
 import Berp.Base.LiftedIO as LIO (hFlush, putStr, putChar, getLine)
@@ -72,3 +72,10 @@ _s_id = do
    where
    procedure :: Procedure
    procedure (obj:_) = return $ int $ uniqueInteger $ identityOf obj
+
+_s_callCC :: ObjectRef
+_s_callCC = do
+   primFun (mangle "callCC") 1 procedure
+   where
+   procedure :: Procedure
+   procedure (obj:_) = Prims.pyCallCC obj 

@@ -19,7 +19,7 @@
 module Berp.Base.ControlStack 
    ( isEmpty, isProcedureCall, isExceptionHandler, isWhileLoop, isGeneratorCall
    , unwind, unwindPastWhileLoop, unwindUpToWhileLoop, push, pop, nullifyTopHandler 
-   , unwindYieldContext, dumpStack
+   , unwindYieldContext, dumpStack, getControlStack, setControlStack
    )
    where
 
@@ -133,6 +133,9 @@ push frame = do
 
 setControlStack :: ControlStack -> Eval ()
 setControlStack stack = modify $ \state -> state { control_stack = stack }
+
+getControlStack :: Eval ControlStack
+getControlStack = gets control_stack
 
 -- assumes top of stack is an exception handler
 nullifyTopHandler :: Eval ()
