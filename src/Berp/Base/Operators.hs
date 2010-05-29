@@ -42,7 +42,7 @@ infixr 2 `or`
 binop :: Hashed String -> Object -> Object -> Eval Object
 binop str arg1 arg2 = callMethod arg1 str [arg2]
 
-(%), (+), (-), (*), (/), (==), (<), (>), (<=), (>=) :: Object -> Object -> Eval Object
+(%), (+), (-), (*), (/), (==), (<), (>), (<=), (>=), or, and :: Object -> Object -> Eval Object
 
 (%) obj1@(Integer {}) obj2@(Integer {}) = 
    return $ int (object_integer obj1 `Prelude.mod` object_integer obj2)

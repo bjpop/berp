@@ -524,6 +524,7 @@ trimString (x:xs)
    | isQuote x = trimStringEnd xs
    | otherwise = x : trimStringEnd xs
 
+trimStringEnd :: String -> String
 trimStringEnd [] = [] 
 trimStringEnd str@[x]
       | isQuote x = []
@@ -533,6 +534,7 @@ trimStringEnd str@[x,y,z]
       | otherwise = x : trimStringEnd [y,z] 
 trimStringEnd (x:xs) = x : trimStringEnd xs 
 
+isQuote :: String -> Bool
 isQuote '\'' = True
 isQuote '"' = True
 isQuote _ = False 

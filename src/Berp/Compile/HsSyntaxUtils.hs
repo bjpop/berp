@@ -17,6 +17,7 @@ import Language.Haskell.Exts.Syntax
 import Language.Haskell.Exts.Build
 import Berp.Compile.PrimName as Prim
 
+bogusSrcLoc :: SrcLoc
 bogusSrcLoc = SrcLoc { srcFilename = "", srcLine = -1, srcColumn = -1 }
 
 class Parens a where

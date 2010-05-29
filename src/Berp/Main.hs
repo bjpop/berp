@@ -107,6 +107,7 @@ help =
    , argDesc = "Display a help message."
    }
 
+showHaskell :: Arg ArgIndex
 showHaskell = 
    Arg
    { argIndex = ShowHaskell 
@@ -116,6 +117,7 @@ showHaskell =
    , argDesc = "Output translated Haskell code on standard output and exit."
    }
 
+inputFile :: Arg ArgIndex
 inputFile = 
    Arg
    { argIndex = InputFile 
@@ -125,6 +127,7 @@ inputFile =
    , argDesc = "Name of the input Python file."
    }
 
+compile :: Arg ArgIndex
 compile = 
    Arg
    { argIndex = Compile 
@@ -134,6 +137,7 @@ compile =
    , argDesc = "Compile the input program, but do not run it."
    }
 
+clobber :: Arg ArgIndex
 clobber = 
    Arg
    { argIndex = Clobber 
@@ -143,6 +147,7 @@ clobber =
    , argDesc = "Remove all compiler generated files after the compiled program has run."
    }
 
+clean :: Arg ArgIndex
 clean = 
    Arg
    { argIndex = Clean 

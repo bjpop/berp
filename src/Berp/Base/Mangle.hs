@@ -24,6 +24,7 @@ module Berp.Base.Mangle (mangle, deMangle) where
 
 import Data.List (isPrefixOf)
 
+sourcePrefix :: String
 sourcePrefix = "_s_"
 
 mangle :: String -> String
