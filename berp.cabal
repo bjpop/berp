@@ -19,7 +19,7 @@ homepage:            http://wiki.github.com/bjpop/berp/
 build-type:          Simple
 stability:           experimental
 tested-with:         GHC==6.10.4 
-extra-source-files:  
+extra-source-files:  src/include/BerpDebug.h
 
 Executable berp
   main-is:         Main.hs
@@ -29,11 +29,13 @@ Executable berp
                    directory == 1.0.*, ghc >= 6.10.4, haskeline == 0.6.*, ghc-paths == 0.1.*, extensible-exceptions == 0.1.*
   other-modules:
       Berp.Compile.Compile
+      Berp.Compile.IdentString
       Berp.Compile.Monad
       Berp.Compile.HsSyntaxUtils
       Berp.Compile.PySyntaxUtils
       Berp.Compile.PrimName
       Berp.Compile.Utils
+      Berp.Compile.VarSet
       Berp.Interpreter.Input
       Berp.Interpreter.Monad
       Berp.Interpreter.Repl
