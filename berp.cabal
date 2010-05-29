@@ -22,11 +22,26 @@ tested-with:         GHC==6.10.4
 extra-source-files:  src/include/BerpDebug.h
 
 Executable berp
-  main-is:         Main.hs
-  hs-source-dirs:  src, src/Berp/
-  build-depends:   base == 4.*, monads-tf == 0.1.*, transformers == 0.2.*, containers == 0.2.*, language-python == 0.3.*, 
-                   haskell-src-exts == 1.9.*, parseargs == 0.1.*, process == 1.0.*, filepath == 1.1.*,
-                   directory == 1.0.*, ghc >= 6.10.4, haskeline == 0.6.*, ghc-paths == 0.1.*, extensible-exceptions == 0.1.*
+  main-is:
+      Main.hs
+  hs-source-dirs:
+      src, 
+      src/Berp/
+  build-depends:   
+      base == 4.*,
+      monads-tf == 0.1.*,
+      transformers == 0.2.*,
+      containers == 0.2.*,
+      language-python == 0.3.*,
+      haskell-src-exts == 1.9.*,
+      parseargs == 0.1.*,
+      process == 1.0.*,
+      filepath == 1.1.*,
+      directory == 1.0.*,
+      ghc >= 6.10.4,
+      haskeline == 0.6.*,
+      ghc-paths == 0.1.*,
+      extensible-exceptions == 0.1.*
   other-modules:
       Berp.Compile.Compile
       Berp.Compile.IdentString
@@ -41,9 +56,19 @@ Executable berp
       Berp.Interpreter.Repl
 
 Library
-   include-dirs: src/include 
-   hs-source-dirs:   src
-   build-depends:    base, monads-tf, transformers, containers, ghc-prim, integer, template-haskell, array
+   include-dirs:
+       src/include 
+   hs-source-dirs:
+       src
+   build-depends:
+       base,
+       monads-tf,
+       transformers,
+       containers,
+       ghc-prim,
+       integer,
+       template-haskell,
+       array
    exposed-modules:
       Berp.Base
       Berp.Base.Hash
