@@ -64,7 +64,7 @@ normaliseIndex index numElements =
          if indexInteger < 0 || indexInteger >= numElements
             then fail "list index out of range"
             else return indexInteger
-      other -> fail "list indices must be integers"
+      _other -> fail "list indices must be integers"
    where
    positiveIndex index
       | index < 0 = numElements + index
@@ -110,20 +110,8 @@ updateListElement list index value = liftIO $ do
 {-# NOINLINE listClass #-}
 listClass :: Object
 listClass = constantIO $ do 
-   identity <- newIdentity
    dict <- attributes
    newType [string "list", objectBase, dict]
-{-
-   return $
-      Type 
-      { object_identity = identity
-      , object_type = typeClass
-      , object_dict = dict
-      , object_bases = objectBase
-      , object_constructor = \_ -> list [] 
-      , object_type_name = string "list"
-      }
--}
 
 attributes :: IO Object 
 attributes = mkAttributes 
@@ -140,6 +128,7 @@ eq = error "== on list not defined"
 
 getItem :: Procedure 
 getItem (x:y:_) = listIndex x y
+getItem _other = error "getItem on list applied to wrong number of arguments"
 
 str :: Procedure 
 str (x:_) = do
@@ -149,15 +138,19 @@ str (x:_) = do
    strings <- mapM showObject elements 
    -- let strings = map object_string objStrs
    Prelude.return $ string $ "[" ++ concat (intersperse ", " strings) ++ "]"
+str _other = error "str on list applied to wrong number of arguments"
 
 add :: Procedure 
 add (x:y:_) = listAppend x y 
+add _other = error "add on list applied to wrong number of arguments"
 
 setItem :: Procedure 
 setItem (x:y:z:_) = updateListElement x y z
+setItem _other = error "setItem on list applied to wrong number of arguments"
 
 iter :: Procedure
 iter (x:_) = do
    array <- readIORef $ object_list_elements x
    elements <- liftIO $ getElems array
    generator (traverse_ yield elements >> pass)
+iter _other = error "iter on list applied to wrong number of arguments"

@@ -52,7 +52,7 @@ repl = do
          -- target <- guessTarget "test_main.hs" Nothing
          -- setTargets [target]
          -- load LoadAllTargets
-         prel_mod <- findModule (mkModuleName "Prelude") Nothing
+         -- prel_mod <- findModule (mkModuleName "Prelude") Nothing
          berp_base_mod <- findModule (mkModuleName "Berp.Base") Nothing
          -- setContext [] [prel_mod, berp_base_mod]
          setContext [] [berp_base_mod]
@@ -86,7 +86,7 @@ runAndCatch stmt = do
 
 printRunResult :: RunResult -> Repl ()
 printRunResult (RunException e) = liftIO $ putStrLn ("Exception " ++ show e)
-printRunResult other = return () 
+printRunResult _other = return () 
 
 oneLinePrinter :: Stmt -> String
 oneLinePrinter = 

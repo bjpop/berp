@@ -64,6 +64,7 @@ _s_dir = do
    where
    procedure :: Procedure
    procedure (obj:_) = dir obj
+   procedure _other = error "dir applied to wrong number of arguments"
 
 _s_id :: ObjectRef
 _s_id = do
@@ -71,6 +72,7 @@ _s_id = do
    where
    procedure :: Procedure
    procedure (obj:_) = return $ int $ uniqueInteger $ identityOf obj
+   procedure _other = error "id applied to wrong number of arguments"
 
 _s_callCC :: ObjectRef
 _s_callCC = do
@@ -78,3 +80,4 @@ _s_callCC = do
    where
    procedure :: Procedure
    procedure (obj:_) = Prims.pyCallCC obj 
+   procedure _other = error "callCC applied to wrong number of arguments"

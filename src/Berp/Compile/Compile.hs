@@ -94,7 +94,7 @@ instance Compilable ModuleSpan where
 instance Compilable StatementSpan where
    type (CompileResult StatementSpan) = [Stmt] 
 
-   compile stmt@(Fun {fun_name = fun, fun_args = params, fun_body = body}) = do
+   compile (Fun {fun_name = fun, fun_args = params, fun_body = body}) = do
       oldSeenYield <- getSeenYield
       unSetSeenYield
       bindings <- checkEither $ funBindings params body
@@ -209,11 +209,12 @@ instance Compilable StatementSpan where
                  return (stmts1 ++ stmts2 ++ [newStmt])
    compile (Break {}) = returnStmt Prim.break
    compile (Continue {}) = returnStmt Prim.continue
+   compile other = error $ "compile on " ++ show other ++ " unsupported"
 
 docString :: SuiteSpan -> Exp
 docString (StmtExpr { stmt_expr = Strings { strings_strings = ss }} : _)
    = parens $ Prim.string $ trimString $ concat ss
-docString other = Prim.none
+docString _other = Prim.none
 
 mkTry :: Exp -> Exp -> [Stmt] -> [Stmt] -> Exp 
 mkTry body handler elseSuite finally = 
@@ -309,10 +310,12 @@ compileTailCall (Call { call_fun = fun, call_args = args }) = do
       -- let newExp = infixApp compiledFun Prim.apply (listE compiledArgs)
       let newExp = appFun Prim.tailCall [compiledFun, listE compiledArgs]
       return (funStmts ++ concat argsStmtss, newExp) 
+compileTailCall other = error $ "compileTailCall on non call expression: " ++ show other
 
 instance Compilable ArgumentSpan where
    type (CompileResult ArgumentSpan) = ([Stmt], Exp)
    compile (ArgExpr { arg_expr = expr }) = compileExprObject expr
+   compile other = unsupported $ show other
 
 newtype Block = Block [StatementSpan]
 newtype TopBlock = TopBlock [StatementSpan]
@@ -367,7 +370,7 @@ compileHandlers asName handlers = do
    foldrM (compileHandler asName) (parens $ app Prim.raise asName) handlers 
 
 compileHandler :: Exp -> HandlerSpan -> Exp -> Compile Exp
-compileHandler asName handler@(Handler { handler_clause = clause, handler_suite = body }) nextHandler = do
+compileHandler asName (Handler { handler_clause = clause, handler_suite = body }) nextHandler = do
    bodyStmts <- compile body
    case except_clause clause of
       Nothing -> return $ appFun Prim.exceptDefault
@@ -380,6 +383,7 @@ compileHandler asName handler@(Handler { handler_clause = clause, handler_suite 
                   identDecl <- declareVar ident
                   let newAssign = qualStmt $ infixApp (var $ identToMangledName ident) Prim.assignOp asName 
                   return [identDecl, newAssign]
+               other -> error $ "exception expression not a variable: " ++ show other
          (classStmts, classObj) <- compileExprObject exceptClass
          let newBody = parens $ doBlock (varStmts ++ concat bodyStmts)
              newStmt = qualStmt $ appFun Prim.except [asName, classObj, newBody, parens nextHandler]
@@ -401,6 +405,7 @@ compileAssign (Py.Var { var_ident = ident}) expr = do
    (exprStmts, compiledExp) <- compileExprObject expr
    let newStmt = qualStmt $ infixApp (identToMangledVar ident) Prim.assignOp compiledExp
    return (exprStmts ++ [newStmt])
+compileAssign e1 e2 = unsupported $ "assignment for " ++ show e1 ++ " and " ++ show e2 
 
 compileUnaryOp :: Py.OpSpan -> Hask.Exp
 compileUnaryOp (Plus {}) = Prim.unaryPlus
@@ -506,7 +511,7 @@ class Validate t where
 
 instance Validate [HandlerSpan] where
    validate [] = fail "Syntax Error: Syntax Error: try statement must have one or more handlers"
-   validate [h] = return ()
+   validate [_] = return ()
    validate (h:hs) 
        | Nothing <- except_clause $ handler_clause h
             = if null hs then return () 
@@ -534,7 +539,7 @@ trimStringEnd str@[x,y,z]
       | otherwise = x : trimStringEnd [y,z] 
 trimStringEnd (x:xs) = x : trimStringEnd xs 
 
-isQuote :: String -> Bool
+isQuote :: Char -> Bool
 isQuote '\'' = True
 isQuote '"' = True
 isQuote _ = False 

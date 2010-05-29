@@ -40,7 +40,7 @@ getInputLines = do
            lastTokenIsColon tokens -> do
              restLines <- getIndentContinueLines state []
              return $ Just $ unlines (line:restLines)
-         | Right (tokens, state) <- lexResult,
+         | Right (_tokens, state) <- lexResult,
            nonEmptyParenStack state -> do
              restLines <- getParenContinueLines state []
              return $ Just $ unlines (line:restLines)
@@ -55,7 +55,7 @@ lastTokenIsColon tokens =
    where
    isColon :: Token -> Bool
    isColon (ColonToken {}) = True
-   isColon other = False
+   isColon _other = False
 
 nonEmptyParenStack :: ParseState -> Bool
 nonEmptyParenStack state = not $ null $ parenStack state
@@ -66,10 +66,10 @@ getIndentContinueLines state acc = do
    case maybeInput of
       Nothing -> return $ reverse acc
       Just line
-         | Right (tokens, newState) <- lexResult,
+         | Right (_tokens, newState) <- lexResult,
            nonEmptyParenStack newState -> do
               getIndentContinueLines newState (line:acc)
-         | Right (tokens, newState) <- lexResult,
+         | Right (_tokens, newState) <- lexResult,
            length line > 0 -> do
               -- liftIO $ print newState
               -- liftIO $ print tokens 
@@ -85,7 +85,7 @@ getParenContinueLines state acc = do
    case maybeInput of
       Nothing -> return $ reverse acc
       Just line
-         | Right (tokens, newState) <- lexResult,
+         | Right (_tokens, newState) <- lexResult,
            nonEmptyParenStack newState ->
               getParenContinueLines newState (line:acc)
          | otherwise -> return $ reverse (line:acc)

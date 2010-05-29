@@ -40,21 +40,8 @@ generator continuation = do
 {-# NOINLINE generatorClass #-}
 generatorClass :: Object
 generatorClass = constantIO $ do 
-   as <- attributes
-   identity <- newIdentity 
    dict <- attributes
    newType [string "generator", objectBase, dict]
-{-
-   return $
-      Type 
-      { object_identity = identity 
-      , object_type = typeClass
-      , object_dict = dict 
-      , object_bases = objectBase 
-      , object_constructor = \_ -> error "generator type does not provide a constructor" 
-      , object_type_name = string "generator" 
-      }
--}
 
 -- XXX update my attributes
 attributes :: IO Object
@@ -66,10 +53,10 @@ attributes = mkAttributes
 
 -- XXX fixme
 str :: Object
-str = primitive 1 $ \[x] -> return $ string $ "Generator" 
+str = primitive 1 $ \_ -> return $ string $ "Generator" 
 
 iter :: Object
-iter = primitive 1 $ \[x] -> return x
+iter = primitive 1 $ \(x:_) -> return x
 
 next :: Object
 next = function 1 generatorNext 

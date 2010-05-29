@@ -34,7 +34,6 @@ noneIdentity = constantIO newIdentity
 {-# NOINLINE noneClass #-}
 noneClass :: Object
 noneClass = constantIO $ do 
-   identity <- newIdentity
    dict <- attributes
    newType [string "NoneType", objectBase, dict]
 
@@ -49,4 +48,4 @@ eq [None, None] = return true
 eq _ = Prelude.return false 
 
 str :: Procedure 
-str [x] = Prelude.return $ string "None" 
+str _ = Prelude.return $ string "None" 

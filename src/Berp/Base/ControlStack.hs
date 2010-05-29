@@ -123,7 +123,7 @@ pop = do
    case stack of
       -- should be an exception
       EmptyStack -> error "pop: empty stack" 
-      other -> setControlStack $ control_stack_tail stack
+      _other -> setControlStack $ control_stack_tail stack
 
 push :: (ControlStack -> ControlStack) -> Eval ()
 push frame = do
@@ -144,7 +144,7 @@ nullifyTopHandler = do
    case stack of
      ExceptionHandler {} -> 
         setControlStack $ stack { exception_handler = Nothing } 
-     other -> error $ "nullifyTopHandler: top of stack is not an exception handler: " ++ show stack
+     _other -> error $ "nullifyTopHandler: top of stack is not an exception handler: " ++ show stack
 
 dumpStack :: Eval ()
 dumpStack = do
@@ -158,7 +158,8 @@ dumpStack = do
    printer (ExceptionHandler {}) = LIO.putStrLn "ExceptionHandler" 
    printer (WhileLoop {}) = LIO.putStrLn "WhileLoop" 
    printer (GeneratorCall {}) = LIO.putStrLn "GeneratorCall" 
+   printer (EmptyStack {}) = LIO.putStrLn "EmptyStack" 
 
 mapStackM :: Monad m => (ControlStack -> m ()) -> ControlStack -> m ()
-mapStackM f EmptyStack = return ()
+mapStackM _f EmptyStack = return ()
 mapStackM f stack = f stack >> mapStackM f (control_stack_tail stack)

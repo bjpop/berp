@@ -114,7 +114,7 @@ obj @@ args = do
            | otherwise -> raise typeError 
         Type { object_constructor = proc } -> callProcedure proc args
         -- XXX should try to find "__call__" attribute on object
-        other -> raise typeError 
+        _other -> raise typeError 
 
 callProcedure :: Procedure -> [Object] -> Eval Object
 callProcedure proc args = 
@@ -130,7 +130,7 @@ tailCall obj args = do
            | otherwise -> raise typeError 
         Type { object_constructor = proc } -> proc args
         -- XXX should try to find "__call__" attribute on object
-        other -> raise typeError 
+        _other -> raise typeError 
 
 ifThenElse :: Eval Object -> Eval Object -> Eval Object -> Eval Object 
 ifThenElse condComp trueComp falseComp = do
@@ -338,7 +338,7 @@ raise obj = do
    handleFrame exceptionObj (GeneratorCall { generator_object = genObj }) = do
       writeIORef (object_continuation genObj) (raise stopIteration)
       pop >> raise exceptionObj
-   handleFrame exceptionObj other = do
+   handleFrame exceptionObj _other = do
       -- BELCH("other frame")
       pop >> raise exceptionObj
    
@@ -375,7 +375,9 @@ generatorNext (obj:_) = do
             action
             BELCH("raising exception")
             raise stopIteration 
+         _other -> error "next applied to object which is not a generator"
    ret result
+generatorNext [] = error "Generator applied to no arguments"
 
 def :: ObjectRef -> Arity -> Object -> ([ObjectRef] -> Eval Object) -> Eval Object 
 def ident arity docString fun = do

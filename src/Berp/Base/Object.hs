@@ -36,7 +36,7 @@ import Berp.Base.LiftedIO as LIO (MonadIO)
 import Berp.Base.LiftedIO as LIO (putStrLn)
 #endif
 import {-# SOURCE #-} Berp.Base.HashTable (stringLookup, keys)
-import {-# SOURCE #-} Berp.Base.StdTypes.Integer (intClass)
+import {-# SOURCE #-} Berp.Base.StdTypes.Integer (intClass, int)
 import {-# SOURCE #-} Berp.Base.StdTypes.Bool (boolClass)
 import {-# SOURCE #-} Berp.Base.StdTypes.Tuple (tupleClass, getTupleElements)
 import {-# SOURCE #-} Berp.Base.StdTypes.Function (functionClass)
@@ -46,6 +46,14 @@ import {-# SOURCE #-} Berp.Base.StdTypes.Dictionary (dictionaryClass)
 import {-# SOURCE #-} Berp.Base.StdTypes.List (listClass, list)
 import {-# SOURCE #-} Berp.Base.StdTypes.Generator (generatorClass)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
+
+-- needed for overloaded numeric literals
+instance Num Object where
+    fromInteger = int
+    (+) = undefined
+    (*) = undefined
+    abs = undefined
+    signum = undefined
 
 -- Python allows the type of an object to change in a limited set of circumstances.
 -- But we will ignore that for the moment and make it a pure function.
@@ -71,20 +79,20 @@ dictOf :: Object -> Maybe Object
 dictOf obj@(Object {}) = Just $ object_dict obj
 dictOf obj@(Type {}) = Just $ object_dict obj
 dictOf obj@(Function {}) = Just $ object_dict obj
-dictOf other = Nothing
+dictOf _other = Nothing
 
 lookupAttribute :: Object -> Hashed String -> Eval Object
-lookupAttribute obj ident@(_, identStr) = do
+lookupAttribute obj ident = do
    lookupResult <- lookupAttributeMaybe obj ident
    checkLookup obj ident lookupResult 
 
 lookupSpecialAttribute :: Object -> Hashed String -> Eval Object
-lookupSpecialAttribute obj ident@(_, identStr) = do
+lookupSpecialAttribute obj ident = do
    lookupResult <- lookupSpecialAttributeMaybe obj ident
    checkLookup obj ident lookupResult 
 
 checkLookup :: Object -> Hashed String -> Maybe Object -> Eval Object
-checkLookup obj ident@(_, identStr) lookupResult =
+checkLookup obj (_, identStr) lookupResult =
    case lookupResult of
       -- XXX This should raise a proper catchable exception 
       Nothing -> do
@@ -193,7 +201,7 @@ objectEquality obj1 obj2
                     cmpResult <- callMethod obj1 cmpName [obj2]
                     case cmpResult of
                        Integer {} -> return $ object_integer cmpResult == 0
-                       other -> fail $ "__cmp__ method on object does not return an integer: " ++ show obj1
+                       _other -> fail $ "__cmp__ method on object does not return an integer: " ++ show obj1
                  else return False -- XXX should this raise an exception?
 
 dir :: Object -> Eval Object

@@ -165,3 +165,13 @@ instance Show Object where
 instance Eq Object where
    None {} == None {} = True
    obj1 == obj2 = object_identity obj1 == object_identity obj2
+
+{-
+-- needed for overloaded numeric literals
+instance Num Object where
+    fromInteger = int
+    (+) = undefined
+    (*) = undefined
+    abs = undefined
+    signum = undefined
+-}

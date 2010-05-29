@@ -124,7 +124,7 @@ instance DefinedVars (StatementSpan) where
    -- The function name _is_ collected.
    definedVars (Fun { fun_name = n })
       = mempty { assigned = singleton $ toIdentString n }
-   definedVars (Class { class_name = ident, class_body = b })
+   definedVars (Class { class_name = ident, class_body = _b })
       = mempty { assigned = singleton $ toIdentString ident } -- `mappend` definedVars b 
    definedVars (Conditional { cond_guards = g, cond_else = e })     
       = definedVars g `mappend` definedVars e
@@ -140,7 +140,7 @@ instance DefinedVars (StatementSpan) where
       = mempty { globals = fromList $ Prelude.map toIdentString idents } 
    definedVars (NonLocal { nonLocal_vars = idents })
       = mempty { nonlocals = fromList $ Prelude.map toIdentString idents }
-   definedVars other = mempty
+   definedVars _other = mempty
 
 instance DefinedVars (Expr a) where
    definedVars = mempty 
@@ -157,19 +157,4 @@ isAtomicExpr (Py.Imaginary {}) = True
 isAtomicExpr (Py.Tuple {}) = True
 isAtomicExpr (Py.Paren { paren_expr = e }) = isAtomicExpr e
 isAtomicExpr (Py.None {}) = True
-isAtomicExpr other = False
-
--- True if the expression has no observable effect when treated as a statement
--- conservative approximation.
-isPureExpr :: Py.Expr a -> Bool
-isPureExpr (Py.Var {}) = True
-isPureExpr (Py.Strings {}) = True
-isPureExpr (Py.Bool {}) = True
-isPureExpr (Py.Int {}) = True
-isPureExpr (Py.Imaginary {}) = True
-isPureExpr (Py.Tuple { tuple_exprs = es }) = all isPureExpr es 
-isPureExpr (Py.List { list_exprs = es }) = all isPureExpr es 
-isPureExpr (Py.Lambda {}) = True
-isPureExpr (Py.None {}) = True
-isPureExpr (Py.Paren { paren_expr = e }) = isPureExpr e
-
+isAtomicExpr _other = False

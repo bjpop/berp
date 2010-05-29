@@ -48,7 +48,6 @@ dictionary elements = do
 {-# NOINLINE dictionaryClass #-}
 dictionaryClass :: Object
 dictionaryClass = constantIO $ do 
-   identity <- newIdentity
    dict <- attributes
    newType [string "dict", objectBase, dict]
 
@@ -73,6 +72,7 @@ str (obj:_) = do
       objStr1 <- showObject obj1
       objStr2 <- showObject obj2
       return (objStr1 ++ ": " ++ objStr2)
+str _other = error "str conversion on dictionary applied to wrong number of arguments"
 
 getItem :: Procedure
 getItem (obj:index:_) = do
@@ -81,3 +81,4 @@ getItem (obj:index:_) = do
    case maybeVal of 
       Nothing -> error "dict lookup failed" 
       Just val -> return val  
+getItem _other = error "getItem on dictionary applied to wrong number of arguments"

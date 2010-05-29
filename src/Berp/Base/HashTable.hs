@@ -56,7 +56,7 @@ hashObject object = do
    hashResult <- callMethod object $(hashedStr "__hash__") []
    case hashResult of
       Integer {} -> return $ fromInteger $ object_integer hashResult
-      other -> fail $ "__hash__ method on object does not return an integer: " ++ show object
+      _other -> fail $ "__hash__ method on object does not return an integer: " ++ show object
 
 empty :: MonadIO m => m HashTable 
 empty = newIORef IntMap.empty
@@ -67,7 +67,7 @@ fromList pairs = do
    newIORef $ IntMap.fromListWith (++) keysVals
    where
    toKeyVal :: (Object, Object) -> Eval (Int, [(Object, Object)])
-   toKeyVal pair@(key, val) = do
+   toKeyVal pair@(key, _val) = do
       hashValue <- hashObject key
       return (hashValue, [pair])
 
@@ -139,7 +139,7 @@ linearFilter :: Object -> [(Object, Object)] -> Eval [(Object, Object)]
 linearFilter object matches = foldM collectNotEquals [] matches 
    where
    collectNotEquals :: [(Object, Object)] -> (Object, Object) -> Eval [(Object, Object)]
-   collectNotEquals acc pair@(key, value) = do
+   collectNotEquals acc pair@(key, _value) = do
       areEqual <- objectEquality object key
       return $ if areEqual then acc else pair:acc 
 

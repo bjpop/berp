@@ -68,7 +68,7 @@ newType args
 
 getTupleElements :: Object -> [Object] 
 getTupleElements (Tuple { object_tuple = objs }) = objs
-getTupleElements other = error "bases of object is not a tuple"
+getTupleElements _other = error "bases of object is not a tuple"
 
 instantiate :: Object -> Procedure
 instantiate objectType args = do
@@ -91,6 +91,7 @@ attributes =
 
 mroMethod :: Procedure
 mroMethod (obj:_) = return $ object_mro obj 
+mroMethod _other = error "mro called with wrong number of arguments"
 
 {- Compute the linearization of a class with respect to its base classes.
 
@@ -109,7 +110,7 @@ mro klass bases
    where
    getMro :: Object -> [Object]
    getMro (Type { object_mro = obj }) = getTupleElements obj
-   getMro other = error "Fatal error: object's base is not a type" -- XXX fixme
+   getMro _other = error "Fatal error: object's base is not a type" -- XXX fixme
 
 {-
 

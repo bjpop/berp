@@ -20,7 +20,7 @@ import Berp.Base.Prims (primitive)
 import Berp.Base.Monad (constantIO) 
 
 primFun :: Ident -> Arity -> Procedure -> ObjectRef 
-primFun ident arity proc = constantIO $ do
+primFun _ident arity proc = constantIO $ do
    let primitiveObj = primitive arity proc 
    newIORef primitiveObj 
 

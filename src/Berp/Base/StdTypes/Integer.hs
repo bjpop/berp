@@ -24,15 +24,6 @@ import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.ObjectBase (objectBase)
 import Berp.Base.StdTypes.String (string)
 
-
--- needed for overloaded numeric literals
-instance Num Object where
-    fromInteger = int
-    (+) = undefined
-    (*) = undefined
-    abs = undefined
-    signum = undefined
-
 {-# NOINLINE int #-}
 int :: Integer -> Object 
 int i = constantIO $ do
@@ -42,7 +33,6 @@ int i = constantIO $ do
 {-# NOINLINE intClass #-}
 intClass :: Object
 intClass = constantIO $ do
-   identity <- newIdentity
    dict <- attributes
    newType [string "int", objectBase, dict]
 

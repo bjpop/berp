@@ -41,24 +41,12 @@ tuple elements = constantIO $ do
 {-# NOINLINE tupleClass #-}
 tupleClass :: Object
 tupleClass = constantIO $ do 
-   identity <- newIdentity
    dict <- attributes
    newType [string "tuple", objectBase, dict]
-{-
-   return $
-      Type 
-      { object_identity = identity
-      , object_type = typeClass
-      , object_dict = dict 
-      , object_bases = objectBase
-      , object_constructor = \ _ -> return emptyTuple 
-      , object_type_name = string "tuple"
-      }
--}
 
 getTupleElements :: Object -> [Object]
 getTupleElements (Tuple { object_tuple = objs }) = objs
-getTupleElements other = error "bases of object is not a tuple"
+getTupleElements _other = error "bases of object is not a tuple"
 
 attributes :: IO Object 
 attributes = mkAttributes 

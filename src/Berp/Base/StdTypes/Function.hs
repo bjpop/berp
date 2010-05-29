@@ -38,8 +38,6 @@ function arity p = constantIO $ do
 {-# NOINLINE functionClass #-}
 functionClass :: Object
 functionClass = constantIO $ do 
-   as <- attributes
-   identity <- newIdentity 
    dict <- attributes
    newType [string "function", objectBase, dict]
 

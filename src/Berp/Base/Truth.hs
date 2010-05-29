@@ -17,10 +17,10 @@ import Berp.Base.SemanticTypes (Object (..))
 
 -- XXX incomplete
 truth :: Object -> Bool
-truth obj@(Bool { object_bool = b }) = b
-truth obj@(Integer { object_integer = i }) = i /= 0
+truth (Bool { object_bool = b }) = b
+truth (Integer { object_integer = i }) = i /= 0
 truth None = False 
-truth other = False
+truth _other = False
 
 {-
    From the Python Docs: http://docs.python.org/library/stdtypes.html#truth-value-testing

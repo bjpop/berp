@@ -60,7 +60,7 @@ binop str arg1 arg2 = callMethod arg1 str [arg2]
    return $ int (object_integer obj1 Prelude.* object_integer obj2)
 (*) x y = binop $(hashedStr "__mul__") x y
 
-(/) obj1@(Integer { object_integer = int1 }) obj2@(Integer { object_integer = int2 })
+(/) (Integer { object_integer = int1 }) (Integer { object_integer = int2 })
    | int2 Prelude.== 0 = raise exception >> return none
    | otherwise = return $ int (int1 `Prelude.div` int2)
 (/) x y = binop $(hashedStr "__div__") x y
@@ -98,10 +98,13 @@ or x y = binop $(hashedStr "__or__") x y
 
 unaryMinus :: Object -> Eval Object
 unaryMinus obj@(Integer {}) = return $ int $ negate $ object_integer obj
+unaryMinus _other = error "unary minus applied to a non integer"
 
 -- This is just the identity function
 unaryPlus :: Object -> Eval Object
 unaryPlus obj@(Integer {}) = return obj 
+unaryPlus _other = error "unary plus applied to a non integer"
 
 invert :: Object -> Eval Object
-invert obj@(Integer {}) = error "bitwise inversion not implemented" 
+invert (Integer {}) = error "bitwise inversion not implemented" 
+invert _other = error "unary invert applied to a non integer"

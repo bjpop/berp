@@ -16,7 +16,6 @@ module Berp.Base.StdTypes.Object (object) where
 import Prelude hiding (init)
 import Berp.Base.SemanticTypes (Procedure, Object (..))
 import Berp.Base.Monad (constantIO)
-import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames (strName, eqName, initName)
 import Berp.Base.Prims (primitive)
@@ -30,7 +29,6 @@ import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
 {-# NOINLINE object #-}
 object :: Object
 object = constantIO $ do 
-   identity <- newIdentity
    dict <- attributes 
    newType [string "object", emptyTuple, dict]
 
@@ -47,6 +45,7 @@ init _ = return none
 
 eq :: Procedure
 eq (obj1:obj2:_) = return $ bool (identityOf obj1 == identityOf obj2)
+eq _other = error "equality on objects applied to wrong number of arguments"
 
 str :: Procedure
 str (x:_) = 
@@ -63,4 +62,5 @@ str (x:_) =
          return $ string $ "<function with identity " ++ show identity ++ ">"
       -- This should never happen because all other object types have a specialised
       -- str method.
-      other -> return $ string "<unknown object>"
+      _other -> return $ string "<unknown object>"
+str _other = error "str conversion on object applied to wrong number of arguments"

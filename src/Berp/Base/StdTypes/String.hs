@@ -40,7 +40,6 @@ string str = constantIO $ do
 {-# NOINLINE stringClass #-}
 stringClass :: Object
 stringClass = constantIO $ do
-   identity <- newIdentity
    dict <- attributes
    newType [string "str", objectBase, dict]
 

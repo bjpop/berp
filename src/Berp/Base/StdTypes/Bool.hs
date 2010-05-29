@@ -43,22 +43,9 @@ false =
 {-# NOINLINE boolClass #-}
 boolClass :: Object
 boolClass = constantIO $ do
-   identity <- newIdentity
    dict <- attributes
    theType <- newType [string "bool", objectBase, dict]
    return $ theType { object_constructor = \_ -> return false }
-{-
-   return $
-      Type 
-      { object_identity = identity
-      , object_type = typeClass
-      , object_dict = dict 
-      , object_bases = objectBase 
-      , object_constructor = \_ -> return false 
-      , object_type_name = string "bool"
-      , object_mro = emptyTuple 
-      }
--}
     
 attributes :: IO Object 
 attributes = mkAttributes 
