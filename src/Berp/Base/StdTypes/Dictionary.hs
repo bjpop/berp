@@ -14,10 +14,9 @@
 module Berp.Base.StdTypes.Dictionary (emptyDictionary, dictionary, dictionaryClass) where
 
 import Data.List (intersperse)
-import Berp.Base.Prims (primitive, callMethod, showObject)
+import Berp.Base.Prims (primitive, showObject)
 import Berp.Base.Monad (constantIO)
 import Berp.Base.SemanticTypes (Procedure, Object (..), Eval)
-import Berp.Base.StdTypes.String (string)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.HashTable as Hash (fromList, empty, mappings, lookup)
 import Berp.Base.Attributes (mkAttributes)

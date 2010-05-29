@@ -21,22 +21,21 @@ import GHC
    , findModule, mkModuleName, setContext, SingleStep (RunToCompletion)
    , runStmt, gcatch, RunResult (..))
 import Control.Monad (when)
-import Control.Exception.Extensible (ErrorCall (..), SomeException (..), Exception)
+import Control.Exception.Extensible (SomeException (..))
 import GHC.Paths (libdir)
 import DynFlags (defaultDynFlags)
 import System.IO (hSetBuffering, stdout, BufferMode (..))
 import Language.Python.Version3.Parser (parseStmt)
-import Language.Python.Common.PrettyParseError 
+-- import Language.Python.Common.PrettyParseError 
 import Language.Python.Common.Pretty (prettyText)
 import Language.Python.Common.AST (StatementSpan)
 import Language.Haskell.Exts.Pretty 
    ( prettyPrintStyleMode, defaultMode, style, Style (..), PPHsMode (..)
    , Mode (..), PPLayout (PPSemiColon))
-import Language.Haskell.Exts.Build (doE, app, paren, qualStmt) 
-import Language.Haskell.Exts.Syntax (Exp, Stmt) 
+import Language.Haskell.Exts.Build (app, qualStmt) 
+import Language.Haskell.Exts.Syntax (Stmt) 
 import Berp.Version (version)
 import Berp.Compile.Compile (compile)
-import Berp.Compile.Monad (runCompileMonad)
 import Berp.Compile.PrimName as Prim (interpretStmt, init)
 import Berp.Compile.PySyntaxUtils (InterpreterStmt (..))
 import Berp.Interpreter.Monad (Repl, runRepl)
@@ -88,9 +87,6 @@ runAndCatch stmt = do
 printRunResult :: RunResult -> Repl ()
 printRunResult (RunException e) = liftIO $ putStrLn ("Exception " ++ show e)
 printRunResult other = return () 
-
-mkHaskStmt :: [Stmt] -> Exp
-mkHaskStmt = app Prim.interpretStmt . paren . doE 
 
 oneLinePrinter :: Stmt -> String
 oneLinePrinter = 

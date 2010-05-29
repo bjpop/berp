@@ -27,30 +27,27 @@ module Berp.Base.Prims
    , def, lambda, mkGenerator, printObject, topVar, Applicative.pure
    , pureObject, showObject, returningProcedure, pyCallCC ) where
 
-import System.Exit (exitWith)
 import Prelude hiding (break, read, putStr)
 import Control.Monad.State (gets)
 import Control.Monad.Cont (callCC)
-import Control.Monad (join)
-import Berp.Base.LiftedIO as LIO (readIORef, writeIORef, newIORef, putStr, putStrLn {- needed for BELCH -})
+import Berp.Base.LiftedIO as LIO (readIORef, writeIORef, newIORef, putStr) 
+#ifdef DEBUG
+import Berp.Base.LiftedIO as LIO (putStrLn)
+#endif
 import qualified Control.Applicative as Applicative (pure)
 import Control.Applicative ((<$>))
 import Data.Maybe (maybe)
-import Berp.Base.ExitCodes (uncaughtExceptionError)
 import Berp.Base.Ident (Ident)
 import Berp.Base.SemanticTypes (Object (..), ObjectRef, Procedure, Eval, EvalState(..), ControlStack(..), Arity)
 import Berp.Base.Truth (truth)
 import {-# SOURCE #-} Berp.Base.Object 
-   ( typeOf, dictOf, lookupAttribute, lookupSpecialAttribute
-   , lookupAttributeMaybe, objectEquality)
+   ( typeOf, dictOf, lookupAttribute, lookupSpecialAttribute, objectEquality)
 import Berp.Base.Hash (Hashed, hashedStr)
-import Berp.Base.Mangle (deMangle)
 import Berp.Base.ControlStack
 import Berp.Base.StdNames (docName, strName) 
 import Berp.Base.Exception (RuntimeError (..), throw)
-import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 import {-# SOURCE #-} Berp.Base.StdTypes.Function (function)
-import {-# SOURCE #-} Berp.Base.HashTable as Hash (stringInsert, insert)
+import {-# SOURCE #-} Berp.Base.HashTable as Hash (stringInsert)
 import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
 import {-# SOURCE #-} Berp.Base.StdTypes.Bool (true, false)
 import {-# SOURCE #-} Berp.Base.StdTypes.Generator (generator)
@@ -318,9 +315,6 @@ raise obj = do
    handleFrame :: Object -> ControlStack -> Eval Object
    handleFrame exceptionObj EmptyStack = do
      str <- showObject exceptionObj
-     -- putStrLn ("Uncaught exception: " ++ str)
-     -- printObject exceptionObj 
-     -- exitWith uncaughtExceptionError
      throw $ UncaughtException str
    handleFrame exceptionObj (ExceptionHandler { exception_handler = handler, exception_finally = finally }) = do
       -- BELCH("ExceptionHandler frame")

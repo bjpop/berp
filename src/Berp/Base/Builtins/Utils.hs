@@ -15,7 +15,7 @@ module Berp.Base.Builtins.Utils (primFun, primConstant) where
 
 import Data.IORef (newIORef)
 import Berp.Base.Ident (Ident)
-import Berp.Base.SemanticTypes (Eval, Arity, Procedure, ObjectRef, Object)
+import Berp.Base.SemanticTypes (Arity, Procedure, ObjectRef, Object)
 import Berp.Base.Prims (primitive)
 import Berp.Base.Monad (constantIO) 
 

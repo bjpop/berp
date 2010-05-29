@@ -14,15 +14,13 @@
 module Berp.Base.StdTypes.Object (object) where
 
 import Prelude hiding (init)
-import Control.Monad.Trans (liftIO)
-import Berp.Base.SemanticTypes (Procedure, Object (..), Eval)
+import Berp.Base.SemanticTypes (Procedure, Object (..))
 import Berp.Base.Monad (constantIO)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames (strName, eqName, initName)
 import Berp.Base.Prims (primitive)
 import Berp.Base.Object (identityOf)
-import {-# SOURCE #-} Berp.Base.StdTypes.Dictionary (emptyDictionary)
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import {-# SOURCE #-} Berp.Base.StdTypes.Tuple (emptyTuple)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
@@ -35,17 +33,6 @@ object = constantIO $ do
    identity <- newIdentity
    dict <- attributes 
    newType [string "object", emptyTuple, dict]
-
-newObject :: Procedure
-newObject _ = liftIO $ do
-   identity <- newIdentity
-   dict <- emptyDictionary
-   return $
-      Object
-      { object_identity = identity 
-      , object_type = object
-      , object_dict = dict 
-      }
 
 attributes :: IO Object
 attributes = mkAttributes 

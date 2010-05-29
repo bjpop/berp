@@ -77,7 +77,7 @@ module Berp.Base.Builtins.Exceptions
 import Control.Monad.Trans (liftIO)
 import Berp.Base.Monad (constantEval)
 import Berp.Base.Builtins.Utils (primConstant)
-import Berp.Base.SemanticTypes (Object (..), Procedure, Eval, ObjectRef)
+import Berp.Base.SemanticTypes (Object (..), Eval, ObjectRef)
 import Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.Object (object)
 import Berp.Base.StdTypes.Tuple (tuple)

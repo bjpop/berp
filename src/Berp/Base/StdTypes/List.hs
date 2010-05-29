@@ -14,21 +14,20 @@
 module Berp.Base.StdTypes.List (list, listClass, listIndex) where
 
 import Control.Monad.Trans (liftIO)
-import Berp.Base.LiftedIO (newIORef, readIORef, writeIORef)
+import Berp.Base.LiftedIO (newIORef, readIORef)
 import Data.Array.MArray (newListArray, readArray, getElems, getBounds, writeArray, newArray_)
 import Data.List (intersperse)
 import Data.Foldable (traverse_)
-import Berp.Base.Prims (callMethod, primitive, yield, pass, showObject)
+import Berp.Base.Prims (primitive, yield, pass, showObject)
 import Berp.Base.Monad (constantIO)
-import Berp.Base.SemanticTypes (Procedure, Object (..), Eval, ObjectRef, ListArray)
-import Berp.Base.StdTypes.String (string)
+import Berp.Base.SemanticTypes (Procedure, Object (..), Eval, ListArray)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.ObjectBase (objectBase)
 import Berp.Base.StdTypes.String (string)
-import {-# SOURCE #-} Berp.Base.StdTypes.Generator (generator)
+import Berp.Base.StdTypes.Generator (generator)
 
 list :: [Object] -> Eval Object
 list = liftIO . listIO

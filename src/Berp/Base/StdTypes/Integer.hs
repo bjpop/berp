@@ -15,8 +15,7 @@ module Berp.Base.StdTypes.Integer (int, intClass) where
 
 import Berp.Base.Monad (constantIO)
 import Berp.Base.Prims (binOp, primitive)
-import Berp.Base.SemanticTypes (Eval, Procedure, Object (..))
-import Berp.Base.StdTypes.String (string)
+import Berp.Base.SemanticTypes (Object (..))
 import Berp.Base.StdTypes.Bool (bool)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)

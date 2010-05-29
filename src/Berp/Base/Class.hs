@@ -20,18 +20,17 @@
 
 module Berp.Base.Class (klass) where
 
-import Berp.Base.LiftedIO (liftIO, MonadIO, writeIORef, readIORef, newIORef)
-import Data.Map (fromList)
+import Berp.Base.LiftedIO (liftIO, MonadIO, writeIORef, readIORef)
 import Berp.Base.Ident
-import Berp.Base.SemanticTypes (Eval, Procedure, Object (..), ObjectRef)
+import Berp.Base.SemanticTypes (Eval, Object (..), ObjectRef)
+#ifdef DEBUG
 import Berp.Base.Prims (printObject)
-import Berp.Base.Identity (newIdentity)
-import Berp.Base.Hash (Hashed, hashedStr)
+#endif
+import Berp.Base.Hash (Hashed)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.String (string)
-import Berp.Base.StdTypes.Dictionary (emptyDictionary)
-import Berp.Base.StdTypes.Tuple (emptyTuple, tuple)
+import Berp.Base.StdTypes.Tuple (tuple)
 import Berp.Base.StdTypes.None (none)
 import Berp.Base.StdTypes.Object (object)
 

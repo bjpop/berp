@@ -15,8 +15,8 @@ module Berp.Interpreter.Monad (Repl, runRepl, withInputState) where
 
 import Exception (ExceptionMonad (..))
 import qualified MonadUtils as MU (MonadIO, liftIO)
-import Control.Monad.Trans as MT (MonadIO (..), liftIO)
-import Control.Monad.State.Strict (StateT (..), evalStateT, gets, runStateT, mapStateT) 
+import Control.Monad.Trans as MT (MonadIO (..))
+import Control.Monad.State.Strict (StateT (..), evalStateT, gets, mapStateT) 
 import GHC (GhcT (..), runGhcT)
 import HscTypes (liftGhcT)
 import System.Console.Haskeline as Haskeline (defaultSettings)

@@ -14,18 +14,15 @@
 module Berp.Base.StdTypes.Bool (bool, true, false, boolClass) where
 
 import Prelude hiding (and, or)
-import Control.Applicative ((<$>))
 import Berp.Base.Monad (constantIO)
 import Berp.Base.Prims (binOp, primitive)
-import Berp.Base.SemanticTypes (Eval, Procedure, Object (..))
-import Berp.Base.StdTypes.String (string)
+import Berp.Base.SemanticTypes (Object (..))
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames
-import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType, typeClass)
-import Berp.Base.StdTypes.ObjectBase (objectBase)
+import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.String (string)
-import {-# SOURCE #-} Berp.Base.StdTypes.Tuple (emptyTuple)
+import Berp.Base.StdTypes.ObjectBase (objectBase)
 
 bool :: Bool -> Object
 bool True = true 

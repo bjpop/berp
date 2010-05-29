@@ -16,15 +16,12 @@
 module Berp.Compile.Compile (compiler, Compilable (..)) where
 
 import Prelude hiding (read, init, mapM, putStrLn)
-import Language.Python.Version3.Parser (parseModule)
 import Language.Python.Common.AST as Py
 import Data.Traversable
 import Data.Foldable (foldrM)
-import Control.Monad (when, liftM3) 
 import Language.Haskell.Exts.Syntax as Hask
 import Language.Haskell.Exts.Build
-import Language.Haskell.Exts.Pretty
-import Control.Monad.RWS (get, put, gets, tell, listen, censor, local)
+-- import Language.Haskell.Exts.Pretty
 import Control.Applicative
 import qualified Data.Set as Set
 import Data.Set ((\\))
@@ -36,9 +33,7 @@ import Berp.Compile.PySyntaxUtils
 import Berp.Compile.Utils
 import Berp.Base.Mangle (mangle)
 import Berp.Base.Hash (Hash (..))
-import Berp.Compile.VarSet (VarSet)
 import Berp.Compile.IdentString (IdentString (..), ToIdentString (..), identString)
-import Berp.Base.LiftedIO (putStrLn)
 
 compiler :: Compilable a => a -> IO (CompileResult a)
 compiler = runCompileMonad . compile 

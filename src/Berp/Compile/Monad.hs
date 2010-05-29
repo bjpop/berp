@@ -19,13 +19,12 @@ import Prelude hiding (catch)
 import Control.Monad.State.Strict as State hiding (State) 
 import Language.Python.Common.AST 
 import Language.Python.Common.SrcLocation
-import Language.Haskell.Exts.Syntax (Stmt, Name) 
+import Language.Haskell.Exts.Syntax (Name) 
 import Language.Haskell.Exts.Build (name) 
 import Data.Set
-import Data.Either (either)
 import Control.Applicative hiding (empty)
 import Berp.Compile.VarSet (VarSet)
-import Berp.Compile.IdentString (IdentString (..))
+-- import Berp.Compile.IdentString (IdentString (..))
 import qualified MonadUtils (MonadIO (..))
 import Exception (ExceptionMonad (..))
 import Control.Exception.Extensible (block, unblock, catch)

@@ -16,7 +16,7 @@ module Berp.Base.StdTypes.String (string, stringClass, emptyString) where
 import Berp.Base.Prims (primitive)
 import Berp.Base.Monad (constantIO)
 import Berp.Base.Prims (binOp)
-import Berp.Base.SemanticTypes (Eval, Procedure, Object (..))
+import Berp.Base.SemanticTypes (Object (..))
 import Berp.Base.Identity (newIdentity)
 import {-# SOURCE #-} Berp.Base.StdTypes.Bool (bool)
 import Berp.Base.Attributes (mkAttributes)

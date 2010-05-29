@@ -25,7 +25,6 @@ module Berp.Base.ControlStack
 
 import Control.Monad.State
 import Data.Maybe (maybe)
-import Data.IORef (writeIORef)
 import Berp.Base.SemanticTypes (ControlStack (..), Eval, EvalState (..), Object (..))
 import Berp.Base.LiftedIO as LIO (writeIORef, putStrLn)
 import {-# SOURCE #-} Berp.Base.StdTypes.None (none)

@@ -20,7 +20,6 @@ module Berp.Base.LiftedIO
 import Prelude hiding (putStr, putStrLn, getLine, putChar)
 import qualified Prelude as P (putStr, putStrLn, getLine, putChar)
 import Control.Monad.Trans (liftIO, MonadIO)
-import Control.Monad
 import Data.IORef hiding (readIORef, writeIORef, newIORef) 
 import qualified Data.IORef as IORef (readIORef, writeIORef, newIORef)
 import qualified System.IO as SIO (hFlush, Handle)

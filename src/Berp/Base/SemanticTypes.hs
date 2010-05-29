@@ -21,11 +21,9 @@ module Berp.Base.SemanticTypes
 
 import Control.Monad.State.Strict (StateT)
 import Control.Monad.Cont (ContT) 
-import Data.Map (Map)
 import Data.IntMap (IntMap)
 import Data.IORef (IORef)
 import Data.Array.IO (IOArray)
-import Berp.Base.Ident (Ident)
 import Berp.Base.Identity (Identity)
 
 data ControlStack

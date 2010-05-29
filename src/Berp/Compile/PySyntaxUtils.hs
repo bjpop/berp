@@ -17,7 +17,6 @@ module Berp.Compile.PySyntaxUtils where
 
 import Language.Python.Common.AST as Py
 import Data.Set as Set 
-import Berp.Compile.Utils
 import Data.List (intersperse, foldl')
 import Data.Monoid
 import Berp.Compile.Monad (Scope (..), emptyScope)

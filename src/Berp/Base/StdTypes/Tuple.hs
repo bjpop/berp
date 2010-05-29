@@ -15,12 +15,10 @@ module Berp.Base.StdTypes.Tuple (tuple, tupleClass, emptyTuple, getTupleElements
 
 import Data.List (intersperse)
 import Berp.Base.Monad (constantIO)
-import Berp.Base.SemanticTypes (Procedure, Object (..))
-import Berp.Base.Prims (callMethod, primitive, showObject)
-import Berp.Base.StdTypes.String (string)
+import Berp.Base.SemanticTypes (Object (..))
+import Berp.Base.Prims (primitive, showObject)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
-import Berp.Base.Hash (hashedStr)
 import Berp.Base.StdNames
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.ObjectBase (objectBase)

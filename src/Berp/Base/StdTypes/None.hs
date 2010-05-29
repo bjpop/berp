@@ -17,7 +17,6 @@ import Berp.Base.Prims (primitive)
 import Berp.Base.Monad (constantIO)
 import Berp.Base.SemanticTypes (Procedure, Object (..))
 import Berp.Base.StdTypes.Bool (true, false)
-import Berp.Base.StdTypes.String (string)
 import Berp.Base.Identity (newIdentity, Identity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames

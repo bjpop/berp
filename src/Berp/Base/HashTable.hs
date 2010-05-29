@@ -28,15 +28,12 @@ module Berp.Base.HashTable
    ) where
 
 import Prelude hiding (lookup)
-import Data.IntMap (IntMap)
 import qualified Data.IntMap as IntMap 
 import Control.Applicative ((<$>))
-import Control.Monad (zipWithM, foldM)
+import Control.Monad (foldM)
 import Berp.Base.SemanticTypes (Object (..), Eval, HashTable)
 import Berp.Base.Object (objectEquality)
 import Berp.Base.Prims (callMethod)
-import Berp.Base.Identity (Identity)
-import Berp.Base.Truth (truth)
 import Berp.Base.Hash (hash, Hashed, hashedStr)
 import Berp.Base.LiftedIO (MonadIO, readIORef, writeIORef, newIORef)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)

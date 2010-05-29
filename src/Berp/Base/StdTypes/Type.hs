@@ -15,13 +15,12 @@
 
 module Berp.Base.StdTypes.Type (typeClass, newType) where
 
-import Data.List (delete, foldl')
+import Data.List (delete)
 import Control.Monad.Trans (liftIO)
-import Berp.Base.SemanticTypes (Object (..), Eval, Procedure)
+import Berp.Base.SemanticTypes (Object (..), Procedure)
 import Berp.Base.Monad (constantIO)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
-import Berp.Base.Hash (hashedStr)
 import Berp.Base.Object (typeOf)
 import Berp.Base.Prims (primitive, callMethod, returningProcedure)
 import Berp.Base.StdNames (mroName, initName)
@@ -29,7 +28,7 @@ import Berp.Base.StdTypes.Object (object)
 import Berp.Base.StdTypes.Dictionary (emptyDictionary)
 import Berp.Base.StdTypes.ObjectBase (objectBase)
 import Berp.Base.StdTypes.String (string)
-import Berp.Base.StdTypes.Tuple (tuple, emptyTuple)
+import Berp.Base.StdTypes.Tuple (tuple)
 
 {-# NOINLINE typeClass #-}
 typeClass :: Object

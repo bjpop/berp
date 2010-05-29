@@ -19,7 +19,6 @@ import System.IO.Unsafe (unsafePerformIO)
 import Berp.Base.SemanticTypes (Object (..), Eval, EvalState (..), ControlStack(EmptyStack))
 import Berp.Base.Prims (printObject)
 import Berp.Base.LiftedIO as LIO (putStr)
-import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
 
 runExpr :: Eval Object -> IO Object 
 runExpr comp 

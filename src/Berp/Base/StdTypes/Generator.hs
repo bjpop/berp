@@ -14,8 +14,7 @@
 module Berp.Base.StdTypes.Generator (generator, generatorClass) where
 
 import Berp.Base.Monad (constantIO)
-import Berp.Base.SemanticTypes (Object (..), Procedure, Eval)
-import Berp.Base.StdTypes.None (none)
+import Berp.Base.SemanticTypes (Object (..), Eval)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames

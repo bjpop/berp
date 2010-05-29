@@ -16,7 +16,6 @@ module Main where
 
 import Language.Python.Version3.Parser (parseModule)
 import Language.Python.Common.AST (ModuleSpan)
-import System.Environment (getArgs)
 import Control.Monad (when)
 import Control.Applicative ((<$>))
 import Language.Haskell.Exts.Pretty

@@ -16,7 +16,6 @@
 
 module Berp.Interpreter.Input (getInputLines) where
 
-import Control.Monad (when)
 import System.Console.Haskeline as Haskeline (getInputLine)
 import System.Console.Haskeline.IO (queryInput)
 import Berp.Interpreter.Monad (Repl, withInputState)
@@ -24,9 +23,8 @@ import Control.Monad.Trans (liftIO)
 import Language.Python.Version3.Lexer (lexer, initLexState)
 import Language.Python.Common.Token (Token (..))
 import Language.Python.Common.ParserMonad 
-   (runParser, ParseState (..), initialState)  
+   (runParser, ParseState (..))  
 import Language.Python.Common.PrettyParseError ()
-import Language.Python.Common.Pretty (prettyText)
 
 lexState :: String -> ParseState 
 lexState input = initLexState input "<stdin>"

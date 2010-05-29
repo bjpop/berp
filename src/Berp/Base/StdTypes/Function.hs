@@ -15,10 +15,8 @@ module Berp.Base.StdTypes.Function (function, functionClass) where
 
 import Berp.Base.Monad (constantIO)
 import Berp.Base.SemanticTypes (Object (..), Procedure)
-import Berp.Base.StdTypes.None (none)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
-import Berp.Base.StdNames
 import Berp.Base.StdTypes.Dictionary (emptyDictionary)
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.ObjectBase (objectBase)

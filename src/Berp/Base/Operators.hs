@@ -18,14 +18,12 @@ module Berp.Base.Operators
    , unaryMinus, unaryPlus, invert) 
    where
 
-import Berp.Base.Prims ((@@), callMethod, raise)
+import Berp.Base.Prims (callMethod, raise)
 import Prelude hiding ((+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), or, and)
-import qualified Prelude ((==),(<),(>=),(/),(*),(+),(-),(<=),(>))
+import qualified Prelude ((==),(<),(>=),(*),(+),(-),(<=),(>))
 import Berp.Base.Builtins.Exceptions (exception)
-import Berp.Base.Ident (Ident)
 import Berp.Base.Object (lookupAttribute)
 import Berp.Base.SemanticTypes (Object (..), Eval)
-import Berp.Base.Mangle (mangle)
 import Berp.Base.Hash (Hashed, hashedStr)
 import Berp.Base.StdTypes.Integer (int)
 import Berp.Base.StdTypes.Bool (bool)
