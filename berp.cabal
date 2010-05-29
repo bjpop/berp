@@ -1,5 +1,5 @@
 name:                berp
-version:             0.1
+version:             0.0.1
 cabal-version:       >= 1.2
 synopsis:            An implementation of Python 3. 
 description:         Berp is an implementation of Python 3, written in Haskell.
@@ -24,9 +24,9 @@ extra-source-files:
 Executable berp
   main-is:         Main.hs
   hs-source-dirs:  src, src/Berp/
-  build-depends:   base ==4.*, monads-tf, transformers, containers, language-python >= 0.2.1, 
-                   haskell-src-exts, haskell98, parseargs, process, filepath,
-                   directory, ghc, haskeline, ghc-paths, extensible-exceptions
+  build-depends:   base == 4.*, monads-tf == 0.1.*, transformers == 0.2.*, containers == 0.2.*, language-python == 0.3.*, 
+                   haskell-src-exts == 1.9.*, parseargs == 0.1.*, process == 1.0.*, filepath == 1.1.*,
+                   directory == 1.0.*, ghc >= 6.10.4, haskeline == 0.6.*, ghc-paths == 0.1.*, extensible-exceptions == 0.1.*
   other-modules:
       Berp.Compile.Compile
       Berp.Compile.Monad

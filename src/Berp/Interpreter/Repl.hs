@@ -24,7 +24,7 @@ import Control.Monad (when)
 import Control.Exception.Extensible (ErrorCall (..), SomeException (..), Exception)
 import GHC.Paths (libdir)
 import DynFlags (defaultDynFlags)
-import IO (hSetBuffering, stdout, BufferMode (..))
+import System.IO (hSetBuffering, stdout, BufferMode (..))
 import Language.Python.Version3.Parser (parseStmt)
 import Language.Python.Common.PrettyParseError 
 import Language.Python.Common.Pretty (prettyText)
