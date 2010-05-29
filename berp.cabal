@@ -22,7 +22,7 @@ tested-with:         GHC==6.10.4
 extra-source-files:  src/include/BerpDebug.h
 
 Executable berp
-  ghc-options: -fwarn-unused-imports
+  ghc-options: -fwarn-unused-imports -fwarn-unused-binds
   main-is:
       Main.hs
   hs-source-dirs:
@@ -57,7 +57,7 @@ Executable berp
       Berp.Interpreter.Repl
 
 Library
-   ghc-options: -fwarn-unused-imports
+   ghc-options: -fwarn-unused-imports -fwarn-unused-binds
    include-dirs:
        src/include 
    hs-source-dirs:

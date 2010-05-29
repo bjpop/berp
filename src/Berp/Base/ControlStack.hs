@@ -31,7 +31,7 @@ import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
 
 isEmpty :: ControlStack -> Bool
 isEmpty EmptyStack = True
-isEmtpy _ = False
+isEmpty _ = False
 
 isProcedureCall :: ControlStack -> Bool
 isProcedureCall (ProcedureCall {}) = True

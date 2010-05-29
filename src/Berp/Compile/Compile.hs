@@ -491,9 +491,6 @@ importPrelude =
    , importPkg = Nothing
    }
 
-pyIdentToHaskName :: Py.IdentSpan -> Hask.Name 
-pyIdentToHaskName (Py.Ident { ident_string = s}) = name s 
-
 identToMangledName :: ToIdentString a => a -> Hask.Name
 identToMangledName = name . mangle . identString  
 
