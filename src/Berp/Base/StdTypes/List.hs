@@ -26,8 +26,8 @@ import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
-import {-# SOURCE #-} Berp.Base.StdTypes.ObjectBase (objectBase)
-import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
+import Berp.Base.StdTypes.ObjectBase (objectBase)
+import Berp.Base.StdTypes.String (string)
 import {-# SOURCE #-} Berp.Base.StdTypes.Generator (generator)
 
 list :: [Object] -> Eval Object

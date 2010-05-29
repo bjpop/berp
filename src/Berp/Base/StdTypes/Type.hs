@@ -25,11 +25,11 @@ import Berp.Base.Hash (hashedStr)
 import Berp.Base.Object (typeOf)
 import Berp.Base.Prims (primitive, callMethod, returningProcedure)
 import Berp.Base.StdNames (mroName, initName)
-import {-# SOURCE #-} Berp.Base.StdTypes.Object (object)
-import {-# SOURCE #-} Berp.Base.StdTypes.Dictionary (emptyDictionary)
-import {-# SOURCE #-} Berp.Base.StdTypes.ObjectBase (objectBase)
-import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
-import {-# SOURCE #-} Berp.Base.StdTypes.Tuple (tuple, emptyTuple)
+import Berp.Base.StdTypes.Object (object)
+import Berp.Base.StdTypes.Dictionary (emptyDictionary)
+import Berp.Base.StdTypes.ObjectBase (objectBase)
+import Berp.Base.StdTypes.String (string)
+import Berp.Base.StdTypes.Tuple (tuple, emptyTuple)
 
 {-# NOINLINE typeClass #-}
 typeClass :: Object

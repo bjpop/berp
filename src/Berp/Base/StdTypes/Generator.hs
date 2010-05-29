@@ -22,9 +22,9 @@ import Berp.Base.StdNames
 import Berp.Base.Prims (generatorNext, primitive)
 import Berp.Base.LiftedIO (newIORef)
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
-import {-# SOURCE #-} Berp.Base.StdTypes.ObjectBase (objectBase)
-import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
-import {-# SOURCE #-} Berp.Base.StdTypes.Function (function)
+import Berp.Base.StdTypes.ObjectBase (objectBase)
+import Berp.Base.StdTypes.String (string)
+import Berp.Base.StdTypes.Function (function)
 
 generator :: Eval Object -> Eval Object 
 generator continuation = do 

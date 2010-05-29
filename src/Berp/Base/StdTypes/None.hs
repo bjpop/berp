@@ -22,8 +22,8 @@ import Berp.Base.Identity (newIdentity, Identity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
-import {-# SOURCE #-} Berp.Base.StdTypes.ObjectBase (objectBase)
-import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
+import Berp.Base.StdTypes.ObjectBase (objectBase)
+import Berp.Base.StdTypes.String (string)
 
 none :: Object 
 none = None 
@@ -38,17 +38,6 @@ noneClass = constantIO $ do
    identity <- newIdentity
    dict <- attributes
    newType [string "NoneType", objectBase, dict]
-{-
-   return $ 
-      Type 
-      { object_identity = identity 
-      , object_type = typeClass
-      , object_dict = dict 
-      , object_bases = objectBase 
-      , object_constructor = \_ -> error "None type does not provide constructor" 
-      , object_type_name = string "NoneType"
-      } 
--}
 
 attributes :: IO Object 
 attributes = mkAttributes 

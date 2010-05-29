@@ -22,7 +22,7 @@ import {-# SOURCE #-} Berp.Base.StdTypes.Bool (bool)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
-import {-# SOURCE #-} Berp.Base.StdTypes.ObjectBase (objectBase)
+import Berp.Base.StdTypes.ObjectBase (objectBase)
 
 emptyString :: Object
 emptyString = string "" 

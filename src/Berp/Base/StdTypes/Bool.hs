@@ -23,8 +23,8 @@ import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType, typeClass)
-import {-# SOURCE #-} Berp.Base.StdTypes.ObjectBase (objectBase)
-import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
+import Berp.Base.StdTypes.ObjectBase (objectBase)
+import Berp.Base.StdTypes.String (string)
 import {-# SOURCE #-} Berp.Base.StdTypes.Tuple (emptyTuple)
 
 bool :: Bool -> Object

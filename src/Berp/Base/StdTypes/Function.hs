@@ -19,10 +19,10 @@ import Berp.Base.StdTypes.None (none)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames
-import {-# SOURCE #-} Berp.Base.StdTypes.Dictionary (emptyDictionary)
+import Berp.Base.StdTypes.Dictionary (emptyDictionary)
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
-import {-# SOURCE #-} Berp.Base.StdTypes.ObjectBase (objectBase)
-import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
+import Berp.Base.StdTypes.ObjectBase (objectBase)
+import Berp.Base.StdTypes.String (string)
 
 {-# NOINLINE function #-}
 function :: Int -> Procedure -> Object 

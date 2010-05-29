@@ -29,11 +29,11 @@ import Berp.Base.Identity (newIdentity)
 import Berp.Base.Hash (Hashed, hashedStr)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdTypes.Type (newType)
-import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
-import {-# SOURCE #-} Berp.Base.StdTypes.Dictionary (emptyDictionary)
-import {-# SOURCE #-} Berp.Base.StdTypes.Tuple (emptyTuple, tuple)
-import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
-import {-# SOURCE #-} Berp.Base.StdTypes.Object (object)
+import Berp.Base.StdTypes.String (string)
+import Berp.Base.StdTypes.Dictionary (emptyDictionary)
+import Berp.Base.StdTypes.Tuple (emptyTuple, tuple)
+import Berp.Base.StdTypes.None (none)
+import Berp.Base.StdTypes.Object (object)
 
 klass :: Ident -> ObjectRef -> [Object] -> Eval [(Hashed String, ObjectRef)] -> Eval Object 
 klass className ident srcBases attributesComp = do

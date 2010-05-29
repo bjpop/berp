@@ -23,9 +23,8 @@ import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.Hash (hashedStr)
 import Berp.Base.StdNames
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
-import {-# SOURCE #-} Berp.Base.StdTypes.ObjectBase (objectBase)
-import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
--- import {-# SOURCE #-} Berp.Base.StdTypes.Primitive (primitive)
+import Berp.Base.StdTypes.ObjectBase (objectBase)
+import Berp.Base.StdTypes.String (string)
 
 emptyTuple :: Object
 emptyTuple = tuple []
