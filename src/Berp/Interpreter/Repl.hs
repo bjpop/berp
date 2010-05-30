@@ -59,7 +59,7 @@ repl = do
          replLoop
 
 greeting :: IO ()
-greeting = putStrLn $ "Berpi version " ++ version ++ ", type control-d to exit."
+greeting = putStrLn $ "Berp version " ++ version ++ ", type control-d to exit."
 
 replLoop :: Repl ()
 replLoop = do
