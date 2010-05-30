@@ -16,12 +16,15 @@ module Main where
 
 import Language.Python.Version3.Parser (parseModule)
 import Language.Python.Common.AST (ModuleSpan)
+import Data.Maybe (maybe)
 import Control.Monad (when)
 import Control.Applicative ((<$>))
 import Language.Haskell.Exts.Pretty
 import Berp.Compile.Compile (compiler)
-import System.Console.ParseArgs
-import System.Cmd
+import System.Console.ParseArgs 
+   (Argtype (..), argDataOptional, argDataDefaulted, Arg (..)
+   , gotArg, getArg, parseArgsIO, ArgsComplete (..), Args(..))
+import System.Cmd (system)
 import System.Exit (ExitCode (..), exitWith)
 import System.FilePath ((</>), (<.>), takeBaseName)
 import System.Directory (removeFile)
@@ -29,7 +32,7 @@ import Berp.Interpreter.Repl (repl)
 
 main :: IO ()
 main = do
-   let args = [help, clobber, clean, showHaskell, compile, inputFile]
+   let args = [withGHC, help, clobber, clean, showHaskell, compile, inputFile]
    argMap <- parseArgsIO ArgsComplete args 
    giveHelp argMap
    maybeInputDetails <- getInputDetails argMap
@@ -51,7 +54,7 @@ compileAndExecute argMap sourceName fileContents = do
        objectFilename = outputName <.> "o" 
        exeFilename = "." </> outputName
    writeFile haskellFilename (haskellSrc ++ "\n")
-   exitCodeCompile <- system $ ghcCommand "-O2" "-v0" haskellFilename
+   exitCodeCompile <- system $ ghcCommand argMap "-O2" "-v0" haskellFilename
    when (gotArg argMap Compile) $ exitWith ExitSuccess
    case exitCodeCompile of
       ExitFailure {} -> exitWith exitCodeCompile
@@ -84,9 +87,11 @@ giveHelp argMap =
       then error $ argsUsage argMap
       else return ()
 
-ghcCommand :: String -> String -> String -> String 
-ghcCommand optimise verbosity inputFile
-   = unwords ["ghc", "--make", optimise, verbosity, inputFile]
+ghcCommand :: Args ArgIndex -> String -> String -> String -> String 
+ghcCommand argMap optimise verbosity inputFile =
+   unwords [ghcName, "--make", optimise, verbosity, inputFile]
+   where
+   ghcName = maybe "ghc" id (getArg argMap WithGHC)
 
 data ArgIndex
    = Help 
@@ -95,6 +100,7 @@ data ArgIndex
    | Compile
    | Clobber 
    | Clean
+   | WithGHC
    deriving (Eq, Ord, Show)
 
 help :: Arg ArgIndex
@@ -155,4 +161,14 @@ clean =
    , argName = Just "clean" 
    , argData = Nothing 
    , argDesc = "Remove all compiler generated files except the executable after the compiled program has run."
+   }
+
+withGHC :: Arg ArgIndex
+withGHC = 
+   Arg 
+   { argIndex = WithGHC 
+   , argAbbr = Nothing 
+   , argName = Just "with-ghc"
+   , argData = argDataDefaulted "filepath to ghc" ArgtypeString "ghc"
+   , argDesc = "Specify the filepath of ghc."
    }
