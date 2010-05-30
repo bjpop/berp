@@ -1,6 +1,6 @@
 name:                berp
 version:             0.0.1
-cabal-version:       >= 1.2
+cabal-version:       >= 1.6
 synopsis:            An implementation of Python 3. 
 description:         Berp is an implementation of Python 3, written in Haskell.
                      It provides a compiler and an interpreter. In both cases

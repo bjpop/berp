@@ -14,4 +14,4 @@
 module Berp.Version (version) where
 
 version :: String
-version = "0.1"
+version = "0.0.1"
