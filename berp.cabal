@@ -32,7 +32,7 @@ Executable berp
       base == 4.*,
       monads-tf == 0.1.*,
       transformers == 0.2.*,
-      containers == 0.2.*,
+      containers < 0.4,
       language-python == 0.3.*,
       haskell-src-exts == 1.9.*,
       parseargs == 0.1.*,
@@ -66,7 +66,7 @@ Library
       base == 4.*,
       monads-tf == 0.1.*,
       transformers == 0.2.*,
-      containers == 0.2.*,
+      containers < 0.4,
       ghc-prim,
       template-haskell,
       array < 0.4
