@@ -40,10 +40,10 @@ getInputLines = do
    case maybeInput of
       Nothing -> return Nothing
       Just line
-         | null line -> return $ Just [] 
-         | Right ([CommentToken {}], _state) <- lexResult -> return $ Just []
+         | Right (tokens, _state) <- lexResult,
+           null $ noComments tokens -> return $ Just []
          | Right (tokens, state) <- lexResult,
-           lastTokenIsColon tokens -> do
+           lastTokenIsColon $ noComments tokens -> do
              restLines <- getIndentContinueLines state []
              return $ Just $ unlines (line:restLines)
          | Right (_tokens, state) <- lexResult,
@@ -53,6 +53,11 @@ getInputLines = do
          | otherwise -> return $ Just line
          where
          lexResult = runParser lexer $ lexState line
+         noComments = filter (not . isComment) 
+
+isComment :: Token -> Bool
+isComment (CommentToken {}) = True
+isComment _other = False
 
 lastTokenIsColon :: [Token] -> Bool
 lastTokenIsColon [] = False
