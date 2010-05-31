@@ -18,8 +18,6 @@ module Berp.Base.Hash (Hash (..), Hashed, hashedStr) where
 import Berp.Base.Mangle (mangle)
 import Language.Haskell.TH
 import Data.HashTable as HT (hashString)
-import GHC.Integer (hashInteger)
-import GHC.Types (Int (..))
 
 type Hashed a = (Int, a)
 
@@ -30,10 +28,15 @@ instance Hash String where
    hash = fromIntegral . HT.hashString
 
 instance Hash Integer where
-   hash i = I# (hashInteger i)
+   -- hash i = I# (hashInteger i)
+   hash = hashInteger
 
 hashedStr :: String -> Q Exp
 hashedStr str = [| (n, mangle str) |]
    where
    n :: Int
    n = hash str
+
+-- XXX May need to reconsider this. We'll want something which is fast.
+hashInteger :: Integer -> Int
+hashInteger i = fromInteger (i `mod` (toInteger (maxBound :: Int)))
