@@ -12,6 +12,11 @@
 -- Prompt for and read input lines. Handle input continuations for multi-line
 -- statemtents. 
 --
+-- Generally speaking this module is a pile of ugly hacks which approximate
+-- what is supposed to happen. The need for hacks occurs because the lexer
+-- isn't really cut out for what we want to do. At some point we'll need
+-- to fix the lexer.
+--
 -----------------------------------------------------------------------------
 
 module Berp.Interpreter.Input (getInputLines) where
@@ -36,6 +41,7 @@ getInputLines = do
       Nothing -> return Nothing
       Just line
          | null line -> return $ Just [] 
+         | Right ([CommentToken {}], _state) <- lexResult -> return $ Just []
          | Right (tokens, state) <- lexResult,
            lastTokenIsColon tokens -> do
              restLines <- getIndentContinueLines state []
@@ -58,7 +64,7 @@ lastTokenIsColon tokens =
    isColon _other = False
 
 nonEmptyParenStack :: ParseState -> Bool
-nonEmptyParenStack state = not $ null $ parenStack state
+nonEmptyParenStack = not . null . parenStack
 
 getIndentContinueLines :: ParseState -> [String] -> Repl [String]
 getIndentContinueLines state acc = do
