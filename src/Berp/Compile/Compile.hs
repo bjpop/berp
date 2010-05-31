@@ -16,12 +16,13 @@
 module Berp.Compile.Compile (compiler, Compilable (..)) where
 
 import Prelude hiding (read, init, mapM, putStrLn)
+import Language.Python.Common.PrettyAST ()
+import Language.Python.Common.Pretty (prettyText)
 import Language.Python.Common.AST as Py
 import Data.Traversable
 import Data.Foldable (foldrM)
 import Language.Haskell.Exts.Syntax as Hask
 import Language.Haskell.Exts.Build
--- import Language.Haskell.Exts.Pretty
 import Control.Applicative
 import qualified Data.Set as Set
 import Data.Set ((\\))
@@ -209,7 +210,7 @@ instance Compilable StatementSpan where
                  return (stmts1 ++ stmts2 ++ [newStmt])
    compile (Break {}) = returnStmt Prim.break
    compile (Continue {}) = returnStmt Prim.continue
-   compile other = error $ "compile on " ++ show other ++ " unsupported"
+   compile other = unsupported $ prettyText other
 
 docString :: SuiteSpan -> Exp
 docString (StmtExpr { stmt_expr = Strings { strings_strings = ss }} : _)
@@ -301,7 +302,7 @@ instance Compilable ExprSpan where
       return (stmts, newExpr)
    compile (Py.Paren { paren_expr = e }) = compile e
    compile (None {}) = returnExp Prim.none
-   compile other = unsupported $ "compile: " ++ show other
+   compile other = unsupported $ prettyText other 
 
 compileTailCall :: ExprSpan -> Compile ([Stmt], Exp)
 compileTailCall (Call { call_fun = fun, call_args = args }) = do
@@ -315,7 +316,7 @@ compileTailCall other = error $ "compileTailCall on non call expression: " ++ sh
 instance Compilable ArgumentSpan where
    type (CompileResult ArgumentSpan) = ([Stmt], Exp)
    compile (ArgExpr { arg_expr = expr }) = compileExprObject expr
-   compile other = unsupported $ show other
+   compile other = unsupported $ prettyText other
 
 newtype Block = Block [StatementSpan]
 newtype TopBlock = TopBlock [StatementSpan]
@@ -405,7 +406,7 @@ compileAssign (Py.Var { var_ident = ident}) expr = do
    (exprStmts, compiledExp) <- compileExprObject expr
    let newStmt = qualStmt $ infixApp (identToMangledVar ident) Prim.assignOp compiledExp
    return (exprStmts ++ [newStmt])
-compileAssign e1 e2 = unsupported $ "assignment for " ++ show e1 ++ " and " ++ show e2 
+compileAssign e1 e2 = unsupported $ unwords [prettyText e1, "=", prettyText e2]
 
 compileUnaryOp :: Py.OpSpan -> Hask.Exp
 compileUnaryOp (Plus {}) = Prim.unaryPlus
