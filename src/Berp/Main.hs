@@ -29,12 +29,18 @@ import System.Exit (ExitCode (..), exitWith)
 import System.FilePath ((</>), (<.>), takeBaseName)
 import System.Directory (removeFile)
 import Berp.Interpreter.Repl (repl)
+import Berp.Version (versionString)
 
 main :: IO ()
 main = do
-   let args = [withGHC, help, clobber, clean, showHaskell, compile, inputFile]
+   let args = [withGHC, version, help, clobber, clean, showHaskell, compile, inputFile]
    argMap <- parseArgsIO ArgsComplete args 
-   giveHelp argMap
+   when (gotArg argMap Help) $ do
+      putStrLn $ argsUsage argMap
+      exitWith ExitSuccess
+   when (gotArg argMap Version) $ do
+      putStrLn $ "berp version " ++ versionString
+      exitWith ExitSuccess
    maybeInputDetails <- getInputDetails argMap
    case maybeInputDetails of
       Nothing -> repl 
@@ -81,12 +87,6 @@ getInputDetails argMap =
          cs <- readFile inputFileName
          return $ Just (inputFileName, cs)
 
-giveHelp :: Args ArgIndex -> IO ()
-giveHelp argMap =
-   if gotArg argMap Help 
-      then error $ argsUsage argMap
-      else return ()
-
 ghcCommand :: Args ArgIndex -> String -> String -> String -> String 
 ghcCommand argMap optimise verbosity inputFile =
    unwords [ghcName, "--make", optimise, verbosity, inputFile]
@@ -101,6 +101,7 @@ data ArgIndex
    | Clobber 
    | Clean
    | WithGHC
+   | Version
    deriving (Eq, Ord, Show)
 
 help :: Arg ArgIndex
@@ -171,4 +172,14 @@ withGHC =
    , argName = Just "with-ghc"
    , argData = argDataDefaulted "filepath to ghc" ArgtypeString "ghc"
    , argDesc = "Specify the filepath of ghc."
+   }
+
+version :: Arg ArgIndex
+version = 
+   Arg 
+   { argIndex = Version 
+   , argAbbr = Nothing 
+   , argName = Just "version"
+   , argData = Nothing
+   , argDesc = "Show the version number of berp."
    }

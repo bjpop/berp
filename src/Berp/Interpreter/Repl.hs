@@ -34,7 +34,7 @@ import Language.Haskell.Exts.Pretty
    , Mode (..), PPLayout (PPSemiColon))
 import Language.Haskell.Exts.Build (app, qualStmt) 
 import Language.Haskell.Exts.Syntax (Stmt) 
-import Berp.Version (version)
+import Berp.Version (versionString)
 import Berp.Compile.Compile (compile)
 import Berp.Compile.PrimName as Prim (interpretStmt, init)
 import Berp.Compile.PySyntaxUtils (InterpreterStmt (..))
@@ -59,7 +59,7 @@ repl = do
          replLoop
 
 greeting :: IO ()
-greeting = putStrLn $ "Berp version " ++ version ++ ", type control-d to exit."
+greeting = putStrLn $ "Berp version " ++ versionString ++ ", type control-d to exit."
 
 replLoop :: Repl ()
 replLoop = do

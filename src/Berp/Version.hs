@@ -11,7 +11,10 @@
 --
 -----------------------------------------------------------------------------
 
-module Berp.Version (version) where
+module Berp.Version (version, versionString) where
 
-version :: String
-version = "0.0.1"
+import Paths_berp (version)
+import Data.Version (showVersion)
+
+versionString :: String
+versionString = showVersion version 
