@@ -76,6 +76,7 @@ Library
       Berp.Base.Mangle
       Berp.Version
    other-modules:
+      Paths_berp
       Berp.Base.Attributes
       Berp.Base.Builtins
       Berp.Base.Builtins.Constants
