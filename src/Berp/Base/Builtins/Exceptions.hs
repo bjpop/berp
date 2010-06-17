@@ -71,7 +71,9 @@ module Berp.Base.Builtins.Exceptions
    , exception, _s_Exception
    , stopIteration, _s_StopIteration
    , typeError, _s_TypeError
-   , nameError, _s_NameError) 
+   , nameError, _s_NameError
+   , lookupError, _s_LookupError
+   , keyError, _s_KeyError)
    where
 
 import Control.Monad.Trans (liftIO)
@@ -81,7 +83,7 @@ import Berp.Base.SemanticTypes (Object (..), Eval, ObjectRef)
 import Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.Object (object)
 import Berp.Base.StdTypes.Tuple (tuple)
-import Berp.Base.StdTypes.Dictionary (dictionary)
+import {-# SOURCE #-} Berp.Base.StdTypes.Dictionary (dictionary)
 import Berp.Base.StdTypes.String (string)
 
 mkExceptionType :: String -> [Object] -> Eval Object
@@ -118,3 +120,15 @@ nameError = constantEval $ mkExceptionType "NameError" [exception]
 
 _s_NameError :: ObjectRef
 _s_NameError = primConstant nameError
+
+lookupError :: Object
+lookupError = constantEval $ mkExceptionType "LookupError" [exception]
+
+_s_LookupError :: ObjectRef
+_s_LookupError = primConstant lookupError 
+
+keyError :: Object
+keyError = constantEval $ mkExceptionType "KeyError" [lookupError]
+
+_s_KeyError :: ObjectRef
+_s_KeyError = primConstant keyError 
