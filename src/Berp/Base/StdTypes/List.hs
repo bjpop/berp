@@ -11,7 +11,7 @@
 --
 -----------------------------------------------------------------------------
 
-module Berp.Base.StdTypes.List (list, listClass, listIndex) where
+module Berp.Base.StdTypes.List (list, listClass, listIndex, updateListElement) where
 
 import Control.Monad.Trans (liftIO)
 import Berp.Base.LiftedIO (newIORef, readIORef)
