@@ -1,2 +1,2 @@
-x,y,z = [1,True,"hello"]
-print (x,y,z)
+x = y = 1
+print(x,y)
