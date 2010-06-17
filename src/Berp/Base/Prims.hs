@@ -25,7 +25,7 @@ module Berp.Base.Prims
    , try, tryElse, tryFinally, tryElseFinally, except, exceptDefault
    , raise, reRaise, raiseFrom, primitive, generator, yield, generatorNext
    , def, lambda, mkGenerator, printObject, topVar, Applicative.pure
-   , pureObject, showObject, returningProcedure, pyCallCC ) where
+   , pureObject, showObject, returningProcedure, pyCallCC, unpack, setitem ) where
 
 import Prelude hiding (break, read, putStr)
 import Control.Monad.State (gets)
@@ -44,10 +44,11 @@ import {-# SOURCE #-} Berp.Base.Object
    ( typeOf, dictOf, lookupAttribute, lookupSpecialAttribute, objectEquality)
 import Berp.Base.Hash (Hashed, hashedStr)
 import Berp.Base.ControlStack
-import Berp.Base.StdNames (docName, strName) 
+import Berp.Base.StdNames (docName, strName, setItemName) 
 import Berp.Base.Exception (RuntimeError (..), throw)
+import {-# SOURCE #-} Berp.Base.HashTable as Hash (stringInsert, insert)
 import {-# SOURCE #-} Berp.Base.StdTypes.Function (function)
-import {-# SOURCE #-} Berp.Base.HashTable as Hash (stringInsert)
+import {-# SOURCE #-} Berp.Base.StdTypes.List (updateListElement)
 import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
 import {-# SOURCE #-} Berp.Base.StdTypes.Bool (true, false)
 import {-# SOURCE #-} Berp.Base.StdTypes.Generator (generator)
@@ -220,6 +221,14 @@ setattr target attribute value
         Hash.stringInsert attribute value $ hashTable
         return value
    | otherwise = error $ "setattr on object unimplemented: " ++ show (target, attribute)
+
+setitem :: Object -> Object -> Object -> Eval Object
+setitem (Dictionary { object_hashTable = hashTable }) index value
+   = Hash.insert index value hashTable >> return none
+setitem list@(List {}) index value
+   = updateListElement list index value >> return none
+setitem obj index value
+   = callMethod obj setItemName [index, value]
 
 callMethod :: Object -> Hashed String -> [Object] -> Eval Object
 callMethod object ident args = do
@@ -425,3 +434,8 @@ pyCallCC fun =
                     ret obj
       -- XXX can this be a tail call?
       fun @@ [cont]
+
+unpack :: Int -> Object -> Eval [Object]
+unpack n (Tuple { object_tuple = elements, object_length = size })
+   | size == n = return elements
+   | otherwise = error "unpack error, fixme" 
