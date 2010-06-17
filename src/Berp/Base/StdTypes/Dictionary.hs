@@ -14,12 +14,13 @@
 module Berp.Base.StdTypes.Dictionary (emptyDictionary, dictionary, dictionaryClass) where
 
 import Data.List (intersperse)
-import Berp.Base.Prims (primitive, showObject)
+import Berp.Base.Prims (primitive, showObject, raise)
 import Berp.Base.Monad (constantIO)
 import Berp.Base.SemanticTypes (Procedure, Object (..), Eval)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.HashTable as Hash (fromList, empty, mappings, lookup)
 import Berp.Base.Attributes (mkAttributes)
+import {-# SOURCE #-} Berp.Base.Builtins.Exceptions (keyError)
 import Berp.Base.StdNames
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.ObjectBase (objectBase)
@@ -79,6 +80,6 @@ getItem (obj:index:_) = do
    let ht = object_hashTable obj
    maybeVal <- Hash.lookup index ht
    case maybeVal of 
-      Nothing -> error "dict lookup failed" 
+      Nothing -> raise keyError
       Just val -> return val  
 getItem _other = error "getItem on dictionary applied to wrong number of arguments"
