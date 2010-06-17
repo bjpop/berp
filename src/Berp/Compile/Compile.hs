@@ -15,7 +15,7 @@
 
 module Berp.Compile.Compile (compiler, Compilable (..)) where
 
-import Prelude hiding (read, init, mapM, putStrLn)
+import Prelude hiding (read, init, mapM, putStrLn, sequence)
 import Language.Python.Common.PrettyAST ()
 import Language.Python.Common.Pretty (prettyText)
 import Language.Python.Common.AST as Py
@@ -26,7 +26,7 @@ import Language.Haskell.Exts.Build
 import Control.Applicative
 import qualified Data.Set as Set
 import Data.Set ((\\))
-import Control.Monad hiding (mapM)
+import Control.Monad hiding (mapM, sequence)
 import qualified Berp.Compile.PrimName as Prim
 import Berp.Compile.Monad
 import Berp.Compile.HsSyntaxUtils
@@ -110,8 +110,18 @@ instance Compilable StatementSpan where
       let arityExp = intE $ fromIntegral $ length params
       let doc = docString body
       returnStmt $ appFun Prim.def [identToMangledVar fun, arityExp, doc, parens lambda]
-   compile (Assign { assign_to = target, assign_expr = expr }) = 
-      compileAssign (head target) expr
+   -- Handle the single assignment case specially. In the multi-assign case
+   -- we want to share the evaluation of the rhs, hence the use of compileExprComp.
+   -- This is not needed in the single assign case, and would be overkill in general.
+   compile (Assign { assign_to = [lhs], assign_expr = rhs }) = do
+      (stmtsRhs, compiledRhs) <- compileExprObject rhs 
+      assignStmts <- compileAssign lhs compiledRhs 
+      return $ stmtsRhs ++ assignStmts
+   compile (Assign { assign_to = lhss, assign_expr = rhs }) = do
+      (stmtsRhs, compiledRhs) <- compileExprComp rhs 
+      (binderStmts, binderExp) <- stmtBinder compiledRhs
+      assignStmtss <- mapM (flip compileAssign binderExp) lhss
+      return $ stmtsRhs ++ binderStmts ++ concat assignStmtss
    compile (Conditional { cond_guards = guards, cond_else = elseBranch })
       | length guards == 1 && isEmptySuite elseBranch,
         (condExp, condSuite) <- head guards = do
@@ -390,23 +400,68 @@ compileHandler asName (Handler { handler_clause = clause, handler_suite = body }
              newStmt = qualStmt $ appFun Prim.except [asName, classObj, newBody, parens nextHandler]
          return $ doBlock (classStmts ++ [newStmt]) 
 
+{-
+compileAssignLiteral :: Py.ExprSpan -> Py.ExprSpan -> Compile [Stmt] 
+compileAssignLiteral (Py.Paren { paren_expr = expr }) rhs = compileAssignLiteral expr rhs
+compileAssignLiteral (Py.Tuple { tuple_exprs = patElements }) rhs
+   | Py.Tuple { tuple_exprs = rhsElements} <- rhs, 
+     length patElements == length rhsElements = 
+        compileAssignLiteralRec patElements rhsElements
+   | Py.List { list_exprs = rhsElements } <- rhs,
+     length patElements == length rhsElements = 
+        compileAssignLiteralRec patElements rhsElements
+compileAssignLiteral (Py.List { list_exprs = patElements }) rhs
+   | Py.Tuple { tuple_exprs = rhsElements} <- rhs, 
+     length patElements == length rhsElements = 
+        compileAssignLiteralRec patElements rhsElements
+   | Py.List { list_exprs = rhsElements } <- rhs,
+     length patElements == length rhsElements = 
+        compileAssignLiteralRec patElements rhsElements
+compileAssignLiteral lhs rhs = do
 
-compileAssign :: Py.ExprSpan -> Py.ExprSpan -> Compile [Stmt] 
+compileAssignLiteralRec :: [Py.ExprSpan] -> [Py.ExprSpan] -> Compile [Stmt]
+compileAssignLiteralRec exps1 exps2 = 
+   concat <$> zipWithM compileAssignLiteral exps1 exps2 
+-}
+
+compileAssign :: Py.ExprSpan -> Hask.Exp -> Compile [Stmt] 
+compileAssign (Py.Paren { paren_expr = expr }) rhs = compileAssign expr rhs
+compileAssign (Py.Tuple { tuple_exprs = patElements }) rhs = 
+   compileAssignUnpackLiteral patElements rhs
+compileAssign (Py.List { list_exprs = patElements }) rhs = 
+   compileAssignUnpackLiteral patElements rhs
 -- Right argument of dot is always a variable, because dot associates to the left
 compileAssign (Py.BinaryOp { operator = Dot {}
                            , left_op_arg = lhs 
                            , right_op_arg = Py.Var { var_ident = attribute}} 
               ) rhs = do
    (stmtsLhs, compiledLhs) <- compileExprObject lhs 
-   (stmtsRhs, compiledRhs) <- compileExprObject rhs 
    compiledAttribute <- compile attribute
-   let newStmt = qualStmt $ appFun Prim.setAttr [compiledLhs, compiledAttribute, compiledRhs]
-   return (stmtsLhs ++ stmtsRhs ++ [newStmt])
-compileAssign (Py.Var { var_ident = ident}) expr = do
-   (exprStmts, compiledExp) <- compileExprObject expr
-   let newStmt = qualStmt $ infixApp (identToMangledVar ident) Prim.assignOp compiledExp
-   return (exprStmts ++ [newStmt])
-compileAssign e1 e2 = unsupported $ unwords [prettyText e1, "=", prettyText e2]
+   let newStmt = qualStmt $ appFun Prim.setAttr [compiledLhs, compiledAttribute, rhs]
+   return (stmtsLhs ++ [newStmt])
+compileAssign (Py.Subscript { subscriptee = objExpr, subscript_expr = sub }) rhs = do
+   (stmtsObj, compiledObj) <- compileExprObject objExpr 
+   (stmtsSub, compiledSub) <- compileExprObject sub
+   let newStmt = qualStmt $ appFun Prim.setItem [compiledObj, compiledSub, rhs]
+   return (stmtsObj ++ stmtsSub ++ [newStmt])
+compileAssign (Py.Var { var_ident = ident}) rhs = do
+   let newStmt = qualStmt $ infixApp (identToMangledVar ident) Prim.assignOp rhs 
+   return [newStmt]
+-- compileAssign e1 e2 = unsupported $ unwords [prettyText e1, "=", prettyText e2]
+
+compileAssignUnpackLiteral :: [Py.ExprSpan] -> Hask.Exp -> Compile [Stmt]
+compileAssignUnpackLiteral exps rhs = do
+   (unpackVars, unpackStmt) <- compileUnpack (length exps) rhs 
+   stmtss <- zipWithM compileAssign exps unpackVars
+   return $ unpackStmt : concat stmtss
+
+compileUnpack :: Int -> Hask.Exp -> Compile ([Hask.Exp], Hask.Stmt)
+compileUnpack len rhs = do
+   newNames <- sequence $ replicate len freshHaskellVar
+   let newStmt = genStmt bogusSrcLoc 
+                         (PList $ map pvar newNames) 
+                         (appFun Prim.unpack [intE $ fromIntegral len, rhs])
+   return (map var newNames, newStmt)
 
 compileUnaryOp :: Py.OpSpan -> Hask.Exp
 compileUnaryOp (Plus {}) = Prim.unaryPlus

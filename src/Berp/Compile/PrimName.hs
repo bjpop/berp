@@ -26,6 +26,12 @@ preludeModuleName = ModuleName "Prelude"
 prim :: String -> Exp
 prim = var . name 
 
+setItem :: Exp
+setItem = prim "setitem"
+
+unpack :: Exp
+unpack = prim "unpack"
+
 tailCall :: Exp
 tailCall = prim "tailCall"
 
