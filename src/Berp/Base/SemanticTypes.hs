@@ -66,7 +66,9 @@ type Procedure = [Object] -> Eval Object
 -- IORef (IntMap (IORef [(Object, Object)]))
 -- or even:
 -- IORef (IntMap (IORef [(Object, ObjectRef)]))
-type HashTable = IORef (IntMap [(Object, Object)])
+-- type HashTable = IORef (IntMap [(Object, Object)])
+
+type HashTable = IORef (IntMap [(Object, ObjectRef)])
 
 type ListArray = IOArray Integer Object
 type Arity = Int

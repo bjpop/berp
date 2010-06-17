@@ -31,7 +31,7 @@ import Prelude hiding (lookup)
 import qualified Data.IntMap as IntMap 
 import Control.Applicative ((<$>))
 import Control.Monad (foldM)
-import Berp.Base.SemanticTypes (Object (..), Eval, HashTable)
+import Berp.Base.SemanticTypes (Object (..), ObjectRef, Eval, HashTable)
 import Berp.Base.Object (objectEquality)
 import Berp.Base.Prims (callMethod)
 import Berp.Base.Hash (hash, Hashed, hashedStr)
@@ -41,10 +41,20 @@ import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 mappings :: HashTable -> Eval [(Object, Object)]
 mappings hashTable = do
    map <- readIORef hashTable
-   return $ concat $ IntMap.elems map 
+   let keysValsRefs = concat $ IntMap.elems map
+   mapM readValRef keysValsRefs
+
+readValRef :: (Object, ObjectRef) -> Eval (Object, Object)
+readValRef (key, valRef) = do
+   val <- readIORef valRef
+   return (key, val)
 
 keys :: HashTable -> Eval [Object]
-keys hashTable = map fst <$> mappings hashTable
+-- keys hashTable = map fst <$> mappings hashTable
+keys hashTable = do
+   intMap <- readIORef hashTable
+   let keysVals = concat $ IntMap.elems intMap 
+   return $ map fst keysVals 
 
 hashObject :: Object -> Eval Int
 hashObject obj@(String {}) = return $ hash $ object_string obj
@@ -66,58 +76,110 @@ fromList pairs = do
    keysVals <- mapM toKeyVal pairs
    newIORef $ IntMap.fromListWith (++) keysVals
    where
-   toKeyVal :: (Object, Object) -> Eval (Int, [(Object, Object)])
-   toKeyVal pair@(key, _val) = do
+   toKeyVal :: (Object, Object) -> Eval (Int, [(Object, ObjectRef)])
+   toKeyVal (key, val) = do
       hashValue <- hashObject key
-      return (hashValue, [pair])
+      valRef <- newIORef val
+      return (hashValue, [(key,valRef)])
 
 stringTableFromList :: MonadIO m => [(Hashed String, Object)] -> m HashTable
 stringTableFromList pairs = do
-   let keysVals = map toKeyVal pairs
+   keysVals <- mapM toKeyVal pairs
    newIORef $ IntMap.fromListWith (++) keysVals
    where
-   toKeyVal :: (Hashed String, Object) -> (Int, [(Object, Object)])
-   toKeyVal ((hashValue,strKey), val) = 
-      (hashValue, [(strObj, val)])
-      where
-      strObj = string strKey 
+   toKeyVal :: MonadIO m => (Hashed String, Object) -> m (Int, [(Object, ObjectRef)])
+   toKeyVal ((hashValue,strKey), val) = do
+      valRef <- newIORef val
+      let strObj = string strKey 
+      return (hashValue, [(strObj, valRef)])
 
 stringLookup :: MonadIO m => Hashed String -> HashTable -> m (Maybe Object)
 stringLookup (hashValue, str) hashTable = do
    table <- readIORef hashTable
    case IntMap.lookup hashValue table of
       Nothing -> return Nothing
-      Just matches -> return $ linearSearchString str matches
+      Just matches -> linearSearchString str matches
    where
-   linearSearchString :: String -> [(Object, Object)] -> Maybe Object
-   linearSearchString _ [] = Nothing
-   linearSearchString str ((key, value) : rest)
-      | objectEqualityString str key = Just value
+   linearSearchString :: MonadIO m => String -> [(Object, ObjectRef)] -> m (Maybe Object)
+   linearSearchString _ [] = return Nothing
+   linearSearchString str ((key, valRef) : rest)
+      | objectEqualityString str key = do
+           val <- readIORef valRef
+           return $ Just val
       | otherwise = linearSearchString str rest
 
 objectEqualityString :: String -> Object -> Bool
 objectEqualityString str1 (String { object_string = str2 }) = str1 == str2
 objectEqualityString _ _ = False
 
--- XXX Potential space leak by not deleteing old versions of key in the table.
--- maybe we can delete based on the identity of the object? That would not avoid
--- the leak in all cases, but it might work in common cases.
 stringInsert :: Hashed String -> Object -> HashTable -> Eval ()
-stringInsert (hashValue, s) value hashTable = do
+stringInsert (hashValue, str) value hashTable = do
    table <- readIORef hashTable
-   -- hashValue <- hashObject key 
-   let newTable = IntMap.insertWith (++) hashValue [(string s, value)] table
-   writeIORef hashTable newTable 
+   case IntMap.lookup hashValue table of
+      Nothing -> do
+         let stringObject = string str
+         valRef <- newIORef value
+         let newTable = IntMap.insert hashValue [(stringObject, valRef)] table 
+         writeIORef hashTable newTable 
+      Just matches -> do
+         updated <- linearInsertString str matches value 
+         if updated
+            then return ()
+            else do
+               let stringObject = string str
+               valRef <- newIORef value
+               let newMatches = (stringObject, valRef) : matches
+                   newTable = IntMap.insert hashValue newMatches table
+               writeIORef hashTable newTable
+   where
+   linearInsertString :: MonadIO m => String -> [(Object, ObjectRef)] -> Object -> m Bool 
+   linearInsertString _ [] _ = return False 
+   linearInsertString str ((key, valRef) : rest) obj
+      | objectEqualityString str key = do
+           writeIORef valRef obj
+           return True 
+      | otherwise = linearInsertString str rest obj
 
 -- XXX Potential space leak by not deleteing old versions of key in the table.
 -- maybe we can delete based on the identity of the object? That would not avoid
 -- the leak in all cases, but it might work in common cases.
+{-
 insert :: Object -> Object -> HashTable -> Eval ()
 insert key value hashTable = do
    table <- readIORef hashTable
    hashValue <- hashObject key 
    let newTable = IntMap.insertWith (++) hashValue [(key,value)] table
    writeIORef hashTable newTable 
+-}
+
+insert :: Object -> Object -> HashTable -> Eval ()
+insert key value hashTable = do
+   table <- readIORef hashTable
+   hashValue <- hashObject key 
+   case IntMap.lookup hashValue table of
+      Nothing -> do
+         valRef <- newIORef value
+         let newTable = IntMap.insert hashValue [(key, valRef)] table 
+         writeIORef hashTable newTable 
+      Just matches -> do
+         updated <- linearInsert key matches value 
+         if updated
+            then return ()
+            else do
+               valRef <- newIORef value
+               let newMatches = (key, valRef) : matches
+                   newTable = IntMap.insert hashValue newMatches table
+               writeIORef hashTable newTable
+   where
+   linearInsert :: Object -> [(Object, ObjectRef)] -> Object -> Eval Bool 
+   linearInsert _ [] _ = return False 
+   linearInsert probe ((key, valRef) : rest) obj = do
+      areEqual <- objectEquality probe key
+      if areEqual 
+         then do
+            writeIORef valRef obj
+            return True 
+         else linearInsert probe rest obj
 
 lookup :: Object -> HashTable -> Eval (Maybe Object)
 lookup key hashTable = do
@@ -127,18 +189,20 @@ lookup key hashTable = do
       Nothing -> return Nothing
       Just matches -> linearSearch key matches 
    where
-   linearSearch :: Object -> [(Object, Object)] -> Eval (Maybe Object)
+   linearSearch :: Object -> [(Object, ObjectRef)] -> Eval (Maybe Object)
    linearSearch _ [] = return Nothing
-   linearSearch object ((key,value):rest) = do
+   linearSearch object ((key,valRef):rest) = do
       areEqual <- objectEquality object key
       if areEqual 
-         then return (Just value)
+         then do
+            val <- readIORef valRef
+            return $ Just val
          else linearSearch object rest 
 
-linearFilter :: Object -> [(Object, Object)] -> Eval [(Object, Object)]
+linearFilter :: Object -> [(Object, ObjectRef)] -> Eval [(Object, ObjectRef)]
 linearFilter object matches = foldM collectNotEquals [] matches 
    where
-   collectNotEquals :: [(Object, Object)] -> (Object, Object) -> Eval [(Object, Object)]
+   collectNotEquals :: [(Object, ObjectRef)] -> (Object, ObjectRef) -> Eval [(Object, ObjectRef)]
    collectNotEquals acc pair@(key, _value) = do
       areEqual <- objectEquality object key
       return $ if areEqual then acc else pair:acc 
