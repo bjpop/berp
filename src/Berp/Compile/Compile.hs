@@ -400,30 +400,6 @@ compileHandler asName (Handler { handler_clause = clause, handler_suite = body }
              newStmt = qualStmt $ appFun Prim.except [asName, classObj, newBody, parens nextHandler]
          return $ doBlock (classStmts ++ [newStmt]) 
 
-{-
-compileAssignLiteral :: Py.ExprSpan -> Py.ExprSpan -> Compile [Stmt] 
-compileAssignLiteral (Py.Paren { paren_expr = expr }) rhs = compileAssignLiteral expr rhs
-compileAssignLiteral (Py.Tuple { tuple_exprs = patElements }) rhs
-   | Py.Tuple { tuple_exprs = rhsElements} <- rhs, 
-     length patElements == length rhsElements = 
-        compileAssignLiteralRec patElements rhsElements
-   | Py.List { list_exprs = rhsElements } <- rhs,
-     length patElements == length rhsElements = 
-        compileAssignLiteralRec patElements rhsElements
-compileAssignLiteral (Py.List { list_exprs = patElements }) rhs
-   | Py.Tuple { tuple_exprs = rhsElements} <- rhs, 
-     length patElements == length rhsElements = 
-        compileAssignLiteralRec patElements rhsElements
-   | Py.List { list_exprs = rhsElements } <- rhs,
-     length patElements == length rhsElements = 
-        compileAssignLiteralRec patElements rhsElements
-compileAssignLiteral lhs rhs = do
-
-compileAssignLiteralRec :: [Py.ExprSpan] -> [Py.ExprSpan] -> Compile [Stmt]
-compileAssignLiteralRec exps1 exps2 = 
-   concat <$> zipWithM compileAssignLiteral exps1 exps2 
--}
-
 compileAssign :: Py.ExprSpan -> Hask.Exp -> Compile [Stmt] 
 compileAssign (Py.Paren { paren_expr = expr }) rhs = compileAssign expr rhs
 compileAssign (Py.Tuple { tuple_exprs = patElements }) rhs = 
@@ -447,7 +423,7 @@ compileAssign (Py.Subscript { subscriptee = objExpr, subscript_expr = sub }) rhs
 compileAssign (Py.Var { var_ident = ident}) rhs = do
    let newStmt = qualStmt $ infixApp (identToMangledVar ident) Prim.assignOp rhs 
    return [newStmt]
--- compileAssign e1 e2 = unsupported $ unwords [prettyText e1, "=", prettyText e2]
+compileAssign lhs _rhs = error $ "Assignment to " ++ prettyText lhs 
 
 compileAssignUnpackLiteral :: [Py.ExprSpan] -> Hask.Exp -> Compile [Stmt]
 compileAssignUnpackLiteral exps rhs = do
