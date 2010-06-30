@@ -30,7 +30,8 @@ module Berp.Base.Prims
 import Prelude hiding (break, read, putStr)
 import Control.Monad.State (gets)
 import Control.Monad.Cont (callCC)
-import Berp.Base.LiftedIO as LIO (readIORef, writeIORef, newIORef, putStr) 
+import Data.Array.IO (getElems)
+import Berp.Base.LiftedIO as LIO (readIORef, writeIORef, newIORef, putStr, liftIO) 
 #ifdef DEBUG
 import Berp.Base.LiftedIO as LIO (putStrLn)
 #endif
@@ -439,3 +440,8 @@ unpack :: Int -> Object -> Eval [Object]
 unpack n (Tuple { object_tuple = elements, object_length = size })
    | size == n = return elements
    | otherwise = error "unpack error, fixme" 
+unpack n (List { object_list_elements = elementsRef, object_list_num_elements = size })
+   | size == fromIntegral n = do
+        elementsArray <- readIORef elementsRef
+        liftIO $ getElems elementsArray
+   | otherwise = error "unpack error, fixme"
