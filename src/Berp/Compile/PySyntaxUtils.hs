@@ -34,8 +34,15 @@ assignTargets :: [ExprSpan] -> VarSet
 assignTargets = foldl' addTarget mempty
    where
    addTarget :: VarSet -> ExprSpan -> VarSet
-   addTarget set var@(Var {}) = Set.insert (varToString var) set
-   addTarget set _other = set
+   -- addTarget set var@(Var {}) = Set.insert (varToString var) set
+   addTarget set expr = Set.union (exprVars expr) set
+   exprVars :: ExprSpan -> VarSet
+   exprVars var@(Var {}) = Set.singleton (varToString var)
+   exprVars list@(List {}) = Set.unions $ Prelude.map exprVars $ list_exprs list
+   exprVars tuple@(Tuple {}) = Set.unions $ Prelude.map exprVars $ tuple_exprs tuple 
+   exprVars (Paren { paren_expr = expr }) = exprVars expr
+   exprVars _other = Set.empty
+   
 
 varToString :: Show a => Expr a -> IdentString
 varToString v@(Var {}) = toIdentString $ var_ident v
