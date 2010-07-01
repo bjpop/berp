@@ -57,3 +57,5 @@ initName :: Hashed String
 initName = $(hashedStr "__init__")
 mroName :: Hashed String
 mroName = $(hashedStr "mro")
+hashName :: Hashed String
+hashName = $(hashedStr "__hash__")

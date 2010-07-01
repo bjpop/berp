@@ -1,5 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 -----------------------------------------------------------------------------
 -- |
 -- Module      : Berp.Base.HashTable
@@ -34,8 +32,9 @@ import Control.Monad (foldM)
 import Berp.Base.SemanticTypes (Object (..), ObjectRef, Eval, HashTable)
 import Berp.Base.Object (objectEquality)
 import Berp.Base.Prims (callMethod)
-import Berp.Base.Hash (hash, Hashed, hashedStr)
+import Berp.Base.Hash (hash, Hashed)
 import Berp.Base.LiftedIO (MonadIO, readIORef, writeIORef, newIORef)
+import Berp.Base.StdNames (hashName)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 
 mappings :: HashTable -> Eval [(Object, Object)]
@@ -63,7 +62,7 @@ hashObject obj@(Bool {}) = if object_bool obj then return 1 else return 0
 hashObject obj@(None {}) = return $ hash $ object_identity obj -- copying what Python3.0 seems to do
 hashObject obj@(Function {}) = return $ hash $ object_identity obj
 hashObject object = do
-   hashResult <- callMethod object $(hashedStr "__hash__") []
+   hashResult <- callMethod object hashName []
    case hashResult of
       Integer {} -> return $ fromInteger $ object_integer hashResult
       _other -> fail $ "__hash__ method on object does not return an integer: " ++ show object
