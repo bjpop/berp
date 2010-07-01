@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, TypeSynonymInstances, PatternGuards, TemplateHaskell #-}
+{-# LANGUAGE FlexibleInstances, TypeSynonymInstances, PatternGuards #-}
 
 -- {-# OPTIONS_GHC -cpp -DDEBUG #-}
 {-# OPTIONS_GHC -cpp #-}
@@ -43,9 +43,9 @@ import Berp.Base.SemanticTypes (Object (..), ObjectRef, Procedure, Eval, EvalSta
 import Berp.Base.Truth (truth)
 import {-# SOURCE #-} Berp.Base.Object 
    ( typeOf, dictOf, lookupAttribute, lookupSpecialAttribute, objectEquality)
-import Berp.Base.Hash (Hashed, hashedStr)
+import Berp.Base.Hash (Hashed)
 import Berp.Base.ControlStack
-import Berp.Base.StdNames (docName, strName, setItemName) 
+import Berp.Base.StdNames (docName, strName, setItemName, getItemName, nextName, iterName) 
 import Berp.Base.Exception (RuntimeError (..), throw)
 import {-# SOURCE #-} Berp.Base.HashTable as Hash (stringInsert, insert)
 import {-# SOURCE #-} Berp.Base.StdTypes.Function (function)
@@ -171,9 +171,9 @@ for var exp body = forElse var exp body pass
 
 forElse :: ObjectRef -> Object -> Eval Object -> Eval Object -> Eval Object
 forElse var expObj suite1 suite2 = do
-   iterObj <- callMethod expObj $(hashedStr "__iter__") [] -- this could be specialised
+   iterObj <- callMethod expObj iterName [] -- this could be specialised
    cond <- newIORef true
-   let tryBlock = do nextObj <- callMethod iterObj $(hashedStr "__next__") [] -- this could be specialised
+   let tryBlock = do nextObj <- callMethod iterObj nextName [] -- this could be specialised
                      writeIORef var nextObj
                      suite1
    let handler e = except e stopIteration ((writeIORef cond false) >> pass) (raise e) 
@@ -243,7 +243,7 @@ callSpecialMethod object ident args = do
    proc @@ args
 
 subs :: Object -> Object -> Eval Object
-subs obj subscript = callMethod obj $(hashedStr "__getitem__") [subscript]
+subs obj subscript = callMethod obj getItemName [subscript]
 
 try :: Eval Object -> (Object -> Eval Object) -> Eval Object
 try tryComp handler = tryWorker tryComp handler pass Nothing 

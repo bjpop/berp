@@ -13,13 +13,17 @@
 
 module Berp.Interpreter.Repl (repl) where
 
-import MonadUtils
+import MonadUtils ()
 import HscTypes (liftGhcT)
 import Control.Monad.Trans (lift)
 import GHC
    ( defaultErrorHandler, getSessionDynFlags, setSessionDynFlags
    , findModule, mkModuleName, setContext, SingleStep (RunToCompletion)
-   , runStmt, gcatch, RunResult (..))
+   , runStmt, gcatch, RunResult (..), LoadHowMuch (..), guessTarget, setTargets, load
+   , DynFlags (..)
+   )
+import Linker (linkPackages, initDynLinker)
+import DynFlags (PackageFlag (..))
 import Control.Monad (when)
 import Control.Exception.Extensible (SomeException (..))
 import GHC.Paths (libdir)
@@ -40,6 +44,7 @@ import Berp.Compile.PrimName as Prim (interpretStmt, init)
 import Berp.Compile.PySyntaxUtils (InterpreterStmt (..))
 import Berp.Interpreter.Monad (Repl, runRepl)
 import Berp.Interpreter.Input (getInputLines)
+import Berp.Base.LiftedIO (liftIO)
  
 repl :: IO ()
 repl = do
@@ -49,13 +54,24 @@ repl = do
       runRepl (Just libdir) $ do
          dflags <- getSessionDynFlags
          setSessionDynFlags dflags
-         -- target <- guessTarget "test_main.hs" Nothing
+
+         -- dynFlags <- getSessionDynFlags
+{-
+         let oldPackageFlags = packageFlags dynFlags 
+             newDynFlags = dynFlags { packageFlags = ExposePackage "berp" : oldPackageFlags }
+-}
+         -- packageIds <- setSessionDynFlags newDynFlags  
+         -- latestDynFlags <- getSessionDynFlags
+         -- liftIO $ initDynLinker newDynFlags
+         -- liftIO $ linkPackages latestDynFlags packageIds 
+         -- target <- guessTarget "Berp.Base" Nothing
          -- setTargets [target]
-         -- load LoadAllTargets
          -- prel_mod <- findModule (mkModuleName "Prelude") Nothing
          berp_base_mod <- findModule (mkModuleName "Berp.Base") Nothing
          -- setContext [] [prel_mod, berp_base_mod]
          setContext [] [berp_base_mod]
+         -- load LoadAllTargets
+         -- load (LoadUpTo $ mkModuleName "Berp.Base")
          replLoop
 
 greeting :: IO ()

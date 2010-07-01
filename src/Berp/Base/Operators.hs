@@ -1,4 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      : Berp.Base.Operators
@@ -24,10 +23,13 @@ import qualified Prelude ((==),(<),(>=),(*),(+),(-),(<=),(>))
 import Berp.Base.Builtins.Exceptions (exception)
 import Berp.Base.Object (lookupAttribute)
 import Berp.Base.SemanticTypes (Object (..), Eval)
-import Berp.Base.Hash (Hashed, hashedStr)
+import Berp.Base.Hash (Hashed)
 import Berp.Base.StdTypes.Integer (int)
 import Berp.Base.StdTypes.Bool (bool)
 import Berp.Base.StdTypes.None (none)
+import Berp.Base.StdNames 
+   ( modName, addName, subName, mulName, divName, leName
+   , gtName, eqName, ltName, geName, orName, andName)
 
 infixl 9  .
 infixl 7 *, /, %
@@ -46,52 +48,52 @@ binop str arg1 arg2 = callMethod arg1 str [arg2]
 
 (%) obj1@(Integer {}) obj2@(Integer {}) = 
    return $ int (object_integer obj1 `Prelude.mod` object_integer obj2)
-(%) x y = binop $(hashedStr "__mod__") x y
+(%) x y = binop modName x y
 
 (+) obj1@(Integer {}) obj2@(Integer {}) = 
    return $ int (object_integer obj1 Prelude.+ object_integer obj2)
-(+) x y = binop $(hashedStr "__add__") x y
+(+) x y = binop addName x y
 
 (-) obj1@(Integer {}) obj2@(Integer {}) = 
    return $ int (object_integer obj1 Prelude.- object_integer obj2)
-(-) x y = binop $(hashedStr "__sub__") x y
+(-) x y = binop subName x y
 
 (*) obj1@(Integer {}) obj2@(Integer {}) = 
    return $ int (object_integer obj1 Prelude.* object_integer obj2)
-(*) x y = binop $(hashedStr "__mul__") x y
+(*) x y = binop mulName x y
 
 (/) (Integer { object_integer = int1 }) (Integer { object_integer = int2 })
    | int2 Prelude.== 0 = raise exception >> return none
    | otherwise = return $ int (int1 `Prelude.div` int2)
-(/) x y = binop $(hashedStr "__div__") x y
+(/) x y = binop divName x y
 
 (<=) obj1@(Integer {}) obj2@(Integer {}) = 
    return $ bool (object_integer obj1 Prelude.<= object_integer obj2)
-(<=) x y = binop $(hashedStr "__le__") x y
+(<=) x y = binop leName x y
 
 (>) obj1@(Integer {}) obj2@(Integer {}) = 
    return $ bool (object_integer obj1 Prelude.> object_integer obj2)
-(>) x y = binop $(hashedStr "__gt__") x y
+(>) x y = binop gtName x y
 
 (==) obj1@(Integer {}) obj2@(Integer {}) = 
    return $ bool (object_integer obj1 Prelude.== object_integer obj2)
-(==) x y = binop $(hashedStr "__eq__") x y
+(==) x y = binop eqName x y
 
 (<) obj1@(Integer {}) obj2@(Integer {}) = 
    return $ bool (object_integer obj1 Prelude.< object_integer obj2)
-(<) x y = binop $(hashedStr "__lt__") x y
+(<) x y = binop ltName x y
 
 (>=) obj1@(Integer {}) obj2@(Integer {}) = 
    return $ bool (object_integer obj1 Prelude.>= object_integer obj2)
-(>=) x y = binop $(hashedStr "__ge__") x y
+(>=) x y = binop geName x y
 
 and obj1@(Bool {}) obj2@(Bool {}) = 
    return $ bool (object_bool obj1 Prelude.&& object_bool obj2)
-and x y = binop $(hashedStr "__and__") x y
+and x y = binop andName x y
 
 or obj1@(Bool {}) obj2@(Bool {}) = 
    return $ bool (object_bool obj1 Prelude.|| object_bool obj2)
-or x y = binop $(hashedStr "__or__") x y
+or x y = binop orName x y
 
 (.) :: Object -> Hashed String -> Eval Object
 (.) object ident = lookupAttribute object ident

@@ -68,7 +68,6 @@ Library
       transformers == 0.2.*,
       containers < 0.4,
       ghc-prim,
-      template-haskell,
       array < 0.4
    exposed-modules:
       Berp.Base

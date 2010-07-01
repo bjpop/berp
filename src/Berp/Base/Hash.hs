@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, MagicHash, TypeSynonymInstances #-}
+{-# LANGUAGE MagicHash, TypeSynonymInstances #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -16,7 +16,7 @@
 module Berp.Base.Hash (Hash (..), Hashed, hashedStr) where
 
 import Berp.Base.Mangle (mangle)
-import Language.Haskell.TH
+-- import Language.Haskell.TH
 import Data.HashTable as HT (hashString)
 
 type Hashed a = (Int, a)
@@ -31,11 +31,16 @@ instance Hash Integer where
    -- hash i = I# (hashInteger i)
    hash = hashInteger
 
+{-
 hashedStr :: String -> Q Exp
 hashedStr str = [| (n, mangle str) |]
    where
    n :: Int
    n = hash str
+-}
+
+hashedStr :: String -> Hashed String
+hashedStr str = (hash str, mangle str)
 
 -- XXX May need to reconsider this. We'll want something which is fast.
 hashInteger :: Integer -> Int
