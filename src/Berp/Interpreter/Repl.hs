@@ -19,11 +19,8 @@ import Control.Monad.Trans (lift)
 import GHC
    ( defaultErrorHandler, getSessionDynFlags, setSessionDynFlags
    , findModule, mkModuleName, setContext, SingleStep (RunToCompletion)
-   , runStmt, gcatch, RunResult (..), LoadHowMuch (..), guessTarget, setTargets, load
-   , DynFlags (..)
+   , runStmt, gcatch, RunResult (..)
    )
-import Linker (linkPackages, initDynLinker)
-import DynFlags (PackageFlag (..))
 import Control.Monad (when)
 import Control.Exception.Extensible (SomeException (..))
 import GHC.Paths (libdir)
@@ -54,24 +51,11 @@ repl = do
       runRepl (Just libdir) $ do
          dflags <- getSessionDynFlags
          setSessionDynFlags dflags
-
-         -- dynFlags <- getSessionDynFlags
-{-
-         let oldPackageFlags = packageFlags dynFlags 
-             newDynFlags = dynFlags { packageFlags = ExposePackage "berp" : oldPackageFlags }
--}
-         -- packageIds <- setSessionDynFlags newDynFlags  
-         -- latestDynFlags <- getSessionDynFlags
-         -- liftIO $ initDynLinker newDynFlags
-         -- liftIO $ linkPackages latestDynFlags packageIds 
-         -- target <- guessTarget "Berp.Base" Nothing
-         -- setTargets [target]
-         -- prel_mod <- findModule (mkModuleName "Prelude") Nothing
          berp_base_mod <- findModule (mkModuleName "Berp.Base") Nothing
-         -- setContext [] [prel_mod, berp_base_mod]
          setContext [] [berp_base_mod]
-         -- load LoadAllTargets
-         -- load (LoadUpTo $ mkModuleName "Berp.Base")
+         -- kludge to get ghc to link depencies at the start, rather
+         -- than when the user types the first command.
+         evalInput "None"
          replLoop
 
 greeting :: IO ()
@@ -82,16 +66,18 @@ replLoop = do
    maybeInput <- getInputLines
    case maybeInput of 
       Nothing -> return () 
-      Just input -> do
-         when (not $ null input) $ do
-            pyStmts <- liftIO $ parseAndCheckErrors (input ++ "\n")
-            when (not $ null pyStmts) $ do
-               stmts <- liftGhcT $ lift $ compile $ InterpreterStmt pyStmts
-               let finalStmt = qualStmt (app Prim.interpretStmt Prim.init)
-               let stmtStrs = map oneLinePrinter (stmts ++ [finalStmt])
-               -- liftIO $ mapM_ putStrLn stmtStrs
-               mapM_ runAndCatch stmtStrs
-         replLoop
+      Just input -> evalInput input >> replLoop
+
+evalInput :: String -> Repl ()
+evalInput input =
+   when (not $ null input) $ do
+      pyStmts <- liftIO $ parseAndCheckErrors (input ++ "\n")
+      when (not $ null pyStmts) $ do
+         stmts <- liftGhcT $ lift $ compile $ InterpreterStmt pyStmts
+         let finalStmt = qualStmt (app Prim.interpretStmt Prim.init)
+         let stmtStrs = map oneLinePrinter (stmts ++ [finalStmt])
+         -- liftIO $ mapM_ putStrLn stmtStrs
+         mapM_ runAndCatch stmtStrs
 
 runAndCatch :: String -> Repl ()
 runAndCatch stmt = do 
