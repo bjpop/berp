@@ -25,9 +25,11 @@ module Berp.Base.Prims
    , try, tryElse, tryFinally, tryElseFinally, except, exceptDefault
    , raise, reRaise, raiseFrom, primitive, generator, yield, generatorNext
    , def, lambda, mkGenerator, printObject, topVar, Applicative.pure
-   , pureObject, showObject, returningProcedure, pyCallCC, unpack, setitem ) where
+   , pureObject, showObject, returningProcedure, pyCallCC, unpack 
+   , next, setitem, Pat (G, V)) where
 
 import Prelude hiding (break, read, putStr)
+import Control.Monad (zipWithM)
 import Control.Monad.State (gets)
 import Control.Monad.Cont (callCC)
 import Data.Array.IO (getElems)
@@ -42,7 +44,7 @@ import Berp.Base.Ident (Ident)
 import Berp.Base.SemanticTypes (Object (..), ObjectRef, Procedure, Eval, EvalState(..), ControlStack(..), Arity)
 import Berp.Base.Truth (truth)
 import {-# SOURCE #-} Berp.Base.Object 
-   ( typeOf, dictOf, lookupAttribute, lookupSpecialAttribute, objectEquality)
+   ( typeOf, dictOf, lookupAttribute, lookupSpecialAttribute, objectEquality, isIterator )
 import Berp.Base.Hash (Hashed)
 import Berp.Base.ControlStack
 import Berp.Base.StdNames (docName, strName, setItemName, getItemName, nextName, iterName) 
@@ -53,7 +55,9 @@ import {-# SOURCE #-} Berp.Base.StdTypes.List (updateListElement)
 import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
 import {-# SOURCE #-} Berp.Base.StdTypes.Bool (true, false)
 import {-# SOURCE #-} Berp.Base.StdTypes.Generator (generator)
-import {-# SOURCE #-} Berp.Base.Builtins.Exceptions (stopIteration, typeError)
+import {-# SOURCE #-} Berp.Base.Builtins.Exceptions (stopIteration, typeError, valueError)
+
+data Pat = G Int [Pat] | V ObjectRef
 
 -- specialised to monomorphic type for the benefit of the interpreter.
 -- otherwise we'd need to add a type annotation in the generated code.
@@ -173,7 +177,8 @@ forElse :: ObjectRef -> Object -> Eval Object -> Eval Object -> Eval Object
 forElse var expObj suite1 suite2 = do
    iterObj <- callMethod expObj iterName [] -- this could be specialised
    cond <- newIORef true
-   let tryBlock = do nextObj <- callMethod iterObj nextName [] -- this could be specialised
+   let tryBlock = do -- nextObj <- callMethod iterObj nextName [] -- this could be specialised
+                     nextObj <- next iterObj
                      writeIORef var nextObj
                      suite1
    let handler e = except e stopIteration ((writeIORef cond false) >> pass) (raise e) 
@@ -292,12 +297,12 @@ except exceptionObj baseObj match noMatch = do
    if isCompatible
       then match
       else noMatch
-   where
-   -- XXX fixme, this is not correct
-   compatibleException :: Object -> Object -> Eval Bool
-   compatibleException exceptionObj baseObj = do
-      let typeOfException = typeOf exceptionObj
-      objectEquality typeOfException baseObj 
+
+-- XXX fixme, this is not correct
+compatibleException :: Object -> Object -> Eval Bool
+compatibleException exceptionObj baseObj = do
+   let typeOfException = typeOf exceptionObj
+   objectEquality typeOfException baseObj 
 
 exceptDefault :: Eval Object -> Eval Object -> Eval Object
 exceptDefault match _noMatch = match
@@ -436,12 +441,43 @@ pyCallCC fun =
       -- XXX can this be a tail call?
       fun @@ [cont]
 
-unpack :: Int -> Object -> Eval [Object]
-unpack n (Tuple { object_tuple = elements, object_length = size })
-   | size == n = return elements
-   | otherwise = error "unpack error, fixme" 
-unpack n (List { object_list_elements = elementsRef, object_list_num_elements = size })
-   | size == fromIntegral n = do
+next :: Object -> Eval Object
+next obj = callMethod obj nextName []
+
+unpack :: Pat -> Object -> Eval Object
+unpack (V var) obj = writeIORef var obj >> return none
+unpack (G n pats) (Tuple { object_tuple = elements, object_length = size })
+   | n == size = zipWithM unpack pats elements >> return none
+   | otherwise = raise valueError 
+unpack (G n pats) (List { object_list_elements = elementsRef, object_list_num_elements = size })
+   | fromIntegral n == size = do
         elementsArray <- readIORef elementsRef
-        liftIO $ getElems elementsArray
-   | otherwise = error "unpack error, fixme"
+        objs <- liftIO $ getElems elementsArray
+        zipWithM unpack pats objs 
+        return none
+   | otherwise = raise valueError 
+-- XXX this has different semantics than Python because it will allow pattern variables
+-- to be assigned up-to the point an exception is raised. Python is all or nothing.
+unpack (G _n pats) obj = do
+   iteratorTest <- isIterator obj
+   if iteratorTest 
+      then do
+         iterator <- callMethod obj iterName []
+         unpackIterator pats iterator
+      else 
+         raise valueError 
+   where
+   unpackIterator :: [Pat] -> Object -> Eval Object 
+   -- check that the iterator was exhausted, by looking for a stopIteration
+   unpackIterator [] _obj = 
+      tryElse (next obj) handler (raise valueError)
+      where
+      handler e = except e stopIteration pass (raise e)
+   unpackIterator (pat:pats) obj = do
+      try assignNext handler
+      unpackIterator pats obj
+      where
+      assignNext :: Eval Object
+      assignNext = unpack pat =<< next obj 
+      handler :: Object -> Eval Object
+      handler e = except e stopIteration (raise valueError) (raise e)

@@ -17,8 +17,10 @@
 #include "BerpDebug.h"
 
 module Berp.Base.Object 
-   (lookupAttribute, lookupSpecialAttribute, lookupAttributeMaybe, 
-    typeOf, identityOf, objectEquality, dictOf, dir) where
+   ( lookupAttribute, lookupSpecialAttribute, lookupAttributeMaybe
+   , typeOf, identityOf, objectEquality, dictOf, dir
+   , isIterator
+   ) where
 
 import Berp.Base.Truth (truth)
 import Berp.Base.Prims (callMethod, showObject)
@@ -30,7 +32,7 @@ import Berp.Base.SemanticTypes (Object (..), Eval)
 import Berp.Base.Mangle (deMangle)
 import Berp.Base.Identity (Identity)
 import Berp.Base.Hash (Hashed)
-import Berp.Base.StdNames (eqName, cmpName)
+import Berp.Base.StdNames (eqName, cmpName, iterName)
 import Berp.Base.LiftedIO as LIO (MonadIO)
 #ifdef DEBUG
 import Berp.Base.LiftedIO as LIO (putStrLn)
@@ -169,9 +171,6 @@ lookupAttributeType object ident = do
                   BELCH("Ident was found in dictionary of type")
                   return dictResult
 
-hasAttribute :: (Functor m, MonadIO m) => Object -> Hashed String -> m Bool
-hasAttribute object ident = isJust <$> lookupAttributeMaybe object ident
-
 -- | Check if two objects are equal. For some objects we might have
 --   to call the __eq__ (or __cmp__) method on the objects. This means
 --   the result must be in the Eval monad.
@@ -191,11 +190,11 @@ objectEquality None None = return True
 objectEquality obj1 obj2 
    | object_identity obj1 == object_identity obj2 = return True
    | otherwise = do
-        canEq <- hasAttribute obj1 eqName
+        canEq <- hasAttribute eqName obj1 
         if canEq
            then truth <$> callMethod obj1 eqName [obj2]
            else do
-              canCmp <- hasAttribute obj1 cmpName
+              canCmp <- hasAttribute cmpName obj1 
               if canCmp
                  then do
                     cmpResult <- callMethod obj1 cmpName [obj2]
@@ -213,3 +212,11 @@ dir object = do
    keyObjects <- concat <$> mapM keys hashTables
    let keyStrings = nub $ map (deMangle . object_string) keyObjects
    list $ map string keyStrings 
+
+hasAttribute :: (Functor m, MonadIO m) => Hashed String -> Object -> m Bool
+hasAttribute ident object = isJust <$> lookupAttributeMaybe object ident
+
+-- XXX not really correct. We should check that it has a method called "__iter__" rather
+-- than just an attribute
+isIterator :: Object -> Eval Bool
+isIterator = hasAttribute iterName

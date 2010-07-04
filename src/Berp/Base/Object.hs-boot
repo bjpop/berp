@@ -1,6 +1,7 @@
 module Berp.Base.Object 
-   (lookupAttribute, lookupSpecialAttribute, lookupAttributeMaybe, 
-    typeOf, dictOf, identityOf, objectEquality) where
+   (lookupAttribute, lookupSpecialAttribute, lookupAttributeMaybe
+   , typeOf, dictOf, identityOf, objectEquality
+   , isIterator ) where
 
 import Berp.Base.SemanticTypes (Object, Eval)
 import Berp.Base.Identity (Identity)
@@ -14,3 +15,4 @@ lookupAttribute :: Object -> Hashed String -> Eval Object
 lookupSpecialAttribute :: Object -> Hashed String -> Eval Object
 lookupAttributeMaybe :: MonadIO m => Object -> Hashed String -> m (Maybe Object)
 objectEquality :: Object -> Object -> Eval Bool
+isIterator :: Object -> Eval Bool

@@ -24,4 +24,6 @@ import Berp.Base.Builtins.Exceptions as Exceptions
    , exception, _s_Exception
    , stopIteration, _s_StopIteration
    , typeError, _s_TypeError
-   , nameError, _s_NameError )
+   , nameError, _s_NameError
+   , valueError, _s_ValueError
+   )

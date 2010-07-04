@@ -403,9 +403,9 @@ compileHandler asName (Handler { handler_clause = clause, handler_suite = body }
 compileAssign :: Py.ExprSpan -> Hask.Exp -> Compile [Stmt] 
 compileAssign (Py.Paren { paren_expr = expr }) rhs = compileAssign expr rhs
 compileAssign (Py.Tuple { tuple_exprs = patElements }) rhs = 
-   compileAssignUnpackLiteral patElements rhs
+   compileUnpack patElements rhs
 compileAssign (Py.List { list_exprs = patElements }) rhs = 
-   compileAssignUnpackLiteral patElements rhs
+   compileUnpack patElements rhs
 -- Right argument of dot is always a variable, because dot associates to the left
 compileAssign (Py.BinaryOp { operator = Dot {}
                            , left_op_arg = lhs 
@@ -425,19 +425,23 @@ compileAssign (Py.Var { var_ident = ident}) rhs = do
    return [newStmt]
 compileAssign lhs _rhs = error $ "Assignment to " ++ prettyText lhs 
 
-compileAssignUnpackLiteral :: [Py.ExprSpan] -> Hask.Exp -> Compile [Stmt]
-compileAssignUnpackLiteral exps rhs = do
-   (unpackVars, unpackStmt) <- compileUnpack (length exps) rhs 
-   stmtss <- zipWithM compileAssign exps unpackVars
-   return $ unpackStmt : concat stmtss
-
-compileUnpack :: Int -> Hask.Exp -> Compile ([Hask.Exp], Hask.Stmt)
-compileUnpack len rhs = do
-   newNames <- sequence $ replicate len freshHaskellVar
-   let newStmt = genStmt bogusSrcLoc 
-                         (PList $ map pvar newNames) 
-                         (appFun Prim.unpack [intE $ fromIntegral len, rhs])
-   return (map var newNames, newStmt)
+compileUnpack :: [Py.ExprSpan] -> Hask.Exp -> Compile [Stmt]
+compileUnpack exps rhs = do
+   let pat = mkUnpackPat exps
+   returnStmt $ appFun Prim.unpack [pat, rhs]
+   where
+   mkUnpackPat :: [Py.ExprSpan] -> Hask.Exp
+   mkUnpackPat listExps = 
+      appFun (Con $ UnQual $ name "G") 
+             [ intE $ fromIntegral $ length listExps
+             , listE $ map unpackComponent listExps]
+   unpackComponent :: Py.ExprSpan ->  Hask.Exp
+   unpackComponent (Py.Var { var_ident = ident }) = 
+      App (Con $ UnQual $ name "V") (identToMangledVar ident)
+   unpackComponent (Py.List { list_exprs = elements }) = mkUnpackPat elements 
+   unpackComponent (Py.Tuple { tuple_exprs = elements }) = mkUnpackPat elements
+   unpackComponent (Py.Paren { paren_expr = exp }) = unpackComponent exp 
+   unpackComponent other = error $ "unpack assignment to " ++ prettyText other
 
 compileUnaryOp :: Py.OpSpan -> Hask.Exp
 compileUnaryOp (Plus {}) = Prim.unaryPlus

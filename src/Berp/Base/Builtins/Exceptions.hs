@@ -73,7 +73,9 @@ module Berp.Base.Builtins.Exceptions
    , typeError, _s_TypeError
    , nameError, _s_NameError
    , lookupError, _s_LookupError
-   , keyError, _s_KeyError)
+   , keyError, _s_KeyError
+   , valueError, _s_ValueError
+   )
    where
 
 import Control.Monad.Trans (liftIO)
@@ -132,3 +134,9 @@ keyError = constantEval $ mkExceptionType "KeyError" [lookupError]
 
 _s_KeyError :: ObjectRef
 _s_KeyError = primConstant keyError 
+
+valueError :: Object
+valueError = constantEval $ mkExceptionType "ValueError" [exception]
+
+_s_ValueError :: ObjectRef
+_s_ValueError = primConstant valueError 
