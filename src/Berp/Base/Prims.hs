@@ -29,7 +29,7 @@ module Berp.Base.Prims
    , next, setitem, Pat (G, V)) where
 
 import Prelude hiding (break, read, putStr)
-import Control.Monad (zipWithM)
+import Control.Monad (zipWithM, replicateM)
 import Control.Monad.State (gets)
 import Control.Monad.Cont (callCC)
 import Data.Array.IO (getElems)
@@ -456,28 +456,39 @@ unpack (G n pats) (List { object_list_elements = elementsRef, object_list_num_el
         zipWithM unpack pats objs 
         return none
    | otherwise = raise valueError 
--- XXX this has different semantics than Python because it will allow pattern variables
--- to be assigned up-to the point an exception is raised. Python is all or nothing.
-unpack (G _n pats) obj = do
+-- This is a bit ugly because Python's semantics for these bindings is "all or nothing".
+-- That is, if the pattern match fails then no variables are bound, even if a partial
+-- match was possible.
+unpack (G n pats) obj = do
    iteratorTest <- isIterator obj
    if iteratorTest 
       then do
          iterator <- callMethod obj iterName []
-         unpackIterator pats iterator
+         objs <- unpackIterator n iterator
+         zipWithM unpack pats objs
+         return none
       else 
          raise valueError 
    where
-   unpackIterator :: [Pat] -> Object -> Eval Object 
-   -- check that the iterator was exhausted, by looking for a stopIteration
-   unpackIterator [] _obj = 
-      tryElse (next obj) handler (raise valueError)
+   unpackIterator :: Int -> Object -> Eval [Object]
+   unpackIterator n iter = do
+      objs <- replicateM n nextIter
+      -- this next exception handler is just forcing the next iteration to 
+      -- see if the iterator is exhausted or not. Seems ugly, but that appears
+      -- be match what Python does. Hence a pattern which is too short for the
+      -- iterator will cause a failure, when a success would have been possible
+      -- if we just erased this exception handling statement.
+      tryElse (next obj) (\e -> except e stopIteration pass (raise e))
+              (raise valueError)
+      return objs
       where
-      handler e = except e stopIteration pass (raise e)
-   unpackIterator (pat:pats) obj = do
-      try assignNext handler
-      unpackIterator pats obj
-      where
-      assignNext :: Eval Object
-      assignNext = unpack pat =<< next obj 
-      handler :: Object -> Eval Object
-      handler e = except e stopIteration (raise valueError) (raise e)
+      -- XXX this is ugly because try does not return the value of its first argument
+      -- therefore we need to temporarily assign it to a variable, and then read from it
+      -- later. Maybe should fix try.
+      nextIter :: Eval Object
+      nextIter = do
+         ref <- var ""
+         try (do obj <- next iter 
+                 ref =: obj) 
+             (\e -> except e stopIteration (raise valueError) (raise e))
+         read ref
