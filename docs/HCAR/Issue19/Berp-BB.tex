@@ -1,0 +1,38 @@
+% Berp-BB.tex
+\begin{hcarentry}[new]{Berp}
+\label{berp}
+\report{Bernie Pope}%11/10
+\status{under development}
+\makeheader
+
+Berp is an implementation of Python 3. At its heart it is a translator
+which takes Python code as input and generates Haskell code as output.
+The Haskell code is fed into a Haskell compiler (GHC) for compilation
+to machine code or interpretation as byte code. One of the main advantages
+of this approach is that berp is able to use the rich
+functionality provided by the GHC runtime system with minimal
+implementation effort.
+Berp provides both a compiler and an interactive interpreter, and for the
+most part it can be used in the same way as CPython (the main Python
+implementation). Although berp is in the early stages of development,
+it is able to demonstrate some novel capabilities (compared to CPython),
+such as tail-call optimisation and call-with-current-continuation.
+
+The syntactic analysis component of berp is provided by a separate Haskell
+library called language-python~\cref{language-python}, which can be used independently of berp to
+produce tools for processing Python source.
+
+Berp underwent a flurry of development activity in the first part of 2010,
+but since then the pace slowed down as I worked on other projects.
+Those other projects are now maturing, and I plan to return
+to berp development soon. Berp is still missing support
+for some critical features, such as module imports, and I hope to
+remedy most of the major omissions by the end of the year.
+
+\FurtherReading
+\begin{compactitem}
+\item \url{http://hackage.haskell.org/package/berp}
+\item \url{http://github.com/bjpop/berp}
+\item \url{http://github.com/bjpop/berp/wiki}
+\end{compactitem}
+\end{hcarentry}
