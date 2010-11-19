@@ -162,3 +162,82 @@ subsequently.
 Importantly we can also see that an exception raised during the execution
 of a generator causes the generator to end and subsequent next() calls
 result in StopIteration. 
+
+--------------------------------------------------------------------------------
+
+Comprehensions / generators
+
+We have four kinds:
+   - Generator expressions.
+   - List comprehensions.
+   - Set comprehensions.
+   - Dict comprehensions.
+
+Basic idea is to turn them all into generators, and for list, set and dict,
+wrap the output of the generator in a constructor.
+
+That is:
+
+   [ x + 1 for x in e ]
+
+becomes:
+
+   list(x + 1 for x in e)
+
+Then we compile generators into for loops:
+
+So:
+
+   list(x + 1 for x in e)
+
+becomes:
+
+   def gen():
+       for x in e:
+           yield x + 1
+   list(gen())
+
+But this is a little bit costly due to the creation of a new function
+and the unnecessary use of iterators. We can specialise the construction
+of the set/list/dictionary.
+
+Syntax:
+
+   exp_comp := [comp] | {comp}_set | {comp}_dict | (comp)
+   comp     := exp forpart
+   forpart  := for pat in exp rest
+   rest     := epsilon | ifpart | forpart
+   ifpart   := if exp rest
+
+[[ [comp] ]] =
+
+   v = list()
+   [[ comp ]]_(v,list)
+
+[[ {comp}_set ]] =
+
+   v = set()
+   [[ comp ]]_(v,set)
+
+[[ {comp}_dict ]] =
+
+   v = dict()
+   [[ comp ]]_(v,dict)
+
+[[ (comp) ]] = [[ comp ]]_(?,gen)
+
+[[ exp forpart ]]_(var,type) =
+
+   [[ forpart ]]_(var,type,exp)
+
+[[ for pat in exp rest ]]_(var,type,result) =
+
+   for pat in exp:
+       [[ rest ]]_(var,type,result)
+
+[[ epsilon ]]_(var,type,result) = update_type var result
+
+[[ if exp rest ]]_(var,type,result) =
+
+   if exp:
+       [[ rest ]]_(type,result)

@@ -312,7 +312,83 @@ instance Compilable ExprSpan where
       return (stmts, newExpr)
    compile (Py.Paren { paren_expr = e }) = compile e
    compile (None {}) = returnExp Prim.none
-   compile other = unsupported $ prettyText other 
+   compile (Generator { gen_comprehension = comp }) = desugarComprehens GenComp comp
+   compile (ListComp { list_comprehension = comp }) = desugarComprehens ListComp comp
+   compile (DictComp { dict_comprehension = comp }) = desugarComprehens DictComp comp
+   compile (SetComp { set_comprehension = comp }) = desugarComprehens SetComp comp
+   compile other = unsupported $ prettyText other
+
+data ComprehensnType = GenComp | ListComp | DictComp | SetComp
+   deriving (Eq, Show)
+
+class ComprehensElement e where
+   comprehensElementToExpr :: e -> ExprSpan
+
+instance ComprehensElement ExprSpan where
+   comprehensElementToExpr = id
+
+instance ComprehensElement (ExprSpan, ExprSpan) where
+   comprehensElementToExpr (e1, e2) = Py.Tuple { tuple_exprs = [e1, e2], expr_annot = SpanEmpty }
+
+compileComprehens :: ComprehensElement e =>
+   ComprehensType -> ComprehensionSpan e -> Compile ([Stmt], Expr)
+compileComprehens ty comprehension = do
+   (ident, stmts) <- desugarComprehens ty comprehension
+   (identStmts, compiledIdent) <- compile ident
+   stmtss <- mapM compile stmts
+   return (identStmts ++ concat stmtss, compiledIdent)
+
+desugarComprehens :: ComprehensElement e =>
+   ComprehensType -> ComprehensionSpan e -> Compile (Py.Expr, [Py.Stmt])
+desugarComprehens ListComp comprehension = do
+   v <- freshPythonVar
+   let listVar = Py.Var { var_ident = Py.Ident { ident_string = "list", ident_annot = SpanEmpty }}
+       newPyVar = Py.Var { var_ident = v, expr_annot = SpanEmpty }
+       construction =
+          Py.Assign { assign_to = [newPyVar]
+                    , assign_expr = Py.Call { call_fun = listVar, call_args = [], expr_annot = SpanEmpty }
+                    , stmt_annot = SpanEmpty }
+   desugarStmt <- desugarComprehensBody (comprehensUpdater newPyVar ListComp) comprehension
+   return (newPyVar, construction : [desugarStmt])
+{-
+desugarComprehens DictComp comprehension
+desugarComprehens SetComp comprehension
+desugarComprehens GenComp comprehension
+-}
+
+comprehensUpdater :: Py.Expr -> ComprehensType -> Py.Expr -> Py.Stmt
+comprehensUpdater var ListComp val =
+   BinaryOp { operator = Dot { op_annot = SpanEmpty }
+            , left_op_arg = var
+            , right_op_arg = val
+            , expr_annot = SpanEmpty }
+
+desugarComprehensBody :: ComprehensElement e => (Py.Expr -> Py.Stmt) -> ComprehensionSpan e -> Compile Py.Stmt
+desugarComprehensBody updater comp =
+   desugarComprehensFor (updater $ comprehension_expr comp) (comprehension_for comp)
+
+desugarComprehensFor :: ComprehensElement e => Py.Stmt -> CompForSpan e -> Compile Py.Stmt
+desugarComprehensFor resultStmt compFor = do
+   let pat = comp_for_exprs compFor
+       inExpr = comp_in_expr compFor
+       rest = comp_for_iter compFor
+   stmts <- desugarComprehensMaybeIter resultStmt rest
+   let forStmt = For { for_targets = pat
+                     , for_generator = inExpr
+                     , for_body = stmts
+                     , for_else = []
+                     , stmt_annot = SpanEmpty }
+   return forStmt
+
+desugarComprehensMaybeIter :: ComprehensElement e => Py.Stmt -> (Maybe CompIterSpan) -> Compile [Py.Stmt]
+desugarComprehensMaybeIter result Nothing = return [result]
+desugarComprehensMaybeIter result (Just iter) = desugarComprehensiter result iter
+
+desugarComprehensIter :: ComprehensElement e => Py.Stmt -> CompIterSpan -> Compile [Py.Stmt]
+desugarComprehensIter result (IterFor { comp_iter_for = for })
+   (:[]) <$> desugarComprehensFor result for
+desugarComprehensIter result (
+
 
 compileTailCall :: ExprSpan -> Compile ([Stmt], Exp)
 compileTailCall (Call { call_fun = fun, call_args = args }) = do
