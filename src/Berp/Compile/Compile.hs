@@ -387,7 +387,7 @@ desugarComprehensMaybeIter result (Just iter) = desugarComprehensiter result ite
 desugarComprehensIter :: ComprehensElement e => Py.Stmt -> CompIterSpan -> Compile [Py.Stmt]
 desugarComprehensIter result (IterFor { comp_iter_for = for })
    (:[]) <$> desugarComprehensFor result for
-desugarComprehensIter result (
+-- desugarComprehensIter result (
 
 
 compileTailCall :: ExprSpan -> Compile ([Stmt], Exp)
