@@ -47,8 +47,11 @@ unaryMinus = prim "unaryMinus"
 invert :: Exp
 invert = prim "invert"
 
-mkGenerator :: Exp
-mkGenerator = prim "mkGenerator"
+generator :: Exp
+generator = prim "generator"
+
+returnGenerator :: Exp
+returnGenerator = prim "returnGenerator"
 
 yield :: Exp
 yield = prim "yield"

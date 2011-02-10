@@ -24,7 +24,7 @@ module Berp.Base.Prims
    , read, var, binOp, setattr, callMethod, callSpecialMethod, subs
    , try, tryElse, tryFinally, tryElseFinally, except, exceptDefault
    , raise, reRaise, raiseFrom, primitive, generator, yield, generatorNext
-   , def, lambda, mkGenerator, printObject, topVar, Applicative.pure
+   , def, lambda, returnGenerator, printObject, topVar, Applicative.pure
    , pureObject, showObject, returningProcedure, pyCallCC, unpack 
    , next, setitem, Pat (G, V)) where
 
@@ -415,12 +415,12 @@ lambda arity fun =
       argsRefs <- mapM newIORef params 
       fun argsRefs
 
-mkGenerator :: Eval Object -> Eval Object
-mkGenerator cont = do
+returnGenerator :: Eval Object -> Eval Object
+returnGenerator cont = do
    generatorObj <- generator cont
    ret generatorObj
 
-printObject :: Object -> Eval () 
+printObject :: Object -> Eval ()
 printObject obj = do
    str <- showObject obj
    putStr str 
@@ -448,28 +448,30 @@ unpack :: Pat -> Object -> Eval Object
 unpack (V var) obj = writeIORef var obj >> return none
 unpack (G n pats) (Tuple { object_tuple = elements, object_length = size })
    | n == size = zipWithM unpack pats elements >> return none
-   | otherwise = raise valueError 
-unpack (G n pats) (List { object_list_elements = elementsRef, object_list_num_elements = size })
-   | fromIntegral n == size = do
-        elementsArray <- readIORef elementsRef
-        objs <- liftIO $ getElems elementsArray
-        zipWithM unpack pats objs 
-        return none
-   | otherwise = raise valueError 
+   | otherwise = raise valueError
+unpack (G n pats) (List { object_list_elements = elementsRef, object_list_num_elements = sizeRef }) = do
+   size <- readIORef sizeRef
+   if fromIntegral n == size
+      then do
+         elementsArray <- readIORef elementsRef
+         objs <- liftIO $ getElems elementsArray
+         zipWithM unpack pats objs
+         return none
+      else raise valueError
 -- XXX this has different semantics than Python because it will allow pattern variables
 -- to be assigned up-to the point an exception is raised. Python is all or nothing.
 unpack (G _n pats) obj = do
    iteratorTest <- isIterator obj
-   if iteratorTest 
+   if iteratorTest
       then do
          iterator <- callMethod obj iterName []
          unpackIterator pats iterator
-      else 
-         raise valueError 
+      else
+         raise valueError
    where
    unpackIterator :: [Pat] -> Object -> Eval Object 
    -- check that the iterator was exhausted, by looking for a stopIteration
-   unpackIterator [] _obj = 
+   unpackIterator [] _obj =
       tryElse (next obj) handler (raise valueError)
       where
       handler e = except e stopIteration pass (raise e)
@@ -478,6 +480,6 @@ unpack (G _n pats) obj = do
       unpackIterator pats obj
       where
       assignNext :: Eval Object
-      assignNext = unpack pat =<< next obj 
+      assignNext = unpack pat =<< next obj
       handler :: Object -> Eval Object
       handler e = except e stopIteration (raise valueError) (raise e)

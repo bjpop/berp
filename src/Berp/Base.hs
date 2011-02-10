@@ -18,14 +18,19 @@ module Berp.Base
    , continue, while, whileElse, for, forElse, ifThen, (@@), tailCall, tuple, read, var
    , (%), (+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), and, or, klass, setattr, list, dictionary
    , subs, try, tryElse, tryFinally, tryElseFinally, except, exceptDefault, raise, reRaise, raiseFrom
-   , pure, pureObject, yield, mkGenerator, unaryMinus, unaryPlus, invert, runStmt, runExpr, interpretStmt
-   , topVar, unpack, setitem, Pat (G,V))
+   , pure, pureObject, yield, generator, returnGenerator, unaryMinus, unaryPlus, invert, runStmt
+   , runExpr, interpretStmt, topVar, unpack, setitem, Pat (G,V))
    where
 
 import Berp.Base.Builtins as Builtins
 import Prelude hiding (break, (+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), and, or, read)
-import Berp.Base.Prims ((=:), stmt, ifThenElse, ret, pass, break, continue, while, whileElse, for, forElse, ifThen, (@@), tailCall, read, var, setattr, subs, try, tryElse, tryFinally, tryElseFinally, except, exceptDefault, raise, reRaise, raiseFrom, yield, def, lambda, mkGenerator, topVar, pure, pureObject, unpack, setitem, Pat (G,V))
-import Berp.Base.Operators ((%), (+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), and, or, unaryMinus, unaryPlus, invert)
+import Berp.Base.Prims
+   ( (=:), stmt, ifThenElse, ret, pass, break, continue, while, whileElse, for, forElse, ifThen,
+     (@@), tailCall, read, var, setattr, subs, try, tryElse, tryFinally, tryElseFinally, except,
+     exceptDefault, raise, reRaise, raiseFrom, yield, def, lambda, generator, returnGenerator, topVar, pure,
+     pureObject, unpack, setitem, Pat (G,V))
+import Berp.Base.Operators
+   ((%), (+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), and, or, unaryMinus, unaryPlus, invert)
 import Berp.Base.Monad (runExpr, runStmt, interpretStmt)
 import Berp.Base.Class (klass)
 import Berp.Base.StdTypes.Integer (int)
@@ -35,3 +40,4 @@ import Berp.Base.StdTypes.String (string)
 import Berp.Base.StdTypes.None (none)
 import Berp.Base.StdTypes.List (list)
 import Berp.Base.StdTypes.Dictionary (dictionary)
+import Berp.Base.StdTypes.Generator (generator)

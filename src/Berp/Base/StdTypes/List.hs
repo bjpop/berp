@@ -14,7 +14,7 @@
 module Berp.Base.StdTypes.List (list, listClass, listIndex, updateListElement) where
 
 import Control.Monad.Trans (liftIO)
-import Berp.Base.LiftedIO (newIORef, readIORef)
+import Berp.Base.LiftedIO (newIORef, readIORef, writeIORef)
 import Data.Array.MArray (newListArray, readArray, getElems, getBounds, writeArray, newArray_)
 import Data.List (intersperse)
 import Data.Foldable (traverse_)
@@ -28,12 +28,13 @@ import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.ObjectBase (objectBase)
 import Berp.Base.StdTypes.String (string)
 import Berp.Base.StdTypes.Generator (generator)
+import Berp.Base.StdTypes.None (none)
 
 list :: [Object] -> Eval Object
 list = liftIO . listIO
 
 listIO :: [Object] -> IO Object
-listIO elements = do 
+listIO elements = do
    let numElements = fromIntegral (length elements)
    array <- newListArray (0, numElements - 1) elements
    listFromArray numElements array
@@ -42,19 +43,20 @@ listFromArray :: Integer -> ListArray -> IO Object
 listFromArray numElements array = do
    identity <- newIdentity
    arrayRef <- newIORef array
-   return $ 
-      List 
+   sizeRef <- newIORef numElements
+   return $
+      List
       { object_identity = identity
       , object_list_elements = arrayRef
-      , object_list_num_elements = numElements
+      , object_list_num_elements = sizeRef
       }
 
 listIndex :: Object -> Object -> Eval Object
 listIndex list index = liftIO $ do
-   let numElements = object_list_num_elements list
+   numElements <- readIORef $ object_list_num_elements list
    normIndex <- normaliseIndex index numElements
    array <- readIORef $ object_list_elements list
-   readArray array normIndex 
+   readArray array normIndex
 
 normaliseIndex :: Object -> Integer -> IO Integer
 normaliseIndex index numElements =
@@ -70,9 +72,30 @@ normaliseIndex index numElements =
       | index < 0 = numElements + index
       | otherwise = index
 
-listAppend :: Object -> Object -> Eval Object
-listAppend list1 list2 = liftIO $ do
-   array1 <- readIORef $ object_list_elements list1 
+-- XXX this takes time proportional to length of first argument.
+-- Can we do better than this?
+listAppendItem :: Object -> Object -> Eval Object
+listAppendItem list item = liftIO $ do
+   let arrayRef = object_list_elements list
+   array <- readIORef arrayRef
+   let sizeRef = object_list_num_elements list
+   oldSize <- readIORef sizeRef
+   -- in future versions the bounds of the array and the number of elements could be different.
+   (_lo, hi) <- getBounds array
+   let newUpperBound = hi + 1
+   resultArray <- newArray_ (0, newUpperBound)
+   copyElements oldSize array 0 resultArray
+   writeArray resultArray oldSize item
+   writeIORef arrayRef resultArray
+   writeIORef sizeRef $! oldSize + 1
+   -- it seems that python returns none even though it might be useful to
+   -- have the list returned, so you could chain appends together like so:
+   -- x.append(1).append(2)
+   return none
+
+listConcat :: Object -> Object -> Eval Object
+listConcat list1 list2 = liftIO $ do
+   array1 <- readIORef $ object_list_elements list1
    array2 <- readIORef $ object_list_elements list2
    (_lo1, hi1) <- getBounds array1
    (_lo2, hi2) <- getBounds array2
@@ -85,9 +108,9 @@ listAppend list1 list2 = liftIO $ do
          resultArray <- newArray_ (0, newUpperBound)
          copyElements size1 array1 0 resultArray
          copyElements (hi2 + 1) array2 size1 resultArray
-         listFromArray (newUpperBound + 1) resultArray 
+         listFromArray (newUpperBound + 1) resultArray
 
-copyElements :: Integer -> ListArray -> Integer -> ListArray -> IO () 
+copyElements :: Integer -> ListArray -> Integer -> ListArray -> IO ()
 copyElements howMany from toIndex to
    = copyElementsW 0 toIndex
    where
@@ -101,8 +124,8 @@ copyElements howMany from toIndex to
 
 updateListElement :: Object -> Object -> Object -> Eval Object
 updateListElement list index value = liftIO $ do
-   let numElements = object_list_num_elements list
-   normIndex <- normaliseIndex index numElements 
+   numElements <- readIORef $ object_list_num_elements list
+   normIndex <- normaliseIndex index numElements
    array <- readIORef $ object_list_elements list
    writeArray array normIndex value
    return list
@@ -117,13 +140,14 @@ attributes :: IO Object
 attributes = mkAttributes 
    [ (eqName, eq)
    , (strName, primitive 1 str)
-   , (getItemName, primitive 2 getItem) 
+   , (getItemName, primitive 2 getItem)
    , (addName, primitive 2 add)
    , (setItemName, primitive 3 setItem)
    , (iterName, primitive 1 iter)
+   , (appendName, primitive 2 appendItem)
    ]
 
-eq :: Object 
+eq :: Object
 eq = error "== on list not defined"
 
 getItem :: Procedure 
@@ -141,8 +165,12 @@ str (x:_) = do
 str _other = error "str on list applied to wrong number of arguments"
 
 add :: Procedure 
-add (x:y:_) = listAppend x y 
+add (x:y:_) = listConcat x y
 add _other = error "add on list applied to wrong number of arguments"
+
+appendItem :: Procedure
+appendItem (x:y:_) = listAppendItem x y
+appendItem _other = error "append on list applied to wrong number of arguments"
 
 setItem :: Procedure 
 setItem (x:y:z:_) = updateListElement x y z
