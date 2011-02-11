@@ -24,7 +24,7 @@ module Berp.Base.Prims
    , read, var, binOp, setattr, callMethod, callSpecialMethod, subs
    , try, tryElse, tryFinally, tryElseFinally, except, exceptDefault
    , raise, reRaise, raiseFrom, primitive, generator, yield, generatorNext
-   , def, lambda, mkGenerator, printObject, topVar, Applicative.pure
+   , def, lambda, returnGenerator, printObject, topVar, Applicative.pure
    , pureObject, showObject, returningProcedure, pyCallCC, unpack 
    , next, setitem, Pat (G, V)) where
 
@@ -415,12 +415,12 @@ lambda arity fun =
       argsRefs <- mapM newIORef params 
       fun argsRefs
 
-mkGenerator :: Eval Object -> Eval Object
-mkGenerator cont = do
+returnGenerator :: Eval Object -> Eval Object
+returnGenerator cont = do
    generatorObj <- generator cont
    ret generatorObj
 
-printObject :: Object -> Eval () 
+printObject :: Object -> Eval ()
 printObject obj = do
    str <- showObject obj
    putStr str 
@@ -448,6 +448,8 @@ unpack :: Pat -> Object -> Eval Object
 unpack (V var) obj = writeIORef var obj >> return none
 unpack (G n pats) (Tuple { object_tuple = elements, object_length = size })
    | n == size = zipWithM unpack pats elements >> return none
+{-
+<<<<<<< HEAD
    | otherwise = raise valueError 
 unpack (G n pats) (List { object_list_elements = elementsRef, object_list_num_elements = size })
    | fromIntegral n == size = do
@@ -460,10 +462,28 @@ unpack (G n pats) (List { object_list_elements = elementsRef, object_list_num_el
 -- That is, if the pattern match fails then no variables are bound, even if a partial
 -- match was possible.
 unpack (G n pats) obj = do
+=======
+-}
+   | otherwise = raise valueError
+unpack (G n pats) (List { object_list_elements = elementsRef, object_list_num_elements = sizeRef }) = do
+   size <- readIORef sizeRef
+   if fromIntegral n == size
+      then do
+         elementsArray <- readIORef elementsRef
+         objs <- liftIO $ getElems elementsArray
+         zipWithM unpack pats objs
+         return none
+      else raise valueError
+-- XXX this has different semantics than Python because it will allow pattern variables
+-- to be assigned up-to the point an exception is raised. Python is all or nothing.
+unpack (G _n pats) obj = do
+-- >>>>>>> origin/generators
    iteratorTest <- isIterator obj
-   if iteratorTest 
+   if iteratorTest
       then do
          iterator <- callMethod obj iterName []
+{-
+<<<<<<< HEAD
          objs <- unpackIterator n iterator
          zipWithM unpack pats objs
          return none
@@ -492,3 +512,24 @@ unpack (G n pats) obj = do
                  ref =: obj) 
              (\e -> except e stopIteration (raise valueError) (raise e))
          read ref
+=======
+-}
+         unpackIterator pats iterator
+      else
+         raise valueError
+   where
+   unpackIterator :: [Pat] -> Object -> Eval Object 
+   -- check that the iterator was exhausted, by looking for a stopIteration
+   unpackIterator [] _obj =
+      tryElse (next obj) handler (raise valueError)
+      where
+      handler e = except e stopIteration pass (raise e)
+   unpackIterator (pat:pats) obj = do
+      try assignNext handler
+      unpackIterator pats obj
+      where
+      assignNext :: Eval Object
+      assignNext = unpack pat =<< next obj
+      handler :: Object -> Eval Object
+      handler e = except e stopIteration (raise valueError) (raise e)
+-- >>>>>>> origin/generators

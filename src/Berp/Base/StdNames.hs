@@ -59,3 +59,5 @@ mroName :: Hashed String
 mroName = (hashedStr "mro")
 hashName :: Hashed String
 hashName = (hashedStr "__hash__")
+appendName :: Hashed String
+appendName = (hashedStr "append")

@@ -31,11 +31,11 @@ import Control.Exception.Extensible (block, unblock, catch)
 
 data State = State { unique :: !Integer, seen_yield :: !Bool, scope :: Scope }
 
-data Scope 
-   = Scope 
+data Scope
+   = Scope
      { localVars :: !VarSet     -- local to a block (not params)
-     , paramVars :: !VarSet     -- bound in the parameters of the innermost enclosing function 
-     , globalVars :: !VarSet    -- declared as "global" in the source 
+     , paramVars :: !VarSet     -- bound in the parameters of the innermost enclosing function
+     , globalVars :: !VarSet    -- declared as "global" in the source
      , enclosingVars :: !VarSet -- in scope enclosing a block, but not global
      , nestingLevel :: !NestingLevel
      }

@@ -1,0 +1,6 @@
+print([x for x in [1,2,3] if x < 1])
+print([x for x in [1,2,3] if x > 3])
+print([x for x in [1,2,3] if x == 2])
+print([x for x in [1,2,3] if x == x])
+print([x for x in [1,2,3] if True])
+print([x for x in [1,2,3] if False])

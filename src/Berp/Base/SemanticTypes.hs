@@ -93,12 +93,12 @@ instance ObjectLike Object where
 
 -- XXX probably need Bound Methods.
 data Object
-   = Object 
+   = Object
      { object_identity :: !Identity
      , object_type :: !Object -- type
      , object_dict :: !Object -- dictionary
      }
-   | Type 
+   | Type
      { object_identity :: !Identity
      , object_type :: Object  -- type
      , object_dict :: !Object  -- dictionary
@@ -120,17 +120,18 @@ data Object
      , object_tuple :: ![Object]
      , object_length :: !Int
      }
-   | List 
+   -- We must allow the contents and the size of an array to change.
+   | List
      { object_identity :: !Identity
-     , object_list_elements :: IORef ListArray
-     , object_list_num_elements :: Integer
+     , object_list_elements :: !(IORef ListArray)
+     , object_list_num_elements :: !(IORef Integer)
      }
    | Function
      { object_identity :: !Identity
      , object_procedure :: !Procedure
      , object_arity :: !Arity
      , object_dict :: !Object -- dictionary
-     } 
+     }
    | String
      { object_identity :: !Identity
      , object_string :: !String
@@ -144,7 +145,7 @@ data Object
      , object_continuation :: !(IORef (Eval Object))
      , object_stack_context :: !(IORef (ControlStack -> ControlStack))
      }
-   | None 
+   | None
 
 -- For debugging only
 instance Show Object where
