@@ -2,8 +2,18 @@
 
 * make list comprehensions more efficient for lists (currently gratuitous append)
 
-* implement other comprehensions (set, dict and generator)
-
 * range(), len(), map() and other useful top level functions.
 
 * import statements
+
+* floating point numbers
+
+* sets
+
+* keyword arguments
+
+* default arguments
+
+* some way to include Python code in the standard libraries, and compile it with berp so that it 
+is available to user programs (obvious example is to compile Python __builtins__ this way, such as map,
+range etcetera).
