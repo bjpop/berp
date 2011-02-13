@@ -39,6 +39,7 @@ import Berp.Base.LiftedIO as LIO (putStrLn)
 #endif
 import {-# SOURCE #-} Berp.Base.HashTable (stringLookup, keys)
 import {-# SOURCE #-} Berp.Base.StdTypes.Integer (intClass, int)
+import {-# SOURCE #-} Berp.Base.StdTypes.Float (floatClass, float)
 import {-# SOURCE #-} Berp.Base.StdTypes.Bool (boolClass)
 import {-# SOURCE #-} Berp.Base.StdTypes.Tuple (tupleClass, getTupleElements)
 import {-# SOURCE #-} Berp.Base.StdTypes.Function (functionClass)
@@ -51,21 +52,27 @@ import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 
 -- needed for overloaded numeric literals
 instance Num Object where
-    fromInteger = int
-    (+) = undefined
-    (*) = undefined
-    abs = undefined
-    signum = undefined
+   fromInteger = int
+   (+) = undefined
+   (*) = undefined
+   abs = undefined
+   signum = undefined
+
+instance Fractional Object where
+   fromRational x = float (fromRational x)
+   (/) = undefined
+   recip = undefined
 
 -- Python allows the type of an object to change in a limited set of circumstances.
 -- But we will ignore that for the moment and make it a pure function.
 typeOf :: Object -> Object
-typeOf obj@(Object {}) = object_type obj 
+typeOf obj@(Object {}) = object_type obj
 typeOf obj@(Type {}) = object_type obj
-typeOf (Integer {}) = intClass 
+typeOf (Integer {}) = intClass
+typeOf (Float {}) = floatClass
 typeOf (Bool {}) = boolClass
 typeOf (Tuple {}) = tupleClass
-typeOf (List {}) = listClass 
+typeOf (List {}) = listClass
 typeOf (Function {}) = functionClass
 typeOf (String {}) = stringClass
 typeOf (None {}) = noneClass

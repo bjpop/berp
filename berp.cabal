@@ -14,11 +14,11 @@ license:             BSD3
 license-file:        LICENSE
 copyright:           (c) 2010 Bernard James Pope
 author:              Bernard James Pope (Bernie Pope)
-maintainer:          florbitous@gmail.com 
-homepage:            http://wiki.github.com/bjpop/berp/  
+maintainer:          florbitous@gmail.com
+homepage:            http://wiki.github.com/bjpop/berp/
 build-type:          Simple
 stability:           experimental
-tested-with:         GHC==6.10.4 
+tested-with:         GHC==6.10.4
 extra-source-files:  src/include/BerpDebug.h
 
 Executable berp
@@ -26,9 +26,9 @@ Executable berp
   main-is:
       Main.hs
   hs-source-dirs:
-      src, 
+      src,
       src/Berp/
-  build-depends:   
+  build-depends:
       base == 4.*,
       monads-tf == 0.1.*,
       transformers == 0.2.*,
@@ -59,7 +59,7 @@ Executable berp
 Library
    ghc-options: -Wall -fno-warn-name-shadowing -fno-warn-orphans
    include-dirs:
-      src/include 
+      src/include
    hs-source-dirs:
       src
    build-depends:
@@ -87,7 +87,7 @@ Library
       Berp.Base.Exception
       Berp.Base.ExitCodes
       Berp.Base.HashTable
-      Berp.Base.Ident 
+      Berp.Base.Ident
       Berp.Base.Identity
       Berp.Base.LiftedIO
       Berp.Base.Monad
@@ -101,6 +101,7 @@ Library
       Berp.Base.StdTypes.Function
       Berp.Base.StdTypes.Generator
       Berp.Base.StdTypes.Integer
+      Berp.Base.StdTypes.Float
       Berp.Base.StdTypes.List
       Berp.Base.StdTypes.None
       Berp.Base.StdTypes.Object

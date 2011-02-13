@@ -261,6 +261,7 @@ instance Compilable ExprSpan where
       returnExp $ Prim.string $ concat $ map trimString ss
    compile (Py.Bool { bool_value = b}) = returnExp $ Prim.bool b
    compile (Py.Int { int_value = i}) = returnExp $ intE i
+   compile (Py.Float { float_value = f}) = returnExp $ Lit $ Frac $ toRational f
    compile (Py.Var { var_ident = ident}) =
       returnExp $ app Prim.read $ identToMangledVar ident
    compile (Py.BinaryOp { operator = op, left_op_arg = leftExp, right_op_arg = rightExp })

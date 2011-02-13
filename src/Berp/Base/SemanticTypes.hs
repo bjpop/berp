@@ -111,6 +111,10 @@ data Object
      { object_identity :: !Identity
      , object_integer :: !Integer
      }
+   | Float
+     { object_identity :: !Identity
+     , object_float :: !Double
+     }
    | Bool
      { object_identity :: !Identity
      , object_bool :: !Bool
@@ -163,18 +167,8 @@ instance Show Object where
 
 -- equality instance for objects
 -- NOTE: use with care. This does not call the user defined equality
--- on the objet. It only uses identity equality.
+-- on the object. It only uses identity equality.
 
 instance Eq Object where
    None {} == None {} = True
    obj1 == obj2 = object_identity obj1 == object_identity obj2
-
-{-
--- needed for overloaded numeric literals
-instance Num Object where
-    fromInteger = int
-    (+) = undefined
-    (*) = undefined
-    abs = undefined
-    signum = undefined
--}
