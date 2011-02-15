@@ -115,6 +115,11 @@ data Object
      { object_identity :: !Identity
      , object_float :: !Double
      }
+   | Complex
+     { object_identity :: !Identity
+     , object_real :: !Double
+     , object_imaginary :: !Double
+     }
    | Bool
      { object_identity :: !Identity
      , object_bool :: !Bool

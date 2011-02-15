@@ -32,6 +32,9 @@ setItem = prim "setitem"
 unpack :: Exp
 unpack = prim "unpack"
 
+complex :: Exp
+complex = prim "complex"
+
 tailCall :: Exp
 tailCall = prim "tailCall"
 

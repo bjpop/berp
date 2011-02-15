@@ -40,6 +40,7 @@ import Berp.Base.LiftedIO as LIO (putStrLn)
 import {-# SOURCE #-} Berp.Base.HashTable (stringLookup, keys)
 import {-# SOURCE #-} Berp.Base.StdTypes.Integer (intClass, int)
 import {-# SOURCE #-} Berp.Base.StdTypes.Float (floatClass, float)
+import {-# SOURCE #-} Berp.Base.StdTypes.Complex (complexClass, complex)
 import {-# SOURCE #-} Berp.Base.StdTypes.Bool (boolClass)
 import {-# SOURCE #-} Berp.Base.StdTypes.Tuple (tupleClass, getTupleElements)
 import {-# SOURCE #-} Berp.Base.StdTypes.Function (functionClass)
@@ -50,7 +51,7 @@ import {-# SOURCE #-} Berp.Base.StdTypes.List (listClass, list)
 import {-# SOURCE #-} Berp.Base.StdTypes.Generator (generatorClass)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 
--- needed for overloaded numeric literals
+-- needed for overloaded numeric literals (integers)
 instance Num Object where
    fromInteger = int
    (+) = undefined
@@ -58,6 +59,7 @@ instance Num Object where
    abs = undefined
    signum = undefined
 
+-- needed for overloaded numeric literals (floating point)
 instance Fractional Object where
    fromRational x = float (fromRational x)
    (/) = undefined
@@ -70,6 +72,7 @@ typeOf obj@(Object {}) = object_type obj
 typeOf obj@(Type {}) = object_type obj
 typeOf (Integer {}) = intClass
 typeOf (Float {}) = floatClass
+typeOf (Complex {}) = complexClass
 typeOf (Bool {}) = boolClass
 typeOf (Tuple {}) = tupleClass
 typeOf (List {}) = listClass

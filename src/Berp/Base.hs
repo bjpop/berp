@@ -19,7 +19,7 @@ module Berp.Base
    , (%), (+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), and, or, klass, setattr, list, dictionary
    , subs, try, tryElse, tryFinally, tryElseFinally, except, exceptDefault, raise, reRaise, raiseFrom
    , pure, pureObject, yield, generator, returnGenerator, unaryMinus, unaryPlus, invert, runStmt
-   , runExpr, interpretStmt, topVar, unpack, setitem, Pat (G,V))
+   , runExpr, interpretStmt, topVar, unpack, setitem, Pat (G,V), complex)
    where
 
 import Berp.Base.Builtins as Builtins
@@ -41,3 +41,4 @@ import Berp.Base.StdTypes.None (none)
 import Berp.Base.StdTypes.List (list)
 import Berp.Base.StdTypes.Dictionary (dictionary)
 import Berp.Base.StdTypes.Generator (generator)
+import Berp.Base.StdTypes.Complex (complex)

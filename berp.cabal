@@ -97,11 +97,12 @@ Library
       Berp.Base.SemanticTypes
       Berp.Base.StdNames
       Berp.Base.StdTypes.Bool
+      Berp.Base.StdTypes.Complex
       Berp.Base.StdTypes.Dictionary
+      Berp.Base.StdTypes.Float
       Berp.Base.StdTypes.Function
       Berp.Base.StdTypes.Generator
       Berp.Base.StdTypes.Integer
-      Berp.Base.StdTypes.Float
       Berp.Base.StdTypes.List
       Berp.Base.StdTypes.None
       Berp.Base.StdTypes.Object
