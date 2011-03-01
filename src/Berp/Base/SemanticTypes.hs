@@ -23,6 +23,7 @@ import Control.Monad.State.Strict (StateT)
 import Control.Monad.Cont (ContT) 
 import Data.IntMap (IntMap)
 import Data.IORef (IORef)
+import Data.Complex (Complex)
 import Data.Array.IO (IOArray)
 import Berp.Base.Identity (Identity)
 
@@ -117,8 +118,7 @@ data Object
      }
    | Complex
      { object_identity :: !Identity
-     , object_real :: !Double
-     , object_imaginary :: !Double
+     , object_complex :: Complex Double
      }
    | Bool
      { object_identity :: !Identity
@@ -169,6 +169,7 @@ instance Show Object where
    show (Dictionary {}) = "dictionary"
    show (Generator {}) = "generator"
    show (None {}) = "None"
+   show obj@(Complex {}) = "complex(" ++ show (object_complex obj) ++ ")"
 
 -- equality instance for objects
 -- NOTE: use with care. This does not call the user defined equality

@@ -26,11 +26,11 @@ import Berp.Base.Builtins.Utils (primFun)
 import Berp.Base.LiftedIO as LIO (hFlush, putStr, putChar, getLine)
 import Berp.Base.Object (dir, identityOf)
 import Berp.Base.Unique (uniqueInteger)
-import Berp.Base.StdTypes.None (none)
-import Berp.Base.StdTypes.String (string)
-import Berp.Base.StdTypes.Integer (int)
+import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
+import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
+import {-# SOURCE #-} Berp.Base.StdTypes.Integer (int)
 
-_s_input :: ObjectRef 
+_s_input :: ObjectRef
 _s_input = do
    primFun (mangle "input") (-1) procedure
    where

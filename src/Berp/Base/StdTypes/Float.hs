@@ -14,12 +14,19 @@
 module Berp.Base.StdTypes.Float (float, floatClass) where
 
 import Berp.Base.Monad (constantIO)
-import Berp.Base.Prims (binOp, primitive)
-import Berp.Base.SemanticTypes (Object (..))
+import Berp.Base.Prims (binOp, primitive, raise)
+import Berp.Base.SemanticTypes (Object (..), Eval)
 import Berp.Base.StdTypes.Bool (bool)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames
+import Berp.Base.Builtins (notImplementedError)
+import Berp.Base.Operators
+   ( addFloatFloatFloat, addFloatIntFloat, subFloatFloatFloat, subFloatIntFloat,
+     mulFloatFloatFloat, mulFloatIntFloat, ltFloatFloatBool, ltFloatIntBool,
+     leFloatFloatBool, leFloatIntBool, gtFloatFloatBool, gtFloatIntBool,
+     geFloatFloatBool, geFloatIntBool, eqFloatFloatBool, eqFloatIntBool,
+     divFloatFloatFloat, divFloatIntFloat)
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.ObjectBase (objectBase)
 import Berp.Base.StdTypes.String (string)
@@ -50,38 +57,39 @@ attributes = mkAttributes
    , (strName, str)
    ]
 
-binOpFloat :: (Double -> Double -> Double) -> Object
-binOpFloat f = primitive 2 $ \[x,y] -> binOp x y object_float f (return . float)
-
-binOpBool :: (Double -> Double -> Bool) -> Object
-binOpBool f = primitive 2 $ \[x,y] -> binOp x y object_float f (return . bool)
+mkOp :: (Object -> Object -> Eval Object) -> (Object -> Object -> Eval Object) -> Object
+mkOp opFloat opInt = primitive 2 $ \[x,y] ->
+   case y of
+      Float {} -> opFloat x y
+      Integer {} -> opInt x y
+      other -> raise notImplementedError
 
 add :: Object
-add = binOpFloat (+)
+add = mkOp addFloatFloatFloat addFloatIntFloat
 
 sub :: Object
-sub = binOpFloat (-)
+sub = mkOp subFloatFloatFloat subFloatIntFloat
 
 mul :: Object
-mul = binOpFloat (*)
+mul = mkOp mulFloatFloatFloat mulFloatIntFloat
 
 divide :: Object
-divide = binOpFloat (/)
+divide = mkOp divFloatFloatFloat divFloatIntFloat
 
 lt :: Object
-lt = binOpBool (<)
+lt = mkOp ltFloatFloatBool ltFloatIntBool
 
 le :: Object
-le = binOpBool (<=)
+le = mkOp leFloatFloatBool leFloatIntBool
 
 gt :: Object
-gt = binOpBool (>)
+gt = mkOp gtFloatIntBool gtFloatIntBool
 
 ge :: Object
-ge = binOpBool (>=)
+ge = mkOp geFloatFloatBool geFloatIntBool
 
 eq :: Object
-eq = binOpBool (==)
+eq = mkOp eqFloatFloatBool eqFloatIntBool
 
 str :: Object
 str = primitive 1 $ \[x] -> return $ string $ show $ object_float x

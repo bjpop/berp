@@ -15,17 +15,19 @@ module Berp.Base.StdTypes.Bool (bool, true, false, boolClass) where
 
 import Prelude hiding (and, or)
 import Berp.Base.Monad (constantIO)
-import Berp.Base.Prims (binOp, primitive)
-import Berp.Base.SemanticTypes (Object (..))
+import Berp.Base.Prims (binOp, primitive, raise)
+import Berp.Base.SemanticTypes (Object (..), Eval)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
+import Berp.Base.Builtins (notImplementedError)
 import Berp.Base.StdNames
+import qualified Berp.Base.Operators as Op ( and, or )
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.String (string)
 import Berp.Base.StdTypes.ObjectBase (objectBase)
 
 bool :: Bool -> Object
-bool True = true 
+bool True = true
 bool False = false
 
 {-# NOINLINE true #-}
@@ -46,24 +48,25 @@ boolClass = constantIO $ do
    dict <- attributes
    theType <- newType [string "bool", objectBase, dict]
    return $ theType { object_constructor = \_ -> return false }
-    
-attributes :: IO Object 
-attributes = mkAttributes 
+
+attributes :: IO Object
+attributes = mkAttributes
    [ (andName, and)
    , (orName, or)
    , (strName, str)
    ]
 
--- XXX this doesn't look safe to me. What if wrong number of arguments? Or 
--- argument objects are not booleans?
-binOpBool :: (Bool -> Bool -> Bool) -> Object 
-binOpBool f = primitive 2 $ \[x,y] -> binOp x y object_bool f (Prelude.return . bool)
+mkOp :: (Object -> Object -> Eval Object) -> Object
+mkOp op = primitive 2 $ \[x,y] ->
+   case y of
+      Bool {} -> op x y
+      other -> raise notImplementedError
 
-and :: Object 
-and = binOpBool (&&) 
+and :: Object
+and = mkOp Op.and
 
-or :: Object 
-or = binOpBool (||)
+or :: Object
+or = mkOp Op.or
 
-str :: Object 
+str :: Object
 str = primitive 1 $ \[x] -> Prelude.return $ string $ show $ object_bool x

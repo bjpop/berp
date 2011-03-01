@@ -19,11 +19,15 @@ import Berp.Base.Builtins.Constants as Constants
    (_s_object, _s_type)
 import Berp.Base.Builtins.Functions as Functions 
    (_s_print, _s_dir, _s_input, _s_id, _s_callCC)
-import Berp.Base.Builtins.Exceptions as Exceptions 
+import Berp.Base.Builtins.Exceptions as Exceptions
    ( baseException, _s_BaseException
    , exception, _s_Exception
    , stopIteration, _s_StopIteration
    , typeError, _s_TypeError
    , nameError, _s_NameError
    , valueError, _s_ValueError
+   , arithmeticError, _s_ArithmeticError
+   , zeroDivisionError, _s_ZeroDivisionError
+   , runtimeError, _s_RuntimeError
+   , notImplementedError, _s_NotImplementedError
    )

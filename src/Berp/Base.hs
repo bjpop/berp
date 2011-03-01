@@ -14,7 +14,8 @@
 -----------------------------------------------------------------------------
 
 module Berp.Base
-   ( module Builtins, int, none, string, true, false, def, lambda, (=:), stmt, ifThenElse, ret, pass, break
+   ( module Builtins, module Complex
+   , int, none, string, true, false, def, lambda, (=:), stmt, ifThenElse, ret, pass, break
    , continue, while, whileElse, for, forElse, ifThen, (@@), tailCall, tuple, read, var
    , (%), (+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), and, or, klass, setattr, list, dictionary
    , subs, try, tryElse, tryFinally, tryElseFinally, except, exceptDefault, raise, reRaise, raiseFrom
@@ -22,6 +23,7 @@ module Berp.Base
    , runExpr, interpretStmt, topVar, unpack, setitem, Pat (G,V), complex)
    where
 
+import Data.Complex as Complex (Complex (..))
 import Berp.Base.Builtins as Builtins
 import Prelude hiding (break, (+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), and, or, read)
 import Berp.Base.Prims

@@ -14,18 +14,22 @@
 module Berp.Base.StdTypes.Integer (int, intClass) where
 
 import Berp.Base.Monad (constantIO)
-import Berp.Base.Prims (binOp, primitive)
-import Berp.Base.SemanticTypes (Object (..))
+import Berp.Base.Prims (binOp, primitive, raise)
+import Berp.Base.SemanticTypes (Object (..), Eval)
 import Berp.Base.StdTypes.Bool (bool)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
-import Berp.Base.StdNames 
+import Berp.Base.Builtins (notImplementedError)
+import Berp.Base.StdNames
+import Berp.Base.Operators
+   ( addIntIntInt, subIntIntInt, modIntIntInt, mulIntIntInt, ltIntIntBool
+   , leIntIntBool, gtIntIntBool, geIntIntBool, eqIntIntBool, divIntIntInt)
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.ObjectBase (objectBase)
 import Berp.Base.StdTypes.String (string)
 
 {-# NOINLINE int #-}
-int :: Integer -> Object 
+int :: Integer -> Object
 int i = constantIO $ do
    identity <- newIdentity
    return $ Integer { object_identity = identity, object_integer = i }
@@ -36,11 +40,12 @@ intClass = constantIO $ do
    dict <- attributes
    newType [string "int", objectBase, dict]
 
-attributes :: IO Object 
-attributes = mkAttributes 
+attributes :: IO Object
+attributes = mkAttributes
    [ (addName, add)
    , (subName, sub)
    , (mulName, mul)
+   , (divName, divide)
    , (ltName, lt)
    , (leName, le)
    , (gtName, gt)
@@ -50,39 +55,41 @@ attributes = mkAttributes
    , (modName, modulus)
    ]
 
-binOpInteger :: (Integer -> Integer -> Integer) -> Object
-binOpInteger f = primitive 2 $ \[x,y] -> binOp x y object_integer f (return . int)
+mkOp :: (Object -> Object -> Eval Object) -> Object
+mkOp op = primitive 2 $ \[x,y] ->
+   case y of
+      Integer {} -> op x y
+      other -> raise notImplementedError
 
-binOpBool :: (Integer -> Integer -> Bool) -> Object 
-binOpBool f = primitive 2 $ \[x,y] -> binOp x y object_integer f (return . bool)
-        
-add :: Object 
-add = binOpInteger (+) 
+add :: Object
+add = mkOp addIntIntInt
 
-sub :: Object 
-sub = binOpInteger (-) 
+sub :: Object
+sub = mkOp subIntIntInt
 
-mul :: Object 
-mul = binOpInteger (*)
+mul :: Object
+mul = mkOp mulIntIntInt
 
-lt :: Object 
-lt = binOpBool (<) 
+divide :: Object
+divide = mkOp divIntIntInt
 
-le :: Object 
-le = binOpBool (<=) 
+lt :: Object
+lt = mkOp ltIntIntBool
 
-gt :: Object 
-gt = binOpBool (>)
+le :: Object
+le = mkOp leIntIntBool
 
-ge :: Object 
-ge = binOpBool (>=)
+gt :: Object
+gt = mkOp gtIntIntBool
 
-eq :: Object 
-eq = binOpBool (==) 
+ge :: Object
+ge = mkOp geIntIntBool
+
+eq :: Object
+eq = mkOp eqIntIntBool
 
 modulus :: Object
-modulus = binOpInteger mod
+modulus = mkOp modIntIntInt
 
-str :: Object 
+str :: Object
 str = primitive 1 $ \[x] -> return $ string $ show $ object_integer x
--- str = primitive 1 $ \[x] -> return $ string "wazza"

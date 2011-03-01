@@ -251,27 +251,27 @@ subs :: Object -> Object -> Eval Object
 subs obj subscript = callMethod obj getItemName [subscript]
 
 try :: Eval Object -> (Object -> Eval Object) -> Eval Object
-try tryComp handler = tryWorker tryComp handler pass Nothing 
+try tryComp handler = tryWorker tryComp handler pass Nothing
 
 tryElse :: Eval Object -> (Object -> Eval Object) -> Eval Object -> Eval Object
-tryElse tryComp handler elseComp = 
-   tryWorker tryComp handler elseComp Nothing 
+tryElse tryComp handler elseComp =
+   tryWorker tryComp handler elseComp Nothing
 
 tryFinally :: Eval Object -> (Object -> Eval Object) -> Eval Object -> Eval Object
-tryFinally tryComp handler finallyComp 
-   = tryWorker tryComp handler pass (Just finallyComp) 
+tryFinally tryComp handler finallyComp
+   = tryWorker tryComp handler pass (Just finallyComp)
 
 tryElseFinally :: Eval Object -> (Object -> Eval Object) -> Eval Object -> Eval Object -> Eval Object
-tryElseFinally tryComp handler elseComp finallyComp 
-   = tryWorker tryComp handler elseComp (Just finallyComp) 
+tryElseFinally tryComp handler elseComp finallyComp
+   = tryWorker tryComp handler elseComp (Just finallyComp)
 
 tryWorker :: Eval Object -> (Object -> Eval Object) -> Eval Object -> Maybe (Eval Object) -> Eval Object
 tryWorker tryComp handler elseComp maybeFinallyComp = do
    callCC $ \afterTry -> do
-      push (ExceptionHandler 
+      push (ExceptionHandler
               (Just $ \obj -> do
-                   handler obj 
-                   afterTry none) 
+                   handler obj
+                   afterTry none)
               maybeFinallyComp)
       tryComp
       -- XXX checkme. we want to be absolutely certain that the top of the stack will
@@ -283,7 +283,7 @@ tryWorker tryComp handler elseComp maybeFinallyComp = do
       -- this is only executed if the tryComp does not raise an exception. Control
       -- would not reach here if an exception was raised.
       elseComp
-   unwind isExceptionHandler 
+   unwind isExceptionHandler
    pass 
 
 {- Python docs:
@@ -298,11 +298,11 @@ except exceptionObj baseObj match noMatch = do
       then match
       else noMatch
 
--- XXX fixme, this is not correct
+-- XXX fixme, this is not correct, should also check if the exception is a subclass of the baseObj
 compatibleException :: Object -> Object -> Eval Bool
 compatibleException exceptionObj baseObj = do
    let typeOfException = typeOf exceptionObj
-   objectEquality typeOfException baseObj 
+   objectEquality typeOfException baseObj
 
 exceptDefault :: Eval Object -> Eval Object -> Eval Object
 exceptDefault match _noMatch = match

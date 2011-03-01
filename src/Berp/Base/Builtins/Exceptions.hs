@@ -75,6 +75,10 @@ module Berp.Base.Builtins.Exceptions
    , lookupError, _s_LookupError
    , keyError, _s_KeyError
    , valueError, _s_ValueError
+   , arithmeticError, _s_ArithmeticError
+   , zeroDivisionError, _s_ZeroDivisionError
+   , runtimeError, _s_RuntimeError
+   , notImplementedError, _s_NotImplementedError
    )
    where
 
@@ -82,11 +86,11 @@ import Control.Monad.Trans (liftIO)
 import Berp.Base.Monad (constantEval)
 import Berp.Base.Builtins.Utils (primConstant)
 import Berp.Base.SemanticTypes (Object (..), Eval, ObjectRef)
-import Berp.Base.StdTypes.Type (newType)
-import Berp.Base.StdTypes.Object (object)
-import Berp.Base.StdTypes.Tuple (tuple)
+import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
+import {-# SOURCE #-} Berp.Base.StdTypes.Object (object)
+import {-# SOURCE #-} Berp.Base.StdTypes.Tuple (tuple)
 import {-# SOURCE #-} Berp.Base.StdTypes.Dictionary (dictionary)
-import Berp.Base.StdTypes.String (string)
+import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 
 mkExceptionType :: String -> [Object] -> Eval Object
 mkExceptionType name bases = do
@@ -111,6 +115,18 @@ stopIteration = constantEval $ mkExceptionType "StopIteration" [exception]
 _s_StopIteration :: ObjectRef
 _s_StopIteration = primConstant stopIteration
 
+arithmeticError :: Object
+arithmeticError = constantEval $ mkExceptionType "ArithmeticError" [exception]
+
+_s_ArithmeticError :: ObjectRef
+_s_ArithmeticError = primConstant arithmeticError
+
+zeroDivisionError :: Object
+zeroDivisionError = constantEval $ mkExceptionType "ZeroDivisionError" [arithmeticError]
+
+_s_ZeroDivisionError :: ObjectRef
+_s_ZeroDivisionError = primConstant zeroDivisionError
+
 typeError :: Object
 typeError = constantEval $ mkExceptionType "TypeError" [exception]
 
@@ -127,16 +143,28 @@ lookupError :: Object
 lookupError = constantEval $ mkExceptionType "LookupError" [exception]
 
 _s_LookupError :: ObjectRef
-_s_LookupError = primConstant lookupError 
+_s_LookupError = primConstant lookupError
 
 keyError :: Object
 keyError = constantEval $ mkExceptionType "KeyError" [lookupError]
 
 _s_KeyError :: ObjectRef
-_s_KeyError = primConstant keyError 
+_s_KeyError = primConstant keyError
 
 valueError :: Object
 valueError = constantEval $ mkExceptionType "ValueError" [exception]
 
 _s_ValueError :: ObjectRef
-_s_ValueError = primConstant valueError 
+_s_ValueError = primConstant valueError
+
+runtimeError :: Object
+runtimeError = constantEval $ mkExceptionType "RuntimeError" [exception]
+
+_s_RuntimeError :: ObjectRef
+_s_RuntimeError = primConstant runtimeError
+
+notImplementedError :: Object
+notImplementedError = constantEval $ mkExceptionType "NotImplementedError" [runtimeError]
+
+_s_NotImplementedError :: ObjectRef
+_s_NotImplementedError = primConstant notImplementedError

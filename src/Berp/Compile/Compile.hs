@@ -263,7 +263,12 @@ instance Compilable ExprSpan where
    compile (Py.Int { int_value = i}) = returnExp $ intE i
    compile (Py.Float { float_value = f}) = returnExp $ Lit $ Frac $ toRational f
    compile (Py.Imaginary { imaginary_value = i}) =
-      returnExp $ appFun Prim.complex [Lit $ Frac 0, Lit $ Frac $ toRational i]
+      -- returnExp $ appFun Prim.complex [Lit $ Frac 0, Lit $ Frac $ toRational i]
+      returnExp $ app Prim.complex $ paren c
+      where
+      real = Lit $ Frac 0
+      imag = Lit $ Frac $ toRational i
+      c = infixApp real (op $ sym ":+") imag
    compile (Py.Var { var_ident = ident}) =
       returnExp $ app Prim.read $ identToMangledVar ident
    compile (Py.BinaryOp { operator = op, left_op_arg = leftExp, right_op_arg = rightExp })
