@@ -161,6 +161,7 @@ instance Show Object where
    show obj@(Object {}) = "object of (" ++ show (object_type obj) ++ ")"
    show obj@(Type {}) = "type(" ++ show (object_type_name obj) ++ ")"
    show obj@(Integer {}) = "integer(" ++ show (object_integer obj) ++ ")"
+   show obj@(Float {}) = "float(" ++ show (object_float obj) ++ ")"
    show obj@(Bool {}) = "bool(" ++ show (object_bool obj) ++ ")"
    show (Tuple {}) = "tuple"
    show (List {}) = "list"
@@ -168,8 +169,8 @@ instance Show Object where
    show obj@(String {}) = "string(" ++ show (object_string obj) ++ ")"
    show (Dictionary {}) = "dictionary"
    show (Generator {}) = "generator"
-   show (None {}) = "None"
    show obj@(Complex {}) = "complex(" ++ show (object_complex obj) ++ ")"
+   show (None {}) = "None"
 
 -- equality instance for objects
 -- NOTE: use with care. This does not call the user defined equality

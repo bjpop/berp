@@ -34,7 +34,7 @@ runStmt = runExpr
 -- None values, following the same behaviour of CPython.
 interpretStmt :: Eval Object -> IO ()
 interpretStmt comp = do
-   runExpr $ do
+   _ <- runExpr $ do
       obj <- comp
       case obj of
          None {} -> return () 

@@ -18,18 +18,18 @@
 
 #include "BerpDebug.h"
 
-module Berp.Base.Prims 
+module Berp.Base.Prims
    ( (=:), stmt, ifThenElse, ret, pass, break
    , continue, while, whileElse, for, forElse, ifThen, (@@), tailCall
    , read, var, binOp, setattr, callMethod, callSpecialMethod, subs
    , try, tryElse, tryFinally, tryElseFinally, except, exceptDefault
    , raise, reRaise, raiseFrom, primitive, generator, yield, generatorNext
    , def, lambda, returnGenerator, printObject, topVar, Applicative.pure
-   , pureObject, showObject, returningProcedure, pyCallCC, unpack 
+   , pureObject, showObject, returningProcedure, pyCallCC, unpack
    , next, setitem, Pat (G, V)) where
 
 import Prelude hiding (break, read, putStr)
-import Control.Monad (zipWithM, replicateM)
+import Control.Monad (zipWithM)
 import Control.Monad.State (gets)
 import Control.Monad.Cont (callCC)
 import Data.Array.IO (getElems)
@@ -39,16 +39,15 @@ import Berp.Base.LiftedIO as LIO (putStrLn)
 #endif
 import qualified Control.Applicative as Applicative (pure)
 import Control.Applicative ((<$>))
-import Data.Maybe (maybe)
-import Berp.Base.Ident (Ident)
 import Berp.Base.SemanticTypes (Object (..), ObjectRef, Procedure, Eval, EvalState(..), ControlStack(..), Arity)
 import Berp.Base.Truth (truth)
-import {-# SOURCE #-} Berp.Base.Object 
+import {-# SOURCE #-} Berp.Base.Object
    ( typeOf, dictOf, lookupAttribute, lookupSpecialAttribute, objectEquality, isIterator )
 import Berp.Base.Hash (Hashed)
 import Berp.Base.ControlStack
-import Berp.Base.StdNames (docName, strName, setItemName, getItemName, nextName, iterName) 
+import Berp.Base.StdNames (docName, strName, setItemName, getItemName, nextName, iterName)
 import Berp.Base.Exception (RuntimeError (..), throw)
+import Berp.Base.Ident (Ident)
 import {-# SOURCE #-} Berp.Base.HashTable as Hash (stringInsert, insert)
 import {-# SOURCE #-} Berp.Base.StdTypes.Function (function)
 import {-# SOURCE #-} Berp.Base.StdTypes.List (updateListElement)
@@ -188,22 +187,22 @@ forElse var expObj suite1 suite2 = do
 while :: Eval Object -> Eval Object -> Eval Object 
 while cond loopBlock = whileElse cond loopBlock pass 
 
-whileElse :: Eval Object -> Eval Object -> Eval Object -> Eval Object 
+whileElse :: Eval Object -> Eval Object -> Eval Object -> Eval Object
 whileElse cond loopBlock elseBlock = do
-   callCC $ \end -> do 
-      let afterLoop = end none 
+   callCC $ \end -> do
+      let afterLoop = end none
           loop = do condVal <- cond
                     if truth condVal
                        then do
-                          loopBlock 
+                          _ <- loopBlock
                           loop
                        -- this does the unwind before the else block,
                        -- otherwise a call to break or continue in the else block
                        -- would have undesired results
                        else do
-                          unwindPastWhileLoop
-                          elseBlock 
-                          afterLoop 
+                          _ <- unwindPastWhileLoop
+                          _ <- elseBlock
+                          afterLoop
       push $ WhileLoop loop afterLoop
       loop
 
@@ -267,13 +266,13 @@ tryElseFinally tryComp handler elseComp finallyComp
 
 tryWorker :: Eval Object -> (Object -> Eval Object) -> Eval Object -> Maybe (Eval Object) -> Eval Object
 tryWorker tryComp handler elseComp maybeFinallyComp = do
-   callCC $ \afterTry -> do
+   _ <- callCC $ \afterTry -> do
       push (ExceptionHandler
               (Just $ \obj -> do
-                   handler obj
+                   _ <- handler obj
                    afterTry none)
               maybeFinallyComp)
-      tryComp
+      _ <- tryComp
       -- XXX checkme. we want to be absolutely certain that the top of the stack will
       -- be the just pushed handler frame.
       -- we have to nullify the top handler because the elseComp should not be
@@ -283,8 +282,8 @@ tryWorker tryComp handler elseComp maybeFinallyComp = do
       -- this is only executed if the tryComp does not raise an exception. Control
       -- would not reach here if an exception was raised.
       elseComp
-   unwind isExceptionHandler
-   pass 
+   _ <- unwind isExceptionHandler
+   pass
 
 {- Python docs:
 For an except clause with an expression, that expression is evaluated, and the clause matches the exception if the resulting object is “compatible” with the exception. An object is compatible with an exception if it is the class or a base class of the exception object or a tuple containing an item compatible with the exception.
@@ -340,8 +339,8 @@ raise obj = do
             -- it is important to pop the stack _before_ executing the finally clause,
             -- otherwise the finally clause would be executed in the wrong context.
             pop
-            maybe pass id finally
-            raise exceptionObj 
+            _ <- maybe pass id finally
+            raise exceptionObj
          Just handlerAction -> do
             -- note we do not pop the stack here because we want the (possible) finally clause
             -- to remain on top of the stack. Instead we nullify the handler so that it is not
@@ -387,21 +386,21 @@ generatorNext (obj:_) = do
             push (stackContext . GeneratorCall next obj)
             BELCH("calling continuation")
             action <- readIORef $ object_continuation obj
-            action
+            _ <- action
             BELCH("raising exception")
-            raise stopIteration 
+            raise stopIteration
          _other -> error "next applied to object which is not a generator"
    ret result
 generatorNext [] = error "Generator applied to no arguments"
 
-def :: ObjectRef -> Arity -> Object -> ([ObjectRef] -> Eval Object) -> Eval Object 
+def :: ObjectRef -> Arity -> Object -> ([ObjectRef] -> Eval Object) -> Eval Object
 def ident arity docString fun = do
    let procedureObj = function arity closure
-   setattr procedureObj docName docString
+   _ <- setattr procedureObj docName docString
    writeIORef ident procedureObj
-   return none 
+   return none
    where
-   closure :: Procedure 
+   closure :: Procedure
    closure params = do
       argsRefs <- mapM newIORef params 
       fun argsRefs 
@@ -448,22 +447,6 @@ unpack :: Pat -> Object -> Eval Object
 unpack (V var) obj = writeIORef var obj >> return none
 unpack (G n pats) (Tuple { object_tuple = elements, object_length = size })
    | n == size = zipWithM unpack pats elements >> return none
-{-
-<<<<<<< HEAD
-   | otherwise = raise valueError 
-unpack (G n pats) (List { object_list_elements = elementsRef, object_list_num_elements = size })
-   | fromIntegral n == size = do
-        elementsArray <- readIORef elementsRef
-        objs <- liftIO $ getElems elementsArray
-        zipWithM unpack pats objs 
-        return none
-   | otherwise = raise valueError 
--- This is a bit ugly because Python's semantics for these bindings is "all or nothing".
--- That is, if the pattern match fails then no variables are bound, even if a partial
--- match was possible.
-unpack (G n pats) obj = do
-=======
--}
    | otherwise = raise valueError
 unpack (G n pats) (List { object_list_elements = elementsRef, object_list_num_elements = sizeRef }) = do
    size <- readIORef sizeRef
@@ -471,49 +454,16 @@ unpack (G n pats) (List { object_list_elements = elementsRef, object_list_num_el
       then do
          elementsArray <- readIORef elementsRef
          objs <- liftIO $ getElems elementsArray
-         zipWithM unpack pats objs
+         _ <- zipWithM unpack pats objs
          return none
       else raise valueError
 -- XXX this has different semantics than Python because it will allow pattern variables
 -- to be assigned up-to the point an exception is raised. Python is all or nothing.
 unpack (G _n pats) obj = do
--- >>>>>>> origin/generators
    iteratorTest <- isIterator obj
    if iteratorTest
       then do
          iterator <- callMethod obj iterName []
-{-
-<<<<<<< HEAD
-         objs <- unpackIterator n iterator
-         zipWithM unpack pats objs
-         return none
-      else 
-         raise valueError 
-   where
-   unpackIterator :: Int -> Object -> Eval [Object]
-   unpackIterator n iter = do
-      objs <- replicateM n nextIter
-      -- this next exception handler is just forcing the next iteration to 
-      -- see if the iterator is exhausted or not. Seems ugly, but that appears
-      -- be match what Python does. Hence a pattern which is too short for the
-      -- iterator will cause a failure, when a success would have been possible
-      -- if we just erased this exception handling statement.
-      tryElse (next obj) (\e -> except e stopIteration pass (raise e))
-              (raise valueError)
-      return objs
-      where
-      -- XXX this is ugly because try does not return the value of its first argument
-      -- therefore we need to temporarily assign it to a variable, and then read from it
-      -- later. Maybe should fix try.
-      nextIter :: Eval Object
-      nextIter = do
-         ref <- var ""
-         try (do obj <- next iter 
-                 ref =: obj) 
-             (\e -> except e stopIteration (raise valueError) (raise e))
-         read ref
-=======
--}
          unpackIterator pats iterator
       else
          raise valueError
@@ -525,11 +475,10 @@ unpack (G _n pats) obj = do
       where
       handler e = except e stopIteration pass (raise e)
    unpackIterator (pat:pats) obj = do
-      try assignNext handler
+      _ <- try assignNext handler
       unpackIterator pats obj
       where
       assignNext :: Eval Object
       assignNext = unpack pat =<< next obj
       handler :: Object -> Eval Object
       handler e = except e stopIteration (raise valueError) (raise e)
--- >>>>>>> origin/generators

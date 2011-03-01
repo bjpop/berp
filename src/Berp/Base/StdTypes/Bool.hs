@@ -15,7 +15,7 @@ module Berp.Base.StdTypes.Bool (bool, true, false, boolClass) where
 
 import Prelude hiding (and, or)
 import Berp.Base.Monad (constantIO)
-import Berp.Base.Prims (binOp, primitive, raise)
+import Berp.Base.Prims (primitive, raise)
 import Berp.Base.SemanticTypes (Object (..), Eval)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
@@ -60,7 +60,7 @@ mkOp :: (Object -> Object -> Eval Object) -> Object
 mkOp op = primitive 2 $ \[x,y] ->
    case y of
       Bool {} -> op x y
-      other -> raise notImplementedError
+      _other -> raise notImplementedError
 
 and :: Object
 and = mkOp Op.and

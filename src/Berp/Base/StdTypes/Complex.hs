@@ -15,9 +15,8 @@ module Berp.Base.StdTypes.Complex (complex, complexClass) where
 
 import Data.Complex (Complex (..), realPart, imagPart)
 import Berp.Base.Monad (constantIO)
-import Berp.Base.Prims (binOp, primitive, raise)
+import Berp.Base.Prims (primitive, raise)
 import Berp.Base.SemanticTypes (Object (..), Eval)
-import Berp.Base.StdTypes.Bool (bool)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames
@@ -73,7 +72,7 @@ mkOp opComplex opFloat opInt = primitive 2 $ \[x,y] ->
       Complex {} -> opComplex x y
       Float {} -> opFloat x y
       Integer {} -> opInt x y
-      other -> raise notImplementedError
+      _other -> raise notImplementedError
 
 add :: Object
 add = mkOp addComplexComplexComplex addComplexFloatComplex addComplexIntComplex

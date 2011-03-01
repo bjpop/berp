@@ -15,7 +15,6 @@ module Berp.Base.Builtins.Functions
    (_s_print, _s_dir, _s_input, _s_id, _s_callCC)
    where
 
-import Data.List (null)
 import Control.Monad (when)
 import System.IO (stdout)
 import Data.List (intersperse)

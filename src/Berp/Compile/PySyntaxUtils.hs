@@ -154,7 +154,7 @@ instance DefinedVars (StatementSpan) where
    definedVars (NonLocal { nonLocal_vars = idents })
       = mempty { nonlocals = Set.fromList $ Prelude.map toIdentString idents }
    -- definedVars ( StmtExpr { stmt_expr = e }) = definedVars e
-   definedVars ( StmtExpr { stmt_expr = e }) = mempty
+   definedVars ( StmtExpr {} ) = mempty
    definedVars _other = mempty
 
 -- We don't need to look inside expressions because:
@@ -174,7 +174,7 @@ instance DefinedVars ExprSpan where
    definedVars ( DictComp { dict_comprehension = comp })
       = definedVars comp
 -}
-   definedVars other = mempty
+   definedVars _other = mempty
 
 {-
 instance DefinedVars (ComprehensionSpan e) where

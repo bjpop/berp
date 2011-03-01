@@ -14,9 +14,8 @@
 module Berp.Base.StdTypes.Float (float, floatClass) where
 
 import Berp.Base.Monad (constantIO)
-import Berp.Base.Prims (binOp, primitive, raise)
+import Berp.Base.Prims (primitive, raise)
 import Berp.Base.SemanticTypes (Object (..), Eval)
-import Berp.Base.StdTypes.Bool (bool)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.StdNames
@@ -62,7 +61,7 @@ mkOp opFloat opInt = primitive 2 $ \[x,y] ->
    case y of
       Float {} -> opFloat x y
       Integer {} -> opInt x y
-      other -> raise notImplementedError
+      _other -> raise notImplementedError
 
 add :: Object
 add = mkOp addFloatFloatFloat addFloatIntFloat
@@ -83,7 +82,7 @@ le :: Object
 le = mkOp leFloatFloatBool leFloatIntBool
 
 gt :: Object
-gt = mkOp gtFloatIntBool gtFloatIntBool
+gt = mkOp gtFloatFloatBool gtFloatIntBool
 
 ge :: Object
 ge = mkOp geFloatFloatBool geFloatIntBool

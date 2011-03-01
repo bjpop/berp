@@ -50,7 +50,7 @@ repl = do
     defaultErrorHandler defaultDynFlags $ do
       runRepl (Just libdir) $ do
          dflags <- getSessionDynFlags
-         setSessionDynFlags dflags
+         _ <- setSessionDynFlags dflags
          berp_base_mod <- findModule (mkModuleName "Berp.Base") Nothing
          setContext [] [berp_base_mod]
          -- kludge to get ghc to link depencies at the start, rather

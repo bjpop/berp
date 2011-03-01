@@ -19,7 +19,6 @@ import Prelude hiding (read, init, mapM, putStrLn, sequence)
 import Language.Python.Common.PrettyAST ()
 import Language.Python.Common.Pretty (prettyText)
 import Language.Python.Common.AST as Py
-import Language.Python.Common.SrcLocation ( SrcSpan (..) )
 import Data.Traversable
 import Data.Foldable (foldrM)
 import Language.Haskell.Exts.Syntax as Hask
@@ -390,8 +389,10 @@ comprehensUpdater SetComprehension lhs rhs =
    stmtExpr $ call (binOp dot lhs $ Py.var $ ident "add") [rhs]
 comprehensUpdater DictComprehension lhs (Py.Tuple { tuple_exprs = [key, val] }) =
    assign (subscript lhs key) val
-comprehensUpdater GenComprehension _lhs rhs =
+comprehensUpdater GenComprehension _lhs _rhs =
    error $ "comprehensUpdater called on generator comprehension"
+comprehensUpdater _other _lhs _rhs =
+   error $ "comprehensUpdater called on badly formed comprehension"
 
 desugarComprehensFor :: StatementSpan -> CompForSpan -> Compile StatementSpan
 desugarComprehensFor result

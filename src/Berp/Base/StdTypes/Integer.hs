@@ -14,9 +14,8 @@
 module Berp.Base.StdTypes.Integer (int, intClass) where
 
 import Berp.Base.Monad (constantIO)
-import Berp.Base.Prims (binOp, primitive, raise)
+import Berp.Base.Prims (primitive, raise)
 import Berp.Base.SemanticTypes (Object (..), Eval)
-import Berp.Base.StdTypes.Bool (bool)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.Builtins (notImplementedError)
@@ -59,7 +58,7 @@ mkOp :: (Object -> Object -> Eval Object) -> Object
 mkOp op = primitive 2 $ \[x,y] ->
    case y of
       Integer {} -> op x y
-      other -> raise notImplementedError
+      _other -> raise notImplementedError
 
 add :: Object
 add = mkOp addIntIntInt

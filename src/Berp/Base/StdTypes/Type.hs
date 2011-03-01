@@ -82,7 +82,7 @@ instantiate objectType args = do
          }
    -- callMethodMaybe object initName []
    -- everything should have an init??
-   callMethod object initName args 
+   _ <- callMethod object initName args
    return object
 
 attributes :: IO Object

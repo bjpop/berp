@@ -100,7 +100,6 @@ import Berp.Base.StdNames
 import {-# SOURCE #-} Berp.Base.StdTypes.Integer (int)
 import {-# SOURCE #-} Berp.Base.StdTypes.Float (float)
 import {-# SOURCE #-} Berp.Base.StdTypes.Bool (bool)
-import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
 import {-# SOURCE #-} Berp.Base.StdTypes.Complex (complex)
 
 infixl 9  .

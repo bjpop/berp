@@ -24,7 +24,6 @@ module Berp.Base.ControlStack
    where
 
 import Control.Monad.State
-import Data.Maybe (maybe)
 import Berp.Base.SemanticTypes (ControlStack (..), Eval, EvalState (..), Object (..))
 import Berp.Base.LiftedIO as LIO (writeIORef, putStrLn)
 import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
@@ -63,7 +62,7 @@ unwind pred = do
    unwindFrame EmptyStack = error $ "unwindFrame: empty control stack" 
    unwindFrame stack@(ExceptionHandler { exception_finally = maybeFinally }) = do
       pop
-      maybe (return none) id maybeFinally
+      _ <- maybe (return none) id maybeFinally
       if pred stack
          then return stack 
          else unwind pred 
@@ -110,7 +109,7 @@ unwindUpToWhileLoop = do
    unwindFrame EmptyStack = error $ "unwindUpToWhileLoop: empty control stack"
    unwindFrame (ExceptionHandler { exception_finally = maybeFinally }) = do
       pop
-      maybe (return none) id maybeFinally
+      _ <- maybe (return none) id maybeFinally
       unwindUpToWhileLoop
    unwindFrame stack@(WhileLoop {}) = return stack
    -- XXX should be an exception which mentions continue/break called outside of loop

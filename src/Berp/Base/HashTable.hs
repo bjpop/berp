@@ -27,7 +27,6 @@ module Berp.Base.HashTable
 
 import Prelude hiding (lookup)
 import qualified Data.IntMap as IntMap 
-import Control.Applicative ((<$>))
 import Control.Monad (foldM)
 import Berp.Base.SemanticTypes (Object (..), ObjectRef, Eval, HashTable)
 import Berp.Base.Object (objectEquality)
@@ -49,7 +48,6 @@ readValRef (key, valRef) = do
    return (key, val)
 
 keys :: HashTable -> Eval [Object]
--- keys hashTable = map fst <$> mappings hashTable
 keys hashTable = do
    intMap <- readIORef hashTable
    let keysVals = concat $ IntMap.elems intMap 
