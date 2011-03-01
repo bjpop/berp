@@ -223,7 +223,7 @@ addComplexFloatComplex = specialiseOpComplexFloatComplex (Prelude.+)
 (+) obj1@(Float {}) obj2 =
    case obj2 of
       Float {} -> addFloatFloatFloat obj1 obj2
-      Integer {} -> addIntFloatFloat obj1 obj2
+      Integer {} -> addFloatIntFloat obj1 obj2
       Complex {} -> addFloatComplexComplex obj1 obj2
       _other -> raise typeError
 (+) obj1@(Complex {}) obj2 =
@@ -255,7 +255,7 @@ subComplexFloatComplex = specialiseOpComplexFloatComplex (Prelude.-)
 (-) obj1@(Float {}) obj2 =
    case obj2 of
       Float {} -> subFloatFloatFloat obj1 obj2
-      Integer {} -> subIntFloatFloat obj1 obj2
+      Integer {} -> subFloatIntFloat obj1 obj2
       Complex {} -> subFloatComplexComplex obj1 obj2
       _other -> raise typeError
 (-) obj1@(Complex {}) obj2 =
@@ -287,7 +287,7 @@ mulComplexFloatComplex = specialiseOpComplexFloatComplex (Prelude.*)
 (*) obj1@(Float {}) obj2 =
    case obj2 of
       Float {} -> mulFloatFloatFloat obj1 obj2
-      Integer {} -> mulIntFloatFloat obj1 obj2
+      Integer {} -> mulFloatIntFloat obj1 obj2
       Complex {} -> mulFloatComplexComplex obj1 obj2
       _other -> raise typeError
 (*) obj1@(Complex {}) obj2 =
@@ -333,7 +333,7 @@ divComplexFloatComplex obj1 obj2 =
 (/) obj1@(Float {}) obj2 =
    case obj2 of
       Float {} -> divFloatFloatFloat obj1 obj2
-      Integer {} -> divIntFloatFloat obj1 obj2
+      Integer {} -> divFloatIntFloat obj1 obj2
       Complex {} -> divFloatComplexComplex obj1 obj2
       _other -> raise typeError
 (/) obj1@(Complex {}) obj2 =
