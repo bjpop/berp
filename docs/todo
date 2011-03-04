@@ -6,8 +6,6 @@
 
 * import statements
 
-* floating point numbers
-
 * sets
 
 * keyword arguments
@@ -17,5 +15,3 @@
 * some way to include Python code in the standard libraries, and compile it with berp so that it 
 is available to user programs (obvious example is to compile Python __builtins__ this way, such as map,
 range etcetera).
-
-* type coersions for numerical operations
