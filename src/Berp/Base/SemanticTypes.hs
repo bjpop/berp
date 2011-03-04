@@ -103,8 +103,8 @@ data Object
      { object_identity :: !Identity
      , object_type :: Object  -- type
      , object_dict :: !Object  -- dictionary
-     , object_bases :: !Object -- tuple 
-     , object_constructor :: !Procedure 
+     , object_bases :: !Object -- tuple
+     , object_constructor :: !Procedure
      , object_type_name :: !Object -- string
      , object_mro :: !Object -- tuple. Method Resolution Order.
      }
