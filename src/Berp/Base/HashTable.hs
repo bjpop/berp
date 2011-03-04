@@ -11,7 +11,7 @@
 --
 -----------------------------------------------------------------------------
 
-module Berp.Base.HashTable 
+module Berp.Base.HashTable
    ( empty
    , insert
    , lookup
@@ -19,14 +19,18 @@ module Berp.Base.HashTable
    , hashObject
    , fromList
    , stringTableFromList
-   , stringLookup 
+   , stringLookup
    , stringInsert
    , mappings
    , keys
+   , sizeIO
    ) where
 
+import Control.Monad.Trans (liftIO)
 import Prelude hiding (lookup)
-import qualified Data.IntMap as IntMap 
+import Control.Applicative ((<$>))
+import qualified Data.IntMap as IntMap
+import Data.List (genericLength)
 import Control.Monad (foldM)
 import Berp.Base.SemanticTypes (Object (..), ObjectRef, Eval, HashTable)
 import Berp.Base.Object (objectEquality)
@@ -47,11 +51,17 @@ readValRef (key, valRef) = do
    val <- readIORef valRef
    return (key, val)
 
-keys :: HashTable -> Eval [Object]
-keys hashTable = do
+keysIO :: HashTable -> IO [Object]
+keysIO hashTable = do
    intMap <- readIORef hashTable
-   let keysVals = concat $ IntMap.elems intMap 
-   return $ map fst keysVals 
+   let keysVals = concat $ IntMap.elems intMap
+   return $ map fst keysVals
+
+keys :: HashTable -> Eval [Object]
+keys = liftIO . keysIO
+
+sizeIO :: HashTable -> IO Integer
+sizeIO hashTable = genericLength <$> keysIO hashTable
 
 hashObject :: Object -> Eval Int
 hashObject obj@(String {}) = return $ hash $ object_string obj

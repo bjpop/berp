@@ -50,6 +50,9 @@ unaryMinus = prim "unaryMinus"
 invert :: Exp
 invert = prim "invert"
 
+not :: Exp
+not = prim "not"
+
 generator :: Exp
 generator = prim "generator"
 

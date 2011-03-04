@@ -12,16 +12,20 @@
 -----------------------------------------------------------------------------
 
 module Berp.Base.Builtins.Constants
-   (_s_object, _s_type)
+   (_s_object, _s_type, _s_bool)
    where
 
 import Berp.Base.SemanticTypes (ObjectRef)
 import Berp.Base.Builtins.Utils (primConstant)
-import Berp.Base.StdTypes.Object (object)
-import Berp.Base.StdTypes.Type (typeClass)
+import {-# SOURCE #-} Berp.Base.StdTypes.Object (object)
+import {-# SOURCE #-} Berp.Base.StdTypes.Type (typeClass)
+import {-# SOURCE #-} Berp.Base.StdTypes.Bool (boolClass)
 
-_s_object :: ObjectRef              
+_s_object :: ObjectRef
 _s_object = primConstant object
 
 _s_type :: ObjectRef
 _s_type = primConstant typeClass
+
+_s_bool :: ObjectRef
+_s_bool = primConstant boolClass

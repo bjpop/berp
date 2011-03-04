@@ -15,9 +15,9 @@ module Berp.Base.Builtins
    ( module Exceptions, module Functions, module Constants )
    where
 
-import Berp.Base.Builtins.Constants as Constants 
-   (_s_object, _s_type)
-import Berp.Base.Builtins.Functions as Functions 
+import Berp.Base.Builtins.Constants as Constants
+   (_s_object, _s_type, _s_bool)
+import Berp.Base.Builtins.Functions as Functions
    (_s_print, _s_dir, _s_input, _s_id, _s_callCC)
 import Berp.Base.Builtins.Exceptions as Exceptions
    ( baseException, _s_BaseException

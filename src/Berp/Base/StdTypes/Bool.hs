@@ -19,8 +19,9 @@ import Berp.Base.Prims (primitive, raise)
 import Berp.Base.SemanticTypes (Object (..), Eval)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
-import Berp.Base.Builtins (notImplementedError)
+import Berp.Base.Builtins (typeError, notImplementedError)
 import Berp.Base.StdNames
+import Berp.Base.Truth (truth)
 import qualified Berp.Base.Operators as Op ( and, or )
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.String (string)
@@ -47,7 +48,15 @@ boolClass :: Object
 boolClass = constantIO $ do
    dict <- attributes
    theType <- newType [string "bool", objectBase, dict]
-   return $ theType { object_constructor = \_ -> return false }
+   return $ theType { object_constructor = mkBool }
+   where
+   mkBool :: [Object] -> Eval Object
+   mkBool [] = return false
+   mkBool [x] =
+      case truth x of
+         True -> return true
+         False -> return false
+   mkBool _other = raise typeError
 
 attributes :: IO Object
 attributes = mkAttributes

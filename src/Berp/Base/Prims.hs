@@ -135,7 +135,7 @@ tailCall obj args = do
            | otherwise -> raise typeError 
         Type { object_constructor = proc } -> proc args
         -- XXX should try to find "__call__" attribute on object
-        _other -> raise typeError 
+        _other -> raise typeError
 
 ifThenElse :: Eval Object -> Eval Object -> Eval Object -> Eval Object 
 ifThenElse condComp trueComp falseComp = do
@@ -145,7 +145,7 @@ ifThenElse condComp trueComp falseComp = do
 ifThen :: Eval Object -> Eval Object -> Eval Object
 ifThen condComp trueComp = do
    cond <- condComp
-   if truth cond then trueComp else pass 
+   if truth cond then trueComp else pass
 
 {-
 Compile for loops by desugaring into while loops.

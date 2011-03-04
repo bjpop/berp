@@ -13,37 +13,37 @@
 
 module Berp.Base.Truth (truth) where
 
+import {-# SOURCE #-} Berp.Base.HashTable as HashTable (sizeIO)
 import Berp.Base.SemanticTypes (Object (..))
+import Data.Complex (Complex (..))
+import System.IO.Unsafe (unsafePerformIO)
+import Data.IORef (readIORef)
 
 -- XXX incomplete
 truth :: Object -> Bool
 truth (Bool { object_bool = b }) = b
 truth (Integer { object_integer = i }) = i /= 0
-truth None = False 
-truth _other = False
+truth (Float { object_float = f }) = f /= 0
+truth (Complex { object_complex = c }) = c /= (0 :+ 0)
+truth None = False
+truth obj@(Tuple {}) = object_length obj /= 0
+truth obj@(String {}) = object_string obj /= []
+truth obj@(List {}) = unsafePerformIO $ do
+   numElems <- readIORef $ object_list_num_elements obj
+   return (numElems /= 0)
+truth obj@(Dictionary {}) = unsafePerformIO $ do
+   numElems <- HashTable.sizeIO $ object_hashTable obj
+   return (numElems /= 0)
+truth _other = True
 
 {-
-   From the Python Docs: http://docs.python.org/library/stdtypes.html#truth-value-testing
+   Python Language Reference, section 5.10 "Boolean operations":
 
-   Any object can be tested for truth value, for use in an if or while condition or as operand of 
-   the Boolean operations below. The following values are considered false:
-
-   None
-
-   False
-
-   zero of any numeric type, for example, 0, 0L, 0.0, 0j.
-
-   any empty sequence, for example, '', (), [].
-
-   any empty mapping, for example, {}.
-
-   instances of user-defined classes, if the class defines a __nonzero__() or __len__() method, when 
-   that method returns the integer zero or bool value False. [1]
-
-   All other values are considered true — so objects of many types are always true.
-
-   Operations and built-in functions that have a Boolean result always return 0 or False 
-   for false and 1 or True for true, unless otherwise stated. 
-   (Important exception: the Boolean operations or and and always return one of their operands.)
+   In the context of Boolean operations, and also when expressions 
+   are used by control flow statements, the following values are 
+   interpreted as false: False, None, numeric zero of all types, 
+   and empty strings and containers (including strings, tuples, 
+   lists, dictionaries, sets and frozensets). All other values 
+   are interpreted as true. User-defined objects can customize their 
+   truth value by providing a __bool__() method.
 -}

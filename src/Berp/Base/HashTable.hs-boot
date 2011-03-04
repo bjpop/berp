@@ -9,6 +9,7 @@ module Berp.Base.HashTable
    , stringLookup
    , stringInsert
    , keys
+   , sizeIO
    ) where
 
 import Prelude hiding (lookup)
@@ -26,3 +27,4 @@ stringTableFromList :: MonadIO m => [(Hashed String, Object)] -> m HashTable
 stringLookup :: MonadIO m => Hashed String -> HashTable -> m (Maybe Object)
 stringInsert :: Hashed String -> Object -> HashTable -> Eval ()
 keys :: HashTable -> Eval [Object]
+sizeIO :: HashTable -> IO Integer

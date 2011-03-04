@@ -549,6 +549,7 @@ compileUnaryOp :: Py.OpSpan -> Hask.Exp
 compileUnaryOp (Plus {}) = Prim.unaryPlus
 compileUnaryOp (Minus {}) = Prim.unaryMinus
 compileUnaryOp (Invert {}) = Prim.invert
+compileUnaryOp (Not {}) = Prim.not
 compileUnaryOp other = error $ "Syntax Error: not a valid unary operator: " ++ show other
 
 stmtBinder :: Exp -> Compile ([Stmt], Exp)

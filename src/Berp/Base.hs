@@ -17,7 +17,7 @@ module Berp.Base
    ( module Builtins, module Complex
    , int, none, string, true, false, def, lambda, (=:), stmt, ifThenElse, ret, pass, break
    , continue, while, whileElse, for, forElse, ifThen, (@@), tailCall, tuple, read, var
-   , (%), (+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), and, or, klass, setattr, list, dictionary
+   , (%), (+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), and, or, not, klass, setattr, list, dictionary
    , subs, try, tryElse, tryFinally, tryElseFinally, except, exceptDefault, raise, reRaise, raiseFrom
    , pure, pureObject, yield, generator, returnGenerator, unaryMinus, unaryPlus, invert, runStmt
    , runExpr, interpretStmt, topVar, unpack, setitem, Pat (..), complex)
@@ -32,7 +32,7 @@ import Berp.Base.Prims
      exceptDefault, raise, reRaise, raiseFrom, yield, def, lambda, generator, returnGenerator, topVar, pure,
      pureObject, unpack, setitem, Pat (..))
 import Berp.Base.Operators
-   ((%), (+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), and, or, unaryMinus, unaryPlus, invert)
+   ((%), (+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), and, or, unaryMinus, unaryPlus, invert, not)
 import Berp.Base.Monad (runExpr, runStmt, interpretStmt)
 import Berp.Base.Class (klass)
 import Berp.Base.StdTypes.Integer (int)

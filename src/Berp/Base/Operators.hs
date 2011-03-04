@@ -16,7 +16,7 @@
 
 module Berp.Base.Operators
    ( (+), (-), (*), (/), (==), (<), (>), (<=), (>=), (.), and, or, (%)
-   , unaryMinus, unaryPlus, invert
+   , unaryMinus, unaryPlus, invert, not
 
    , modIntIntInt
    , addIntIntInt
@@ -87,8 +87,8 @@ module Berp.Base.Operators
    where
 
 import Data.Complex (Complex (..))
-import Prelude hiding ((+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), or, and)
-import qualified Prelude ((==),(<),(>=),(*),(+),(-),(<=),(>),(.),(/))
+import Prelude hiding ((+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), or, and, not)
+import qualified Prelude ((==),(<),(>=),(*),(+),(-),(<=),(>),(.),(/), not)
 import Berp.Base.Prims (callMethod, raise)
 import Berp.Base.Builtins.Exceptions (typeError, zeroDivisionError)
 import Berp.Base.Object (lookupAttribute)
@@ -96,10 +96,11 @@ import Berp.Base.SemanticTypes (Object (..), Eval)
 import Berp.Base.Hash (Hashed)
 import Berp.Base.StdNames
    ( modName, addName, subName, mulName, divName, leName
-   , gtName, eqName, ltName, geName, orName, andName)
+   , gtName, eqName, ltName, geName)
+import Berp.Base.Truth (truth)
 import {-# SOURCE #-} Berp.Base.StdTypes.Integer (int)
 import {-# SOURCE #-} Berp.Base.StdTypes.Float (float)
-import {-# SOURCE #-} Berp.Base.StdTypes.Bool (bool)
+import {-# SOURCE #-} Berp.Base.StdTypes.Bool (bool, true, false)
 import {-# SOURCE #-} Berp.Base.StdTypes.Complex (complex)
 
 infixl 9  .
@@ -132,8 +133,10 @@ specialiseOpIntIntInt op = specialiseOp object_integer object_integer op int
 specialiseOpIntIntBool :: (Integer -> Integer -> Bool) -> Object -> Object -> Eval Object
 specialiseOpIntIntBool op = specialiseOp object_integer object_integer op bool
 
+{-
 specialiseOpBoolBoolBool :: (Bool -> Bool -> Bool) -> Object -> Object -> Eval Object
 specialiseOpBoolBoolBool op = specialiseOp object_bool object_bool op bool
+-}
 
 specialiseOpFloatFloatFloat :: (Double -> Double -> Double) -> Object -> Object -> Eval Object
 specialiseOpFloatFloatFloat op = specialiseOp object_float object_float op float
@@ -452,15 +455,25 @@ geFloatIntBool = specialiseOpFloatIntBool (Prelude.>=)
       _other -> raise typeError
 (>=) x y = binop geName x y
 
--- Note semantics with numbers: 3 and 4 ---> 4
---                              0 and 4 ---> 0
-and obj1@(Bool {}) obj2@(Bool {}) =
-   specialiseOpBoolBoolBool (Prelude.&&) obj1 obj2
-and x y = binop andName x y
+{-
+   From the Python Language Reference, sec 5.10 "Boolean Operations"
+   The expression x and y first evaluates x; if x is false, its value
+   is returned; otherwise, y is evaluated and the resulting value is
+   returned.
+-}
+and obj1 obj2
+   | truth obj1 = return obj2
+   | otherwise  = return obj1
 
-or obj1@(Bool {}) obj2@(Bool {}) =
-   specialiseOpBoolBoolBool (Prelude.||) obj1 obj2
-or x y = binop orName x y
+{-
+   The expression x or y first evaluates x; if x is true, its value 
+   is returned; otherwise, y is evaluated and the resulting value 
+   is returned.
+-}
+
+or obj1 obj2
+   | truth obj1 = return obj1
+   | otherwise  = return obj2
 
 (.) :: Object -> Hashed String -> Eval Object
 (.) object ident = lookupAttribute object ident
@@ -483,3 +496,8 @@ unaryPlus _other = error "unary plus applied to a non integer"
 invert :: Object -> Eval Object
 invert (Integer {}) = error "bitwise inversion not implemented"
 invert _other = error "unary invert applied to a non integer"
+
+not :: Object -> Eval Object
+not obj
+   | Prelude.not $ truth obj = return true
+   | otherwise = return false
