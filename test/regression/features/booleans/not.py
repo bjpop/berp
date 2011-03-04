@@ -1,0 +1,17 @@
+print(not True)
+print(not False)
+print(not 1)
+print(not 0)
+print(not 1.0)
+print(not 0.0)
+print(not 1j)
+print(not 0j)
+print(not (1,))
+print(not ())
+print(not [1])
+print(not [])
+
+print(not not False)
+print(not not True)
+
+print(not object())
