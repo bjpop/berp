@@ -17,7 +17,7 @@
 
 module Berp.Base.SemanticTypes 
    ( Procedure, ControlStack (..), EvalState (..), Object (..), Eval, ObjectRef
-   , HashTable, ListArray, Arity )  where
+   , HashTable, HashSet, ListArray, Arity )  where
 
 import Control.Monad.State.Strict (StateT)
 import Control.Monad.Cont (ContT) 
@@ -70,6 +70,7 @@ type Procedure = [Object] -> Eval Object
 -- type HashTable = IORef (IntMap [(Object, Object)])
 
 type HashTable = IORef (IntMap [(Object, ObjectRef)])
+type HashSet = IORef (IntMap [Object])
 
 type ListArray = IOArray Integer Object
 type Arity = Int
@@ -149,6 +150,10 @@ data Object
      { object_identity :: !Identity
      , object_hashTable :: !HashTable
      }
+   | Set
+     { object_identity :: !Identity
+     , object_hashSet :: !HashSet
+     }
    | Generator
      { object_identity :: !Identity
      , object_continuation :: !(IORef (Eval Object))
@@ -168,6 +173,7 @@ instance Show Object where
    show (Function {}) = "function"
    show obj@(String {}) = "string(" ++ show (object_string obj) ++ ")"
    show (Dictionary {}) = "dictionary"
+   show (Set {}) = "set"
    show (Generator {}) = "generator"
    show obj@(Complex {}) = "complex(" ++ show (object_complex obj) ++ ")"
    show (None {}) = "None"

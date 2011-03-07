@@ -24,8 +24,8 @@ import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.ObjectBase (objectBase)
 import Berp.Base.StdTypes.String (string)
 
-none :: Object 
-none = None 
+none :: Object
+none = None
 
 {-# NOINLINE noneIdentity #-}
 noneIdentity :: Identity
@@ -33,19 +33,19 @@ noneIdentity = constantIO newIdentity
 
 {-# NOINLINE noneClass #-}
 noneClass :: Object
-noneClass = constantIO $ do 
+noneClass = constantIO $ do
    dict <- attributes
    newType [string "NoneType", objectBase, dict]
 
-attributes :: IO Object 
-attributes = mkAttributes 
-   [ (eqName, primitive 2 eq)
-   , (strName, primitive 1 str)
+attributes :: IO Object
+attributes = mkAttributes
+   [ (specialEqName, primitive 2 eq)
+   , (specialStrName, primitive 1 str)
    ]
-        
-eq :: Procedure 
-eq [None, None] = return true 
-eq _ = Prelude.return false 
+
+eq :: Procedure
+eq [None, None] = return true
+eq _ = Prelude.return false
 
 str :: Procedure 
 str _ = Prelude.return $ string "None" 

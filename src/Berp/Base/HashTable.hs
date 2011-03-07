@@ -37,7 +37,7 @@ import Berp.Base.Object (objectEquality)
 import Berp.Base.Prims (callMethod)
 import Berp.Base.Hash (hash, Hashed)
 import Berp.Base.LiftedIO (MonadIO, readIORef, writeIORef, newIORef)
-import Berp.Base.StdNames (hashName)
+import Berp.Base.StdNames (specialHashName)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 
 mappings :: HashTable -> Eval [(Object, Object)]
@@ -63,6 +63,7 @@ keys = liftIO . keysIO
 sizeIO :: HashTable -> IO Integer
 sizeIO hashTable = genericLength <$> keysIO hashTable
 
+-- XXX This really belongs in another module, for example Hash.
 hashObject :: Object -> Eval Int
 hashObject obj@(String {}) = return $ hash $ object_string obj
 hashObject obj@(Integer {}) = return $ hash $ object_integer obj
@@ -70,7 +71,7 @@ hashObject obj@(Bool {}) = if object_bool obj then return 1 else return 0
 hashObject obj@(None {}) = return $ hash $ object_identity obj -- copying what Python3.0 seems to do
 hashObject obj@(Function {}) = return $ hash $ object_identity obj
 hashObject object = do
-   hashResult <- callMethod object hashName []
+   hashResult <- callMethod object specialHashName []
    case hashResult of
       Integer {} -> return $ fromInteger $ object_integer hashResult
       _other -> fail $ "__hash__ method on object does not return an integer: " ++ show object

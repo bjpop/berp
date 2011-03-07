@@ -86,6 +86,7 @@ Library
       Berp.Base.ControlStack
       Berp.Base.Exception
       Berp.Base.ExitCodes
+      Berp.Base.HashSet
       Berp.Base.HashTable
       Berp.Base.Ident
       Berp.Base.Identity
@@ -107,6 +108,7 @@ Library
       Berp.Base.StdTypes.None
       Berp.Base.StdTypes.Object
       Berp.Base.StdTypes.ObjectBase
+      Berp.Base.StdTypes.Set
       Berp.Base.StdTypes.String
       Berp.Base.StdTypes.Tuple
       Berp.Base.StdTypes.Type

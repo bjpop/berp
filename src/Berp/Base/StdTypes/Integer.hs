@@ -41,17 +41,17 @@ intClass = constantIO $ do
 
 attributes :: IO Object
 attributes = mkAttributes
-   [ (addName, add)
-   , (subName, sub)
-   , (mulName, mul)
-   , (divName, divide)
-   , (ltName, lt)
-   , (leName, le)
-   , (gtName, gt)
-   , (geName, ge)
-   , (eqName, eq)
-   , (strName, str)
-   , (modName, modulus)
+   [ (specialAddName, add)
+   , (specialSubName, sub)
+   , (specialMulName, mul)
+   , (specialDivName, divide)
+   , (specialLtName, lt)
+   , (specialLeName, le)
+   , (specialGtName, gt)
+   , (specialGeName, ge)
+   , (specialEqName, eq)
+   , (specialStrName, str)
+   , (specialModName, modulus)
    ]
 
 mkOp :: (Object -> Object -> Eval Object) -> Object

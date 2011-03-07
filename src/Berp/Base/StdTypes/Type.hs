@@ -23,7 +23,7 @@ import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
 import Berp.Base.Object (typeOf)
 import Berp.Base.Prims (primitive, callMethod, returningProcedure)
-import Berp.Base.StdNames (mroName, initName)
+import Berp.Base.StdNames
 import Berp.Base.StdTypes.Object (object)
 import Berp.Base.StdTypes.Dictionary (emptyDictionary)
 import Berp.Base.StdTypes.ObjectBase (objectBase)
@@ -82,11 +82,11 @@ instantiate objectType args = do
          }
    -- callMethodMaybe object initName []
    -- everything should have an init??
-   _ <- callMethod object initName args
+   _ <- callMethod object specialInitName args
    return object
 
 attributes :: IO Object
-attributes = 
+attributes =
    mkAttributes [ (mroName, primitive 1 mroMethod) ]
 
 mroMethod :: Procedure

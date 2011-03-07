@@ -31,10 +31,10 @@ emptyString = string ""
 string :: String -> Object
 string str = constantIO $ do 
    identity <- newIdentity
-   return $ 
+   return $
       String
       { object_identity = identity
-      , object_string = str 
+      , object_string = str
       }
 
 {-# NOINLINE stringClass #-}
@@ -43,18 +43,18 @@ stringClass = constantIO $ do
    dict <- attributes
    newType [string "str", objectBase, dict]
 
-attributes :: IO Object 
-attributes = mkAttributes 
-   [ (eqName, eq)
-   , (strName, str)
-   , (addName, add)
+attributes :: IO Object
+attributes = mkAttributes
+   [ (specialEqName, eq)
+   , (specialStrName, str)
+   , (specialAddName, add)
    ]
-        
-eq :: Object 
+
+eq :: Object
 eq = primitive 2 $ \[x,y] -> binOp x y object_string (==) (Prelude.return . bool)
 
-str :: Object 
-str = primitive 1 $ \[x] -> Prelude.return x 
+str :: Object
+str = primitive 1 $ \[x] -> Prelude.return x
 
-add :: Object 
+add :: Object
 add = primitive 2 $ \[x,y] -> binOp x y object_string (++) (Prelude.return . string)

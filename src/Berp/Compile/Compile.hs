@@ -312,6 +312,10 @@ instance Compilable ExprSpan where
       (stmtss, exprPairs) <- mapAndUnzipM compileExprObjectPair mappings
       let newExp = app Prim.dict $ listE $ map (\(x,y) -> Hask.tuple [x,y]) exprPairs
       return (concat stmtss, newExp)
+   compile (Py.Set { set_exprs = elements }) = do
+      (stmtss, exprs) <- mapAndUnzipM compileExprObject elements
+      let newExp = app Prim.set $ listE exprs
+      return (concat stmtss, newExp)
    compile (Subscript { subscriptee = obj_expr, subscript_expr = sub }) = do
       (stmtss, exprs) <- mapAndUnzipM compileExprObject [obj_expr, sub]
       let newExp = appFun Prim.subscript exprs

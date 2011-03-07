@@ -17,7 +17,7 @@ import Prelude hiding (init)
 import Berp.Base.SemanticTypes (Procedure, Object (..))
 import Berp.Base.Monad (constantIO)
 import Berp.Base.Attributes (mkAttributes)
-import Berp.Base.StdNames (strName, eqName, initName)
+import Berp.Base.StdNames
 import Berp.Base.Prims (primitive)
 import Berp.Base.Object (identityOf)
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
@@ -28,15 +28,15 @@ import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
 
 {-# NOINLINE object #-}
 object :: Object
-object = constantIO $ do 
-   dict <- attributes 
+object = constantIO $ do
+   dict <- attributes
    newType [string "object", emptyTuple, dict]
 
 attributes :: IO Object
-attributes = mkAttributes 
-   [ (strName, primitive 1 str) 
-   , (eqName, primitive 2 eq)
-   , (initName, primitive 1 init)
+attributes = mkAttributes
+   [ (specialStrName, primitive 1 str)
+   , (specialEqName, primitive 2 eq)
+   , (specialInitName, primitive 1 init)
    ]
 
 -- does nothing

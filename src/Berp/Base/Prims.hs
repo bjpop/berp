@@ -33,7 +33,7 @@ import Control.Monad (zipWithM)
 import Control.Monad.State (gets)
 import Control.Monad.Cont (callCC)
 import Data.Array.IO (getElems)
-import Berp.Base.LiftedIO as LIO (readIORef, writeIORef, newIORef, putStr, liftIO) 
+import Berp.Base.LiftedIO as LIO (readIORef, writeIORef, newIORef, putStr, liftIO)
 #ifdef DEBUG
 import Berp.Base.LiftedIO as LIO (putStrLn)
 #endif
@@ -45,7 +45,7 @@ import {-# SOURCE #-} Berp.Base.Object
    ( typeOf, dictOf, lookupAttribute, lookupSpecialAttribute, objectEquality, isIterator )
 import Berp.Base.Hash (Hashed)
 import Berp.Base.ControlStack
-import Berp.Base.StdNames (docName, strName, setItemName, getItemName, nextName, iterName)
+import Berp.Base.StdNames (specialDocName, specialStrName, specialSetItemName, specialGetItemName, specialNextName, specialIterName)
 import Berp.Base.Exception (RuntimeError (..), throw)
 import Berp.Base.Ident (Ident)
 import {-# SOURCE #-} Berp.Base.HashTable as Hash (stringInsert, insert)
@@ -64,7 +64,7 @@ pureObject :: Object -> Eval Object
 pureObject = Applicative.pure
 
 primitive :: Arity -> Procedure -> Object
-primitive arity = function arity . returningProcedure 
+primitive arity = function arity . returningProcedure
 
 returningProcedure :: Procedure -> Procedure
 returningProcedure proc args = do
@@ -174,9 +174,9 @@ for var exp body = forElse var exp body pass
 
 forElse :: ObjectRef -> Object -> Eval Object -> Eval Object -> Eval Object
 forElse var expObj suite1 suite2 = do
-   iterObj <- callMethod expObj iterName [] -- this could be specialised
+   iterObj <- callMethod expObj specialIterName [] -- this could be specialised
    cond <- newIORef true
-   let tryBlock = do -- nextObj <- callMethod iterObj nextName [] -- this could be specialised
+   let tryBlock = do -- nextObj <- callMethod iterObj specialNextName [] -- this could be specialised
                      nextObj <- next iterObj
                      writeIORef var nextObj
                      suite1
@@ -233,7 +233,7 @@ setitem (Dictionary { object_hashTable = hashTable }) index value
 setitem list@(List {}) index value
    = updateListElement list index value >> return none
 setitem obj index value
-   = callMethod obj setItemName [index, value]
+   = callMethod obj specialSetItemName [index, value]
 
 callMethod :: Object -> Hashed String -> [Object] -> Eval Object
 callMethod object ident args = do
@@ -247,7 +247,7 @@ callSpecialMethod object ident args = do
    proc @@ args
 
 subs :: Object -> Object -> Eval Object
-subs obj subscript = callMethod obj getItemName [subscript]
+subs obj subscript = callMethod obj specialGetItemName [subscript]
 
 try :: Eval Object -> (Object -> Eval Object) -> Eval Object
 try tryComp handler = tryWorker tryComp handler pass Nothing
@@ -396,7 +396,7 @@ generatorNext [] = error "Generator applied to no arguments"
 def :: ObjectRef -> Arity -> Object -> ([ObjectRef] -> Eval Object) -> Eval Object
 def ident arity docString fun = do
    let procedureObj = function arity closure
-   _ <- setattr procedureObj docName docString
+   _ <- setattr procedureObj specialDocName docString
    writeIORef ident procedureObj
    return none
    where
@@ -427,7 +427,7 @@ printObject obj = do
 showObject :: Object -> Eval String
 -- XXX this should really choose the right quotes based on the content of the string.
 showObject obj@(String {}) = return ("'" ++ object_string obj ++ "'")
-showObject obj = object_string <$> callSpecialMethod obj strName []
+showObject obj = object_string <$> callSpecialMethod obj specialStrName []
 
 pyCallCC :: Object -> Eval Object
 pyCallCC fun = 
@@ -441,7 +441,7 @@ pyCallCC fun =
       fun @@ [cont]
 
 next :: Object -> Eval Object
-next obj = callMethod obj nextName []
+next obj = callMethod obj specialNextName []
 
 unpack :: Pat -> Object -> Eval Object
 unpack (V var) obj = writeIORef var obj >> return none
@@ -463,7 +463,7 @@ unpack (G _n pats) obj = do
    iteratorTest <- isIterator obj
    if iteratorTest
       then do
-         iterator <- callMethod obj iterName []
+         iterator <- callMethod obj specialIterName []
          unpackIterator pats iterator
       else
          raise valueError

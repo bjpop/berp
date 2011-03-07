@@ -46,9 +46,9 @@ generatorClass = constantIO $ do
 -- XXX update my attributes
 attributes :: IO Object
 attributes = mkAttributes
-   [ (iterName, iter)
-   , (strName, str)
-   , (nextName, next)
+   [ (specialIterName, iter)
+   , (specialStrName, str)
+   , (specialNextName, next)
    ]
 
 -- XXX fixme

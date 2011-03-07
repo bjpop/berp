@@ -24,7 +24,7 @@ berpModuleName = ModuleName "Berp.Base"
 preludeModuleName = ModuleName "Prelude"
 
 prim :: String -> Exp
-prim = var . name 
+prim = var . name
 
 setItem :: Exp
 setItem = prim "setitem"
@@ -148,6 +148,9 @@ globalVariable = prim "globalVar"
 
 tuple :: Exp
 tuple = prim "tuple"
+
+set :: Exp
+set = prim "set"
 
 whileElse :: Exp
 whileElse = prim "whileElse"

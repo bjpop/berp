@@ -54,9 +54,9 @@ dictionaryClass = constantIO $ do
 
 attributes :: IO Object 
 attributes = mkAttributes 
-   [ (eqName, primitive 2 eq)
-   , (strName, primitive 1 str)
-   , (getItemName, primitive 2 getItem)
+   [ (specialEqName, primitive 2 eq)
+   , (specialStrName, primitive 1 str)
+   , (specialGetItemName, primitive 2 getItem)
    ]
 
 eq :: Procedure 

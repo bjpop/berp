@@ -60,9 +60,9 @@ boolClass = constantIO $ do
 
 attributes :: IO Object
 attributes = mkAttributes
-   [ (andName, and)
-   , (orName, or)
-   , (strName, str)
+   [ (specialAndName, and)
+   , (specialOrName, or)
+   , (specialStrName, str)
    ]
 
 mkOp :: (Object -> Object -> Eval Object) -> Object

@@ -32,7 +32,7 @@ import Berp.Base.SemanticTypes (Object (..), Eval)
 import Berp.Base.Mangle (deMangle)
 import Berp.Base.Identity (Identity)
 import Berp.Base.Hash (Hashed)
-import Berp.Base.StdNames (eqName, cmpName, iterName)
+import Berp.Base.StdNames (specialEqName, specialCmpName, specialIterName)
 import Berp.Base.LiftedIO as LIO (MonadIO)
 #ifdef DEBUG
 import Berp.Base.LiftedIO as LIO (putStrLn)
@@ -49,6 +49,7 @@ import {-# SOURCE #-} Berp.Base.StdTypes.None (noneClass, noneIdentity)
 import {-# SOURCE #-} Berp.Base.StdTypes.Dictionary (dictionaryClass)
 import {-# SOURCE #-} Berp.Base.StdTypes.List (listClass, list)
 import {-# SOURCE #-} Berp.Base.StdTypes.Generator (generatorClass)
+import {-# SOURCE #-} Berp.Base.StdTypes.Set (setClass)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 
 -- needed for overloaded numeric literals (integers)
@@ -81,6 +82,7 @@ typeOf (String {}) = stringClass
 typeOf (None {}) = noneClass
 typeOf (Dictionary {}) = dictionaryClass
 typeOf (Generator {}) = generatorClass
+typeOf (Set {}) = setClass
 
 -- The identity of an object should never change so this can be a pure function.
 identityOf :: Object -> Identity
@@ -200,14 +202,14 @@ objectEquality None None = return True
 objectEquality obj1 obj2 
    | object_identity obj1 == object_identity obj2 = return True
    | otherwise = do
-        canEq <- hasAttribute eqName obj1 
+        canEq <- hasAttribute specialEqName obj1 
         if canEq
-           then truth <$> callMethod obj1 eqName [obj2]
+           then truth <$> callMethod obj1 specialEqName [obj2]
            else do
-              canCmp <- hasAttribute cmpName obj1 
+              canCmp <- hasAttribute specialCmpName obj1 
               if canCmp
                  then do
-                    cmpResult <- callMethod obj1 cmpName [obj2]
+                    cmpResult <- callMethod obj1 specialCmpName [obj2]
                     case cmpResult of
                        Integer {} -> return $ object_integer cmpResult == 0
                        _other -> fail $ "__cmp__ method on object does not return an integer: " ++ show obj1
@@ -229,4 +231,4 @@ hasAttribute ident object = isJust <$> lookupAttributeMaybe object ident
 -- XXX not really correct. We should check that it has a method called "__iter__" rather
 -- than just an attribute
 isIterator :: Object -> Eval Bool
-isIterator = hasAttribute iterName
+isIterator = hasAttribute specialIterName

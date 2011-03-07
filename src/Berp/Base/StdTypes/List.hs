@@ -132,32 +132,32 @@ updateListElement list index value = liftIO $ do
 
 {-# NOINLINE listClass #-}
 listClass :: Object
-listClass = constantIO $ do 
+listClass = constantIO $ do
    dict <- attributes
    newType [string "list", objectBase, dict]
 
-attributes :: IO Object 
-attributes = mkAttributes 
-   [ (eqName, eq)
-   , (strName, primitive 1 str)
-   , (getItemName, primitive 2 getItem)
-   , (addName, primitive 2 add)
-   , (setItemName, primitive 3 setItem)
-   , (iterName, primitive 1 iter)
+attributes :: IO Object
+attributes = mkAttributes
+   [ (specialEqName, eq)
+   , (specialStrName, primitive 1 str)
+   , (specialGetItemName, primitive 2 getItem)
+   , (specialAddName, primitive 2 add)
+   , (specialSetItemName, primitive 3 setItem)
+   , (specialIterName, primitive 1 iter)
    , (appendName, primitive 2 appendItem)
    ]
 
 eq :: Object
 eq = error "== on list not defined"
 
-getItem :: Procedure 
+getItem :: Procedure
 getItem (x:y:_) = listIndex x y
 getItem _other = error "getItem on list applied to wrong number of arguments"
 
-str :: Procedure 
+str :: Procedure
 str (x:_) = do
    elements <- liftIO $ do
-      array <- readIORef $ object_list_elements x  
+      array <- readIORef $ object_list_elements x
       getElems array
    strings <- mapM showObject elements 
    -- let strings = map object_string objStrs

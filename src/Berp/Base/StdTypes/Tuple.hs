@@ -48,10 +48,10 @@ getTupleElements :: Object -> [Object]
 getTupleElements (Tuple { object_tuple = objs }) = objs
 getTupleElements _other = error "bases of object is not a tuple"
 
-attributes :: IO Object 
-attributes = mkAttributes 
-   [ (eqName, eq)
-   , (strName, str)
+attributes :: IO Object
+attributes = mkAttributes
+   [ (specialEqName, eq)
+   , (specialStrName, str)
    ]
 
 eq :: Object 

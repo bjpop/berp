@@ -55,12 +55,12 @@ complexClass = constantIO $ do
 
 attributes :: IO Object
 attributes = mkAttributes
-   [ (addName, add)
-   , (subName, sub)
-   , (mulName, mul)
-   , (divName, divide)
-   , (eqName, eq)
-   , (strName, str)
+   [ (specialAddName, add)
+   , (specialSubName, sub)
+   , (specialMulName, mul)
+   , (specialDivName, divide)
+   , (specialEqName, eq)
+   , (specialStrName, str)
    ]
 
 mkOp :: (Object -> Object -> Eval Object) ->

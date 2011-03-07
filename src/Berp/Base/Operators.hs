@@ -95,8 +95,8 @@ import Berp.Base.Object (lookupAttribute)
 import Berp.Base.SemanticTypes (Object (..), Eval)
 import Berp.Base.Hash (Hashed)
 import Berp.Base.StdNames
-   ( modName, addName, subName, mulName, divName, leName
-   , gtName, eqName, ltName, geName)
+   ( specialModName, specialAddName, specialSubName, specialMulName, specialDivName, specialLeName
+   , specialGtName, specialEqName, specialLtName, specialGeName)
 import Berp.Base.Truth (truth)
 import {-# SOURCE #-} Berp.Base.StdTypes.Integer (int)
 import {-# SOURCE #-} Berp.Base.StdTypes.Float (float)
@@ -203,7 +203,7 @@ modIntIntInt = specialiseOpIntIntInt (Prelude.mod)
 
 -- XXX fixme
 (%) obj1@(Integer {}) obj2@(Integer {}) = modIntIntInt obj1 obj2
-(%) x y = binop modName x y
+(%) x y = binop specialModName x y
 
 addIntIntInt, addFloatFloatFloat, addIntFloatFloat, addFloatIntFloat, addComplexComplexComplex, addIntComplexComplex, addComplexIntComplex, addFloatComplexComplex, addComplexFloatComplex :: Object -> Object -> Eval Object
 
@@ -235,7 +235,7 @@ addComplexFloatComplex = specialiseOpComplexFloatComplex (Prelude.+)
       Integer {} -> addComplexIntComplex obj1 obj2
       Float {} -> addComplexFloatComplex obj1 obj2
       _other -> raise typeError
-(+) x y = binop addName x y
+(+) x y = binop specialAddName x y
 
 subIntIntInt, subFloatFloatFloat, subIntFloatFloat, subFloatIntFloat, subComplexComplexComplex, subIntComplexComplex, subComplexIntComplex, subFloatComplexComplex, subComplexFloatComplex :: Object -> Object -> Eval Object
 
@@ -267,7 +267,7 @@ subComplexFloatComplex = specialiseOpComplexFloatComplex (Prelude.-)
       Integer {} -> subComplexIntComplex obj1 obj2
       Float {} -> subComplexFloatComplex obj1 obj2
       _other -> raise typeError
-(-) x y = binop subName x y
+(-) x y = binop specialSubName x y
 
 mulIntIntInt, mulFloatFloatFloat, mulIntFloatFloat, mulFloatIntFloat, mulComplexComplexComplex, mulIntComplexComplex, mulComplexIntComplex, mulFloatComplexComplex, mulComplexFloatComplex :: Object -> Object -> Eval Object
 
@@ -299,7 +299,7 @@ mulComplexFloatComplex = specialiseOpComplexFloatComplex (Prelude.*)
       Integer {} -> mulComplexIntComplex obj1 obj2
       Float {} -> mulComplexFloatComplex obj1 obj2
       _other -> raise typeError
-(*) x y = binop mulName x y
+(*) x y = binop specialMulName x y
 
 checkDivByZero :: Num a => a -> Eval Object -> Eval Object
 checkDivByZero denom comp
@@ -345,7 +345,7 @@ divComplexFloatComplex obj1 obj2 =
       Integer {} -> divComplexIntComplex obj1 obj2
       Float {} -> divComplexFloatComplex obj1 obj2
       _other -> raise typeError
-(/) x y = binop divName x y
+(/) x y = binop specialDivName x y
 
 leIntIntBool, leFloatFloatBool, leIntFloatBool, leFloatIntBool :: Object -> Object -> Eval Object
 
@@ -364,7 +364,7 @@ leFloatIntBool = specialiseOpFloatIntBool (Prelude.<=)
       Float {} -> leFloatFloatBool obj1 obj2
       Integer {} -> leIntFloatBool obj1 obj2
       _other -> raise typeError
-(<=) x y = binop leName x y
+(<=) x y = binop specialLeName x y
 
 gtIntIntBool, gtFloatFloatBool, gtIntFloatBool, gtFloatIntBool :: Object -> Object -> Eval Object
 
@@ -383,7 +383,7 @@ gtFloatIntBool = specialiseOpFloatIntBool (Prelude.>)
       Float {} -> gtFloatFloatBool obj1 obj2
       Integer {} -> gtIntFloatBool obj1 obj2
       _other -> raise typeError
-(>) x y = binop gtName x y
+(>) x y = binop specialGtName x y
 
 eqIntIntBool, eqFloatFloatBool, eqIntFloatBool, eqFloatIntBool, eqComplexComplexBool, eqIntComplexBool, eqComplexIntBool, eqFloatComplexBool, eqComplexFloatBool :: Object -> Object -> Eval Object
 
@@ -415,7 +415,7 @@ eqComplexFloatBool = specialiseOpComplexFloatBool (Prelude.==)
       Integer {} -> eqComplexIntBool obj1 obj2
       Float {} -> eqComplexFloatBool obj1 obj2
       _other -> raise typeError
-(==) x y = binop eqName x y
+(==) x y = binop specialEqName x y
 
 ltIntIntBool, ltFloatFloatBool, ltIntFloatBool, ltFloatIntBool :: Object -> Object -> Eval Object
 
@@ -434,7 +434,7 @@ ltFloatIntBool = specialiseOpFloatIntBool (Prelude.<)
       Float {} -> ltFloatFloatBool obj1 obj2
       Integer {} -> ltIntFloatBool obj1 obj2
       _other -> raise typeError
-(<) x y = binop ltName x y
+(<) x y = binop specialLtName x y
 
 geIntIntBool, geFloatFloatBool, geIntFloatBool, geFloatIntBool :: Object -> Object -> Eval Object
 
@@ -453,7 +453,7 @@ geFloatIntBool = specialiseOpFloatIntBool (Prelude.>=)
       Float {} -> geFloatFloatBool obj1 obj2
       Integer {} -> geIntFloatBool obj1 obj2
       _other -> raise typeError
-(>=) x y = binop geName x y
+(>=) x y = binop specialGeName x y
 
 {-
    From the Python Language Reference, sec 5.10 "Boolean Operations"
