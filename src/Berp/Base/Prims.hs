@@ -26,7 +26,7 @@ module Berp.Base.Prims
    , raise, reRaise, raiseFrom, primitive, generator, yield, generatorNext
    , def, lambda, returnGenerator, printObject, topVar, Applicative.pure
    , pureObject, showObject, returningProcedure, pyCallCC, unpack
-   , next, setitem, Pat (G, V)) where
+   , next, setitem, Pat (G, V), getIterator, mapIterator) where
 
 import Prelude hiding (break, read, putStr)
 import Control.Monad (zipWithM)
@@ -460,6 +460,9 @@ unpack (G n pats) (List { object_list_elements = elementsRef, object_list_num_el
 -- XXX this has different semantics than Python because it will allow pattern variables
 -- to be assigned up-to the point an exception is raised. Python is all or nothing.
 unpack (G _n pats) obj = do
+   iterator <- getIterator obj
+   unpackIterator pats iterator
+{-
    iteratorTest <- isIterator obj
    if iteratorTest
       then do
@@ -467,8 +470,9 @@ unpack (G _n pats) obj = do
          unpackIterator pats iterator
       else
          raise valueError
+-}
    where
-   unpackIterator :: [Pat] -> Object -> Eval Object 
+   unpackIterator :: [Pat] -> Object -> Eval Object
    -- check that the iterator was exhausted, by looking for a stopIteration
    unpackIterator [] _obj =
       tryElse (next obj) handler (raise valueError)
@@ -482,3 +486,25 @@ unpack (G _n pats) obj = do
       assignNext = unpack pat =<< next obj
       handler :: Object -> Eval Object
       handler e = except e stopIteration (raise valueError) (raise e)
+
+getIterator :: Object -> Eval Object
+getIterator obj = do
+   iteratorTest <- isIterator obj
+   if iteratorTest
+      then callMethod obj specialIterName []
+      else raise valueError
+
+mapIterator :: (Object -> Eval ()) -> Object -> Eval ()
+mapIterator f obj = do
+   iterator <- getIterator obj
+   _ <- mapWorker iterator
+   return ()
+   where
+   mapWorker :: Object -> Eval Object
+   mapWorker iterObj = do
+      tryElse mapNext handler $ mapWorker iterObj
+      where
+      handler e = except e stopIteration pass (raise e)
+      mapNext = do
+         f =<< next iterObj
+         pass

@@ -14,7 +14,8 @@
 module Berp.Base.StdTypes.Set (emptySet, set, setClass) where
 
 import Data.List (intersperse)
-import Berp.Base.Prims (primitive, showObject)
+import Berp.Base.Prims (primitive, showObject, mapIterator, raise)
+import Berp.Base.Builtins (typeError)
 import Berp.Base.Monad (constantIO)
 import Berp.Base.SemanticTypes (Procedure, Object (..), Eval)
 import Berp.Base.Identity (newIdentity)
@@ -50,7 +51,22 @@ set elements = do
 setClass :: Object
 setClass = constantIO $ do
    dict <- attributes
-   newType [string "set", objectBase, dict]
+   theType <- newType [string "set", objectBase, dict]
+   return $ theType { object_constructor = mkSet }
+   where
+   mkSet :: [Object] -> Eval Object
+   mkSet [] = set []
+   mkSet [obj] = do
+      set <- empty
+      mapIterator (flip insert set) obj
+      identity <- newIdentity
+      return $
+         Set
+         { object_identity = identity
+         , object_hashSet = set
+         }
+   mkSet _other = raise typeError
+
 
 attributes :: IO Object
 attributes = mkAttributes
@@ -71,8 +87,11 @@ add _other = error "set.add called with wrong number of arguments"
 str :: Procedure
 str (obj:_) = do
    es <- elements $ object_hashSet obj
-   strs <- mapM setEntryString es
-   return $ string ("{" ++ concat (intersperse ", " strs) ++ "}")
+   if null es
+      then return $ string "set()"
+      else do
+         strs <- mapM setEntryString es
+         return $ string ("{" ++ concat (intersperse ", " strs) ++ "}")
    where
    setEntryString :: Object -> Eval String
    setEntryString obj = showObject obj
