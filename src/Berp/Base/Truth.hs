@@ -14,6 +14,7 @@
 module Berp.Base.Truth (truth) where
 
 import {-# SOURCE #-} Berp.Base.HashTable as HashTable (sizeIO)
+import {-# SOURCE #-} Berp.Base.HashSet as HashSet (sizeIO)
 import Berp.Base.SemanticTypes (Object (..))
 import Data.Complex (Complex (..))
 import System.IO.Unsafe (unsafePerformIO)
@@ -33,6 +34,9 @@ truth obj@(List {}) = unsafePerformIO $ do
    return (numElems /= 0)
 truth obj@(Dictionary {}) = unsafePerformIO $ do
    numElems <- HashTable.sizeIO $ object_hashTable obj
+   return (numElems /= 0)
+truth obj@(Set {}) = unsafePerformIO $ do
+   numElems <- HashSet.sizeIO $ object_hashSet obj
    return (numElems /= 0)
 truth _other = True
 

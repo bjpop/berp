@@ -57,9 +57,9 @@ print(bool({1:1, 2:2}))
 
 # call with set arguments
 
-#print(bool(set()))
-#print(bool({1}))
-#print(bool({1,2}))
+print(bool(set()))
+print(bool({1}))
+print(bool({1,2}))
 
 # call with an object argument
 
