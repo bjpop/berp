@@ -16,7 +16,7 @@ compile each Python variable into a Haskell variable bound to an IORef. A read
 from a Python variable becomes a readIORef, likewise writeIORef.
 
 A few problems still remain. Python's scoping rules are slightly different to
-Haskell. 
+Haskell.
 
 Nested references to variables can be annotated as "global" and "nonlocal", otherwise
 a nested assignment creates a new local variable. The main issue is that Python
@@ -278,3 +278,74 @@ Syntax:
 --------------------------------------------------------------------------------
 
 Compiling modules.
+
+Syntax:
+
+   import mod
+   import mod as alias
+   from mod import item_list
+   from mod import *
+
+Issues:
+
+The first time a module is imported into a running application it is "executed",
+which may have side effects (eg top-level statements). Subsequent loads do not
+execute those effects again. Thus the loaded module is cached. So modules are
+identified uniquely by their name.
+
+Python supports "packages" which make the story slightly more complex. To
+simplify things it might make sense to ignore packages in the first pass.
+
+An import of a module binds one or more variables in the local scope. This is
+problematic for the "from mod import *" syntax, because it does not name the
+variables that it binds. So far our scheme in Haskell has been to compile
+Python variable names into Haskell variable names (where the Haskell variable
+is bound to an IORef). For performance reasons we are trying to avoid using
+strings (and an explicit environment) to handle variable names - although such
+an approach would make it relatively easy to handle this tricky kind of import.
+
+Fortunately this tricky kind of import is only allowed at the top level of
+a module. Given this limitation, a compromise might be possible. The idea
+is to maintain a global environment, which maps (string) names to object
+references (IORef Object, aka ObjectRef):
+
+   type GlobalEnv = Map String ObjectRef
+
+All variables referred to in a module must be declared first in the
+compiled Haskell code. Top level
+declarations can check the global environment. If a variable of the same name
+was imported then the corresponding ObjectRef should be retrieved from the
+table. Otherwise a new ObjectRef should be allocated and the table should
+be updated. Reads from variables remain unchanged.
+
+For instance, the Python code (at the top level)
+
+   x = 12
+   print(x)
+
+is compiled to:
+
+   = do _s_x <- var "x"
+        _s_x =: 12
+        _t_0 <- read _s_print
+        _t_1 <- read _s_x
+        _t_0 @@ [_t_1]
+
+where the var primitive does the variable declaration, and has type:
+
+   var :: Ident -> Eval ObjectRef
+
+which would be something like this in pseudo-code:
+
+   var s = do
+      maybeGlobal <- lookupGlobalEnv s
+      case maybeGlobal of
+         Nothing -> do
+            ref <- newIORef (error $ "undefined variable: " ++ s)
+            updateGlobalEnv s ref
+            return ref
+         Just ref -> return ref
+
+An imported module should update the global environment with the variables
+that are imported from it. In the case of the "import *", all variables are
+imported, whereas the other kinds of imports are more restrictive.
