@@ -1,6 +1,6 @@
-berp empty_dict.py
+berp empty_set.py
 <<<
 >>>
-{}
+set()
 >>>2
 >>>=0
