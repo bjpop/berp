@@ -15,12 +15,12 @@
 --
 -----------------------------------------------------------------------------
 
-module Berp.Base.SemanticTypes 
+module Berp.Base.SemanticTypes
    ( Procedure, ControlStack (..), EvalState (..), Object (..), Eval, ObjectRef
    , HashTable, HashSet, ListArray, Arity )  where
 
 import Control.Monad.State.Strict (StateT)
-import Control.Monad.Cont (ContT) 
+import Control.Monad.Cont (ContT)
 import Data.IntMap (IntMap)
 import Data.IORef (IORef)
 import Data.Complex (Complex)
@@ -28,17 +28,17 @@ import Data.Array.IO (IOArray)
 import Berp.Base.Identity (Identity)
 
 data ControlStack
-   = EmptyStack 
-   | ProcedureCall 
-     { procedure_return :: Object -> Eval Object 
+   = EmptyStack
+   | ProcedureCall
+     { procedure_return :: Object -> Eval Object
      , control_stack_tail :: ControlStack
      }
-   | ExceptionHandler 
+   | ExceptionHandler
      { exception_handler :: Maybe (Object -> Eval Object)
-     , exception_finally :: Maybe (Eval Object) 
+     , exception_finally :: Maybe (Eval Object)
      , control_stack_tail :: ControlStack
      }
-   | WhileLoop 
+   | WhileLoop
      { loop_start :: Eval Object
      , loop_end :: Eval Object
      , control_stack_tail :: ControlStack
@@ -47,7 +47,7 @@ data ControlStack
      { generator_yield :: Object -> Eval Object
      , generator_object :: Object
      , control_stack_tail :: ControlStack
-     } 
+     }
 
 instance Show ControlStack where
    show EmptyStack = "EmptyStack"
