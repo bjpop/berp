@@ -348,4 +348,75 @@ which would be something like this in pseudo-code:
 
 An imported module should update the global environment with the variables
 that are imported from it. In the case of the "import *", all variables are
-imported, whereas the other kinds of imports are more restrictive.
+imported, whereas the other kinds of imports are more restrictive. For instance,
+"import Foo" just introduces the "Foo" variable into scope (which will be
+bound to a Module object).
+
+One question is what to do with threads? Does each thread have its own
+"thread global" environment? Seems plausible.
+
+Other issues to consider is that module imports have dynamic behaviour.
+They can be evaluated in nested scopes and under conditional statements:
+
+   if test:
+      import Foo
+   else:
+      import Bar
+
+So it is undesirable to require them to be statically known and linked.
+That means we can't use Haskell's import facility to implement Python's
+import facility (in its full glory). A promising workaround is to use
+dynamic loading via something like the plugins library. The idea would
+be that each compiled module exports a single entity called, say,
+init, which would have a type like:
+
+   init :: Eval Object
+
+The resulting object would be a module Module that contains a
+dictionary mapping all its members to objects.
+
+So a Python statement like:
+
+   import Foo
+
+would be compiled to:
+
+   obj <- importModule "Foo"
+   _s_Foo <- var "Foo"
+   _s_Foo =: obj
+
+or maybe:
+
+   _s_Foo <- importModule "Foo"
+
+where
+
+   importModule :: String -> Eval Object
+
+or
+
+   importModule :: String -> Eval ObjectRef
+
+with pseudo code:
+
+   importModule name = do
+      maybeImported <- lookupModule name
+      case maybeImported of
+         Just obj -> return obj
+         Nothing -> do
+            tryCompiled <- compileModule name
+            case tryCompiled of
+               Left e -> raise ("compilation error: " ++ show e)
+               Right obj -> return obj
+
+   compileModule :: String -> Eval Object
+   compileModule name = do
+      maybePath <- findModulePath name
+      case maybePath of
+         Nothing -> raise ("could not find module")
+         Just path -> liftIO $ load path "init"
+
+assuming:
+
+
+   load :: FilePath -> String -> IO a
