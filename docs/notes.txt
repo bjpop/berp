@@ -399,6 +399,7 @@ or
 
 with pseudo code:
 
+   -- this just handles the simple case of: import Foo
    importModule name = do
       maybeImported <- lookupModule name
       case maybeImported of
@@ -418,5 +419,37 @@ with pseudo code:
 
 assuming:
 
+   load :: Typeable a => FilePath -> String -> IO a
 
-   load :: FilePath -> String -> IO a
+or something like that. Do we need the typeable constraint?
+
+Each Python module should be compiled to a Haskell binding defining
+and init function which is the only variable exported from the
+Haskell module:
+
+   init :: Eval Object
+   init = do
+      ... compiled stuff ...
+      -- should be hashed strings below
+      mkModule [("x", _s_x), ..., ("z", s_z)]
+
+where mkModuleObject builds the object for the module from
+the top variables defined in it:
+
+   mkModule :: [(Hashed String, ObjectRef)] -> Eval Object
+
+Implementation strategy:
+
+   1. Add a module data constructor to the Object type.
+   2. Modify compilation of a Python module to use the init binding,
+      and implement mkModule.
+   3. Get the simple case of "import Foo" to work. Don't worry about
+      caching imports. Don't worry about the search path. Just find
+      modules in the current directory.
+   4. Get it working in the interpreter.
+   5. Add import caching.
+   6. Implement the more difficult case of "from Foo import (x,y,z)"
+   7. Implement the hardest case of "from Foo import *".
+   8. Add search path for files.
+   --- stop here and release the code ---
+   9. Consider what's needed for packages.
