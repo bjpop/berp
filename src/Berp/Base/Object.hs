@@ -44,13 +44,13 @@ import {-# SOURCE #-} Berp.Base.StdTypes.Complex (complexClass)
 import {-# SOURCE #-} Berp.Base.StdTypes.Bool (boolClass)
 import {-# SOURCE #-} Berp.Base.StdTypes.Tuple (tupleClass, getTupleElements)
 import {-# SOURCE #-} Berp.Base.StdTypes.Function (functionClass)
-import {-# SOURCE #-} Berp.Base.StdTypes.String (stringClass)
+import {-# SOURCE #-} Berp.Base.StdTypes.String (stringClass, string)
 import {-# SOURCE #-} Berp.Base.StdTypes.None (noneClass, noneIdentity)
 import {-# SOURCE #-} Berp.Base.StdTypes.Dictionary (dictionaryClass)
 import {-# SOURCE #-} Berp.Base.StdTypes.List (listClass, list)
 import {-# SOURCE #-} Berp.Base.StdTypes.Generator (generatorClass)
 import {-# SOURCE #-} Berp.Base.StdTypes.Set (setClass)
-import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
+import {-# SOURCE #-} Berp.Base.StdTypes.Module (moduleClass)
 
 -- needed for overloaded numeric literals (integers)
 instance Num Object where
@@ -83,13 +83,14 @@ typeOf (None {}) = noneClass
 typeOf (Dictionary {}) = dictionaryClass
 typeOf (Generator {}) = generatorClass
 typeOf (Set {}) = setClass
+typeOf (Module {}) = moduleClass
 
 -- The identity of an object should never change so this can be a pure function.
 identityOf :: Object -> Identity
-identityOf None = noneIdentity 
+identityOf None = noneIdentity
 identityOf object = object_identity object
 
-dictOf :: Object -> Maybe Object 
+dictOf :: Object -> Maybe Object
 dictOf obj@(Object {}) = Just $ object_dict obj
 dictOf obj@(Type {}) = Just $ object_dict obj
 dictOf obj@(Function {}) = Just $ object_dict obj
@@ -98,12 +99,12 @@ dictOf _other = Nothing
 lookupAttribute :: Object -> Hashed String -> Eval Object
 lookupAttribute obj ident = do
    lookupResult <- lookupAttributeMaybe obj ident
-   checkLookup obj ident lookupResult 
+   checkLookup obj ident lookupResult
 
 lookupSpecialAttribute :: Object -> Hashed String -> Eval Object
 lookupSpecialAttribute obj ident = do
    lookupResult <- lookupSpecialAttributeMaybe obj ident
-   checkLookup obj ident lookupResult 
+   checkLookup obj ident lookupResult
 
 checkLookup :: Object -> Hashed String -> Maybe Object -> Eval Object
 checkLookup obj (_, identStr) lookupResult =
@@ -202,11 +203,11 @@ objectEquality None None = return True
 objectEquality obj1 obj2 
    | object_identity obj1 == object_identity obj2 = return True
    | otherwise = do
-        canEq <- hasAttribute specialEqName obj1 
+        canEq <- hasAttribute specialEqName obj1
         if canEq
            then truth <$> callMethod obj1 specialEqName [obj2]
            else do
-              canCmp <- hasAttribute specialCmpName obj1 
+              canCmp <- hasAttribute specialCmpName obj1
               if canCmp
                  then do
                     cmpResult <- callMethod obj1 specialCmpName [obj2]
@@ -220,10 +221,10 @@ dir object = do
    let maybeObjDict = dictOf object
    let objectBasesDicts = map dictOf $ getTupleElements $ object_mro $ typeOf object
    let allDicts = catMaybes (maybeObjDict : objectBasesDicts)
-   let hashTables = map object_hashTable allDicts 
+   let hashTables = map object_hashTable allDicts
    keyObjects <- concat <$> mapM keys hashTables
    let keyStrings = nub $ map (deMangle . object_string) keyObjects
-   list $ map string keyStrings 
+   list $ map string keyStrings
 
 hasAttribute :: (Functor m, MonadIO m) => Hashed String -> Object -> m Bool
 hasAttribute ident object = isJust <$> lookupAttributeMaybe object ident

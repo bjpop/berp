@@ -102,7 +102,7 @@ data Object
      }
    | Type
      { object_identity :: !Identity
-     , object_type :: Object  -- type
+     , object_type :: Object  -- type, is this needed? Is the type of all types == type?
      , object_dict :: !Object  -- dictionary
      , object_bases :: !Object -- tuple
      , object_constructor :: !Procedure
@@ -159,6 +159,11 @@ data Object
      , object_continuation :: !(IORef (Eval Object))
      , object_stack_context :: !(IORef (ControlStack -> ControlStack))
      }
+     -- Modules probably need names and source information.
+   | Module
+     { object_identity :: !Identity
+     , object_dict :: !Object -- dictionary
+     }
    | None
 
 -- For debugging only
@@ -176,6 +181,7 @@ instance Show Object where
    show (Set {}) = "set"
    show (Generator {}) = "generator"
    show obj@(Complex {}) = "complex(" ++ show (object_complex obj) ++ ")"
+   show (Module {}) = "module"
    show (None {}) = "None"
 
 -- equality instance for objects

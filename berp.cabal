@@ -105,6 +105,7 @@ Library
       Berp.Base.StdTypes.Generator
       Berp.Base.StdTypes.Integer
       Berp.Base.StdTypes.List
+      Berp.Base.StdTypes.Module
       Berp.Base.StdTypes.None
       Berp.Base.StdTypes.Object
       Berp.Base.StdTypes.ObjectBase
