@@ -17,15 +17,15 @@ module Main where
 -- import Language.Python.Version3.Parser (parseModule)
 -- import Language.Python.Common.AST (ModuleSpan)
 import Control.Monad (when)
-import Control.Applicative ((<$>))
+-- import Control.Applicative ((<$>))
 -- import Language.Haskell.Exts.Pretty
 -- import Berp.Compile.Compile (compiler, patchMainModule)
 import System.Console.ParseArgs
    (Argtype (..), argDataOptional, argDataDefaulted, Arg (..)
    , gotArg, getArg, parseArgsIO, ArgsComplete (..), Args(..))
-import System.Cmd (system)
+-- import System.Cmd (system)
 import System.Exit (ExitCode (..), exitWith)
-import System.FilePath ((</>), (<.>), takeBaseName)
+-- import System.FilePath ((</>), (<.>), takeBaseName)
 -- import System.Directory (removeFile)
 -- import Berp.Interpreter.Repl (repl)
 import Berp.Version (versionString)
@@ -45,9 +45,13 @@ main = do
    case maybeInputDetails of
       -- Nothing -> repl
       Nothing -> return () -- XXX call the interpreter.
-      Just (sourceName, fileContents) ->
-         return () -- XXX dynamically import the module mentioned on the command line.
+      Just (_sourceName, _fileContents) ->
          -- compileAndExecute argMap sourceName fileContents
+         return () -- XXX dynamically import the module mentioned on the command line.
+{-
+         -- probably need to catch exceptions
+         runStmt =<< importModule sourceName
+-}
 
 {-
 compileAndExecute :: Args ArgIndex -> FilePath -> String -> IO ()
