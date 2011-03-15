@@ -30,63 +30,7 @@ Executable berp
       src/Berp/
   build-depends:
       base == 4.*
-      -- monads-tf == 0.1.*,
-      -- transformers == 0.2.*,
-      -- containers < 0.4,
-      -- language-python == 0.3.*,
-      -- haskell-src-exts == 1.9.*,
-      -- parseargs == 0.1.*,
-      -- process == 1.0.*,
-      -- filepath == 1.1.*,
-      -- directory == 1.0.*,
-      -- ghc >= 6.10,
-      -- haskeline == 0.6.*,
-      -- ghc-paths == 0.1.*,
-      -- extensible-exceptions == 0.1.*
   other-modules:
-      Berp.Compile.Compile
-      Berp.Compile.IdentString
-      Berp.Compile.Monad
-      Berp.Compile.HsSyntaxUtils
-      Berp.Compile.PySyntaxUtils
-      Berp.Compile.PrimName
-      Berp.Compile.Utils
-      Berp.Compile.VarSet
-      -- Berp.Interpreter.Input
-      -- Berp.Interpreter.Monad
-      -- Berp.Interpreter.Repl
-
-Library
-   ghc-options: -Wall -fno-warn-name-shadowing -fno-warn-orphans
-   include-dirs:
-      src/include
-   hs-source-dirs:
-      src
-   build-depends:
-      base == 4.*,
-      monads-tf == 0.1.*,
-      transformers == 0.2.*,
-      containers < 0.4,
-      language-python == 0.3.*,
-      haskell-src-exts == 1.9.*
-      -- parseargs == 0.1.*,
-      -- process == 1.0.*,
-      -- filepath == 1.1.*,
-      -- directory == 1.0.*,
-      -- ghc >= 6.10,
-      -- haskeline == 0.6.*,
-      -- ghc-paths == 0.1.*,
-      -- extensible-exceptions == 0.1.*
-   exposed-modules:
-      Berp.Compile.Compile
-   other-modules:
-      Berp.Compile.IdentString
-      Berp.Compile.Monad
-      Berp.Compile.HsSyntaxUtils
-      Berp.Compile.PySyntaxUtils
-      Berp.Compile.PrimName
-      Berp.Compile.Utils
-      Berp.Compile.VarSet
       Berp.Interpreter.Input
       Berp.Interpreter.Monad
       Berp.Interpreter.Repl
@@ -103,12 +47,20 @@ Library
       transformers == 0.2.*,
       containers < 0.4,
       ghc-prim,
-      array < 0.4
+      array < 0.4,
+      extensible-exceptions == 0.1.*,
+      language-python == 0.3.*,
+      ghc >= 6.10,
+      haskell-src-exts == 1.9.*,
+      filepath == 1.1.*,
+      process == 1.0.*,
+      parseargs == 0.1.*
    exposed-modules:
       Berp.Base
       Berp.Base.Hash
       Berp.Base.Mangle
       Berp.Version
+      Berp.Compile
    other-modules:
       Paths_berp
       Berp.Base.Attributes
@@ -150,3 +102,10 @@ Library
       Berp.Base.StdTypes.Type
       Berp.Base.Truth
       Berp.Base.Unique
+      Berp.Compile.IdentString
+      Berp.Compile.Monad
+      Berp.Compile.HsSyntaxUtils
+      Berp.Compile.PySyntaxUtils
+      Berp.Compile.PrimName
+      Berp.Compile.Utils
+      Berp.Compile.VarSet
