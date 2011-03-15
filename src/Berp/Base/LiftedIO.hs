@@ -12,7 +12,7 @@
 --
 -----------------------------------------------------------------------------
 
-module Berp.Base.LiftedIO 
+module Berp.Base.LiftedIO
    ( liftIO, putStr, putStrLn, putChar, IORef, readIORef
    , writeIORef, newIORef, MonadIO, hFlush, getLine
    ) where
@@ -20,7 +20,7 @@ module Berp.Base.LiftedIO
 import Prelude hiding (putStr, putStrLn, getLine, putChar)
 import qualified Prelude as P (putStr, putStrLn, getLine, putChar)
 import Control.Monad.Trans (liftIO, MonadIO)
-import Data.IORef hiding (readIORef, writeIORef, newIORef) 
+import Data.IORef hiding (readIORef, writeIORef, newIORef)
 import qualified Data.IORef as IORef (readIORef, writeIORef, newIORef)
 import qualified System.IO as SIO (hFlush, Handle)
 

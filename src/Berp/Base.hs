@@ -20,7 +20,7 @@ module Berp.Base
    , (%), (+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), and, or, not, klass, setattr, list, dictionary
    , subs, try, tryElse, tryFinally, tryElseFinally, except, exceptDefault, raise, reRaise, raiseFrom
    , pure, pureObject, yield, generator, returnGenerator, unaryMinus, unaryPlus, invert, runStmt
-   , runExpr, interpretStmt, topVar, unpack, setitem, Pat (..), complex, set)
+   , runExpr, interpretStmt, topVar, unpack, setitem, Pat (..), complex, set, mkModule)
    where
 
 import Prelude ()
@@ -44,3 +44,4 @@ import Berp.Base.StdTypes.List (list)
 import Berp.Base.StdTypes.Dictionary (dictionary)
 import Berp.Base.StdTypes.Set (set)
 import Berp.Base.StdTypes.Complex (complex)
+import Berp.Base.StdTypes.Module (mkModule)

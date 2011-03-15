@@ -30,12 +30,11 @@ isEmptySuite :: Suite a -> Bool
 isEmptySuite [] = True
 isEmptySuite _ = False
 
--- Incomplete
-assignTargets :: [ExprSpan] -> VarSet 
+-- XXX Incomplete
+assignTargets :: [ExprSpan] -> VarSet
 assignTargets = foldl' addTarget mempty
    where
    addTarget :: VarSet -> ExprSpan -> VarSet
-   -- addTarget set var@(Var {}) = Set.insert (varToString var) set
    addTarget set expr = Set.union (exprVars expr) set
    exprVars :: ExprSpan -> VarSet
    exprVars var@(Var {}) = Set.singleton (varToString var)
@@ -43,45 +42,39 @@ assignTargets = foldl' addTarget mempty
    exprVars tuple@(Tuple {}) = Set.unions $ Prelude.map exprVars $ tuple_exprs tuple 
    exprVars (Paren { paren_expr = expr }) = exprVars expr
    exprVars _other = Set.empty
-   
 
 varToString :: Show a => Expr a -> IdentString
 varToString v@(Var {}) = toIdentString $ var_ident v
 varToString other = error $ "fatal error: varToString called on non variable argument" ++ show other
 
-{-
-toIdentString :: Ident a -> IdentString
-toIdentString (Ident { ident_string = name }) = IdentString name
--}
-
 paramIdent :: Parameter a -> Ident a
-paramIdent = param_name 
+paramIdent = param_name
 
 topBindings :: SuiteSpan -> Either String Scope
 topBindings stmts
-   | not $ Set.null nonLocals 
+   | not $ Set.null nonLocals
         = Left $ "These variables are declared nonlocal at the top level: " ++ prettyVarSet nonLocals
    | otherwise = Right $ emptyScope { localVars = locals, globalVars = globals }
    where
-   (locals, nonLocals, globals) = termBindings stmts 
-   
-funBindings :: DefinedVars t => [ParameterSpan] -> t -> Either String Scope 
-funBindings params term 
+   (locals, nonLocals, globals) = termBindings stmts
+
+funBindings :: DefinedVars t => [ParameterSpan] -> t -> Either String Scope
+funBindings params term
    = case allDisjoint paramIdents nonLocals globals of
-        Nothing -> Right $ emptyScope 
+        Nothing -> Right $ emptyScope
            { localVars = (Set.\\) locals paramIdents
-           , paramVars = paramIdents 
-           , globalVars = globals } 
+           , paramVars = paramIdents
+           , globalVars = globals }
         Just error -> Left error
    where
-   paramIdents = Set.fromList $ Prelude.map (toIdentString . paramIdent) params 
-   (locals, nonLocals, globals) = termBindings term 
+   paramIdents = Set.fromList $ Prelude.map (toIdentString . paramIdent) params
+   (locals, nonLocals, globals) = termBindings term
 
 termBindings :: DefinedVars t => t -> (VarSet, VarSet, VarSet)
-termBindings term 
-   = (theseLocals, theseNonLocals, theseGlobals) 
+termBindings term
+   = (theseLocals, theseNonLocals, theseGlobals)
    where
-   varBindings = definedVars term 
+   varBindings = definedVars term
    theseGlobals = globals varBindings
    theseNonLocals = nonlocals varBindings
    theseLocals = (Set.\\) ((Set.\\) (assigned varBindings) theseGlobals) theseNonLocals

@@ -20,14 +20,14 @@ import Berp.Base.SemanticTypes (Object (..), Eval, EvalState (..), ControlStack(
 import Berp.Base.Prims (printObject)
 import Berp.Base.LiftedIO as LIO (putStr)
 
-runExpr :: Eval Object -> IO Object 
-runExpr comp 
-   = runContT (evalStateT comp initState) return 
+runExpr :: Eval Object -> IO Object
+runExpr comp
+   = runContT (evalStateT comp initState) return
    where
-   initState = EvalState { control_stack = EmptyStack } 
+   initState = EvalState { control_stack = EmptyStack }
 
-runStmt :: Eval Object -> IO Object 
-runStmt = runExpr 
+runStmt :: Eval Object -> IO Object
+runStmt = runExpr
 
 -- This is used by the interactive interpreter to evaluate the 
 -- statements entered by the user. Note that it does not print

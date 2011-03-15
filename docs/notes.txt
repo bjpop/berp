@@ -290,15 +290,17 @@ Issues:
 
 The first time a module is imported into a running application it is "executed",
 which may have side effects (eg top-level statements). Subsequent loads do not
-execute those effects again. Thus the loaded module is cached. So modules are
-identified uniquely by their name.
+execute those effects again. Thus the loaded module is cached. A corollary is
+that modules are identified uniquely by their name.
 
 Python supports "packages" which make the story slightly more complex. To
 simplify things it might make sense to ignore packages in the first pass.
 
-An import of a module binds one or more variables in the local scope. This is
+An import of a module binds one or more variables in the local scope of the
+importing statement. This is
 problematic for the "from mod import *" syntax, because it does not name the
-variables that it binds. So far our scheme in Haskell has been to compile
+variables that it binds - they are simply the variables exported by the
+imported module. So far our scheme has been to compile
 Python variable names into Haskell variable names (where the Haskell variable
 is bound to an IORef). For performance reasons we are trying to avoid using
 strings (and an explicit environment) to handle variable names - although such
@@ -331,7 +333,7 @@ is compiled to:
         _t_1 <- read _s_x
         _t_0 @@ [_t_1]
 
-where the var primitive does the variable declaration, and has type:
+where the 'var' primitive does the variable declaration, and has type:
 
    var :: Ident -> Eval ObjectRef
 
@@ -352,6 +354,10 @@ imported, whereas the other kinds of imports are more restrictive. For instance,
 "import Foo" just introduces the "Foo" variable into scope (which will be
 bound to a Module object).
 
+Side note: if we ever wanted to we could presumably extend this scheme to support
+'from Foo import *' at other nesting levels, by including a suitably nested
+variable enviroment.
+
 One question is what to do with threads? Does each thread have its own
 "thread global" environment? Seems plausible.
 
@@ -365,14 +371,15 @@ They can be evaluated in nested scopes and under conditional statements:
 
 So it is undesirable to require them to be statically known and linked.
 That means we can't use Haskell's import facility to implement Python's
-import facility (in its full glory). A promising workaround is to use
+import facility (in its full glory). (Though a static import facility
+could be supported and may be a useful extension). A promising workaround is to use
 dynamic loading via something like the plugins library. The idea would
 be that each compiled module exports a single entity called, say,
 init, which would have a type like:
 
    init :: Eval Object
 
-The resulting object would be a module Module that contains a
+The resulting object would be a Module that contains a
 dictionary mapping all its members to objects.
 
 So a Python statement like:
@@ -385,7 +392,7 @@ would be compiled to:
    _s_Foo <- var "Foo"
    _s_Foo =: obj
 
-or maybe:
+or maybe (this is probably better):
 
    _s_Foo <- importModule "Foo"
 
@@ -415,7 +422,15 @@ with pseudo code:
       maybePath <- findModulePath name
       case maybePath of
          Nothing -> raise ("could not find module")
-         Just path -> liftIO $ load path "init"
+         Just path -> do
+            compiled <- isCompiled path
+            if compiled
+               then liftIO $ load path "init"
+               else do
+                  compileResult <- compileToObj path
+                  case compileResult of
+                     Nothing -> liftIO $ load path "init"
+                     Just err -> raise err
 
 assuming:
 
@@ -438,11 +453,75 @@ the top variables defined in it:
 
    mkModule :: [(Hashed String, ObjectRef)] -> Eval Object
 
+We have to compile the Python code to object code and
+then dynamically load the object code. This raises the question:
+
+   Should we call the compiler (from the running program) as a shell call,
+   or should we compile the compiler into the runtime library?
+
+A shell call keeps the runtime and the compiler separate but at what advantage?
+Will make the resulting executable smaller. But we could in theory
+dynamically link the compiler to the excecutable. The space saving is not so
+compelling because we still need to have the compiler around anyway. Nonetheless
+static linking the compiler to the runtime would be undesirable. Does GHC support
+dynamic linking everywhere?
+
+It might be (slightly?) faster for the compiler to be called directly rather
+than from a shell call. It might also be more portable.
+
+Plan: see if we can compile the compiler into the runtime. See if it works and
+see if the size of executables is okay. Hope for dynamic linking to work.
+
+This will require us to build a berp (compiler) library from the cabal file.
+Both the command line front end and the runtime will link to the library.
+
+What about the main function?
+
+Simple solution: the berp executable just dynamically loads the module that
+was mentioned on the command line, something like:
+
+   main :: IO ()
+   main = do
+      args <- getArgs
+      let pySrc = getPySrc args
+      init <- importModule pySrc
+      runStmt init
+
+How should the interpreter work? Maybe we can also use dynamic linking. The idea
+is to compile each new statement into a temporary module and then dynamically
+load it into the running program. The main issue to solve is how to bind the
+free variables in the statement to their values from the running program? One
+possible solution is to compile each statement into a function (closure) that
+binds all the free variables. Something akin to the way we propose to handle
+'from Foo import *'. It seems appealing to try to implement the interpreter this
+way. Perhaps there is a performance issue due to loading times? Maybe we can
+avoid touching the file system?
+
+How to split up the code:
+
+   executable: main
+   compiler: library
+   runtime: library
+
+   executable imports the runtime - by calling importModule (and hence the compiler) (okay).
+   runtime imports the compiler (importModule is in the runtime and it calls the compiler) (okay).
+   compiler does not import the runtime (otherwise we'd have a cycle).
+
+   Looks like cabal does not support more than one library per package description, so we may have to
+   split the code into two packages. Want to make sure revision control history is preserved.
+
+We could use the dynamic import facility to link the compiled program to the base library. That is
+we compile a special module in the base library and dynamically load it a runtime. Or maybe it is just
+better to statically import it? Again the availability of dynamic linking makes a difference to the
+size of the resulting executable.
+
 Implementation strategy:
 
-   1. Add a module data constructor to the Object type.
-   2. Modify compilation of a Python module to use the init binding,
-      and implement mkModule.
+   1. Add a module data constructor to the Object type. Done.
+   2. Modify compilation of a Python module to use the init binding, (Done)
+      and implement mkModule (Done). Split the code up into executable
+      compiler and runtime (Pending). Need to handle the main function to evaluate
+      the whole program. (Pending)
    3. Get the simple case of "import Foo" to work. Don't worry about
       caching imports. Don't worry about the search path. Just find
       modules in the current directory.

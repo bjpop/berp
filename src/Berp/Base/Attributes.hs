@@ -23,10 +23,10 @@ import Berp.Base.LiftedIO (MonadIO)
 
 mkAttributes :: MonadIO m => [(Hashed String, Object)] -> m Object
 mkAttributes list = do
-   hashTable <- stringTableFromList list 
+   hashTable <- stringTableFromList list
    identity <- newIdentity
-   return $ 
-      Dictionary  
+   return $
+      Dictionary
       { object_identity = identity
-      , object_hashTable = hashTable 
+      , object_hashTable = hashTable
       }

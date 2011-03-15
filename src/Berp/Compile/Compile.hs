@@ -13,7 +13,7 @@
 --
 -----------------------------------------------------------------------------
 
-module Berp.Compile.Compile (compiler, Compilable (..)) where
+module Berp.Compile.Compile (patchMainModule, compiler, Compilable (..)) where
 
 import Prelude hiding (read, init, mapM, putStrLn, sequence)
 import Language.Python.Common.PrettyAST ()
@@ -35,6 +35,7 @@ import Berp.Compile.Utils
 import Berp.Base.Mangle (mangle)
 import Berp.Base.Hash (Hash (..))
 import Berp.Compile.IdentString (IdentString (..), ToIdentString (..), identString)
+import Berp.Compile.VarSet (VarSet)
 
 compiler :: Compilable a => a -> IO (CompileResult a)
 compiler = runCompileMonad . compile
@@ -71,26 +72,42 @@ instance Compilable InterpreterStmt where
       initDecl :: Hask.Exp -> Hask.Decl
       initDecl = patBind bogusSrcLoc $ pvar Prim.initName
 
+patchMainModule :: Hask.Module -> Hask.Module
+patchMainModule (Hask.Module loc _name pragmas warnings exports imports decls)
+   = Hask.Module loc mainName pragmas warnings exports imports (mainDecl:decls)
+   where
+   mainDecl :: Hask.Decl
+   mainDecl =
+      patBind bogusSrcLoc mainPatName $ app Prim.runStmt Prim.init
+   mainPatName = pvar $ name "main"
+   mainName = ModuleName "Main"
+
 instance Compilable ModuleSpan where
    type CompileResult ModuleSpan = Hask.Module
    compile (Py.Module suite) = do
       bindings <- checkEither $ topBindings suite
-      stmts <- nestedScope bindings $ compileBlockDo $ Block suite
-      let init = initDecl stmts
-      return $ Hask.Module bogusSrcLoc modName pragmas warnings exports imports
-                           [mainDecl, init]
+      stmts <- nestedScope bindings $ compile $ Block suite
+      mkMod <- mkModuleStmt $ localVars bindings
+      let allStmts = stmts ++ mkMod
+      let init = initDecl $ doBlock allStmts
+      return $ Hask.Module bogusSrcLoc modName pragmas warnings exports imports [init]
       where
-      modName = ModuleName "Main"
-      mainDecl :: Hask.Decl
-      mainDecl =
-         patBind bogusSrcLoc mainPatName $ app Prim.runStmt Prim.init
-         where
-         mainPatName = pvar $ name "main"
+      modName = ModuleName "M" -- this will get patched later
       initDecl :: Hask.Exp -> Hask.Decl
       initDecl = patBind bogusSrcLoc $ pvar Prim.initName
+      mkModuleStmt :: VarSet -> Compile [Hask.Stmt]
+      mkModuleStmt vars = do
+         let varList = Set.toList vars
+         compiledVars <- mapM compileExportedVar varList
+         returnStmt $ app Prim.mkModule $ listE compiledVars
+      compileExportedVar :: IdentString -> Compile Hask.Exp
+      compileExportedVar ident = do
+         compiledIdent <- compile ident
+         let haskVar = Hask.var $ identToMangledName ident
+         return $ Hask.tuple [compiledIdent, haskVar]
       pragmas = []
       warnings = Nothing
-      exports = Nothing
+      exports = Nothing -- should change this to init
 
 instance Compilable StatementSpan where
    type (CompileResult StatementSpan) = [Stmt]

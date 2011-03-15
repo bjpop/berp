@@ -27,28 +27,28 @@ import Berp.Base.StdTypes.ObjectBase (objectBase)
 import Berp.Base.StdTypes.String (string)
 
 emptyDictionary :: IO Object
-emptyDictionary = do 
+emptyDictionary = do
    identity <- newIdentity
-   hashTable <- Hash.empty 
-   return $ 
-      Dictionary 
+   hashTable <- Hash.empty
+   return $
+      Dictionary
       { object_identity = identity
-      , object_hashTable = hashTable 
+      , object_hashTable = hashTable
       }
 
 dictionary :: [(Object, Object)] -> Eval Object
-dictionary elements = do 
+dictionary elements = do
    identity <- newIdentity
    hashTable <- fromList elements
-   return $ 
-      Dictionary 
+   return $
+      Dictionary
       { object_identity = identity
-      , object_hashTable = hashTable 
+      , object_hashTable = hashTable
       }
 
 {-# NOINLINE dictionaryClass #-}
 dictionaryClass :: Object
-dictionaryClass = constantIO $ do 
+dictionaryClass = constantIO $ do
    dict <- attributes
    newType [string "dict", objectBase, dict]
 

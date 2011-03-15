@@ -11,14 +11,16 @@
 --
 -----------------------------------------------------------------------------
 
-module Berp.Base.StdTypes.Module (moduleClass) where
+module Berp.Base.StdTypes.Module (mkModule, moduleClass) where
 
 -- import Berp.Base.Prims (primitive)
+import Control.Applicative ((<$>))
+import Berp.Base.LiftedIO (readIORef)
 import Berp.Base.Monad (constantIO)
--- import Berp.Base.SemanticTypes (Procedure, Object (..))
-import Berp.Base.SemanticTypes (Object (..))
--- import Berp.Base.Identity (newIdentity, Identity)
+import Berp.Base.SemanticTypes (Object (..), ObjectRef, Eval)
+import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes)
+import Berp.Base.Hash (Hashed)
 -- import Berp.Base.StdNames
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.ObjectBase (objectBase)
@@ -32,3 +34,16 @@ moduleClass = constantIO $ do
 
 attributes :: IO Object
 attributes = mkAttributes [ ]
+
+-- Maybe this belongs in Prims, but we end up with more cyclic dependencies.
+mkModule :: [(Hashed String, ObjectRef)] -> Eval Object
+mkModule namesRefs = do
+   namesObjs <- mapM toNameObj namesRefs
+   dict <- mkAttributes namesObjs
+   identity <- newIdentity
+   return $
+      Module { object_identity = identity
+             , object_dict = dict }
+   where
+   toNameObj :: (Hashed String, ObjectRef) -> Eval (Hashed String, Object)
+   toNameObj (s, ref) = ((,) s) <$> readIORef ref

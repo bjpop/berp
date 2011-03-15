@@ -508,3 +508,17 @@ mapIterator f obj = do
       mapNext = do
          f =<< next iterObj
          pass
+
+{-
+mkModule :: [(Hashed String, ObjectRef)] -> Eval Object
+mkModule namesRefs = do
+   namesObjs <- mapM toNameObj namesRefs
+   dict <- mkAttributes namesObjs
+   identity <- newIdentity
+   return $
+      Module { object_identity = identity
+             , object_dict = dict }
+   where
+   toNameObj :: (Hashed String, ObjectRef) -> Eval (Hashed String, Object)
+   toNameObj (s, ref) = ((,) s) <$> readIORef ref
+-}

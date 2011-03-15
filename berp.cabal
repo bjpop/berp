@@ -1,7 +1,7 @@
 name:                berp
 version:             0.0.3
 cabal-version:       >= 1.6
-synopsis:            An implementation of Python 3. 
+synopsis:            An implementation of Python 3.
 description:         Berp is an implementation of Python 3, written in Haskell.
                      It provides a compiler and an interpreter. In both cases
                      the input Python program is translated into Haskell code.
@@ -29,22 +29,57 @@ Executable berp
       src,
       src/Berp/
   build-depends:
+      base == 4.*
+      -- monads-tf == 0.1.*,
+      -- transformers == 0.2.*,
+      -- containers < 0.4,
+      -- language-python == 0.3.*,
+      -- haskell-src-exts == 1.9.*,
+      -- parseargs == 0.1.*,
+      -- process == 1.0.*,
+      -- filepath == 1.1.*,
+      -- directory == 1.0.*,
+      -- ghc >= 6.10,
+      -- haskeline == 0.6.*,
+      -- ghc-paths == 0.1.*,
+      -- extensible-exceptions == 0.1.*
+  other-modules:
+      Berp.Compile.Compile
+      Berp.Compile.IdentString
+      Berp.Compile.Monad
+      Berp.Compile.HsSyntaxUtils
+      Berp.Compile.PySyntaxUtils
+      Berp.Compile.PrimName
+      Berp.Compile.Utils
+      Berp.Compile.VarSet
+      -- Berp.Interpreter.Input
+      -- Berp.Interpreter.Monad
+      -- Berp.Interpreter.Repl
+
+Library
+   ghc-options: -Wall -fno-warn-name-shadowing -fno-warn-orphans
+   include-dirs:
+      src/include
+   hs-source-dirs:
+      src
+   build-depends:
       base == 4.*,
       monads-tf == 0.1.*,
       transformers == 0.2.*,
       containers < 0.4,
       language-python == 0.3.*,
-      haskell-src-exts == 1.9.*,
-      parseargs == 0.1.*,
-      process == 1.0.*,
-      filepath == 1.1.*,
-      directory == 1.0.*,
-      ghc >= 6.10,
-      haskeline == 0.6.*,
-      ghc-paths == 0.1.*,
-      extensible-exceptions == 0.1.*
-  other-modules:
+      haskell-src-exts == 1.9.*
+      -- parseargs == 0.1.*,
+      -- process == 1.0.*,
+      -- filepath == 1.1.*,
+      -- directory == 1.0.*,
+      -- ghc >= 6.10,
+      -- haskeline == 0.6.*,
+      -- ghc-paths == 0.1.*,
+      -- extensible-exceptions == 0.1.*
+   exposed-modules:
       Berp.Compile.Compile
+   other-modules:
       Berp.Compile.IdentString
       Berp.Compile.Monad
       Berp.Compile.HsSyntaxUtils
