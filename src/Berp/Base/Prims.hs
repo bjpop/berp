@@ -26,19 +26,22 @@ module Berp.Base.Prims
    , raise, reRaise, raiseFrom, primitive, generator, yield, generatorNext
    , def, lambda, returnGenerator, printObject, topVar, Applicative.pure
    , pureObject, showObject, returningProcedure, pyCallCC, unpack
-   , next, setitem, Pat (G, V), getIterator, mapIterator) where
+   , next, setitem, Pat (G, V), getIterator, mapIterator, importModule) where
 
 import Prelude hiding (break, read, putStr)
+import System.Plugins (load_, LoadStatus (..))
 import Control.Monad (zipWithM)
 import Control.Monad.State (gets)
 import Control.Monad.Cont (callCC)
 import Data.Array.IO (getElems)
-import Berp.Base.LiftedIO as LIO (readIORef, writeIORef, newIORef, putStr, liftIO)
+import Berp.Compile (compilePythonToObjectFile)
+import Berp.Base.LiftedIO as LIO (readIORef, writeIORef, newIORef, hPutStr, liftIO)
 #ifdef DEBUG
 import Berp.Base.LiftedIO as LIO (putStrLn)
 #endif
 import qualified Control.Applicative as Applicative (pure)
 import Control.Applicative ((<$>))
+import Berp.Base.Monad (withStdout)
 import Berp.Base.SemanticTypes (Object (..), ObjectRef, Procedure, Eval, EvalState(..), ControlStack(..), Arity)
 import Berp.Base.Truth (truth)
 import {-# SOURCE #-} Berp.Base.Object
@@ -422,7 +425,9 @@ returnGenerator cont = do
 printObject :: Object -> Eval ()
 printObject obj = do
    str <- showObject obj
-   putStr str 
+   -- stdout <- getStdout
+   -- hPutStr stdout str
+   withStdout $ \h -> hPutStr h str
 
 showObject :: Object -> Eval String
 -- XXX this should really choose the right quotes based on the content of the string.
@@ -522,3 +527,31 @@ mkModule namesRefs = do
    toNameObj :: (Hashed String, ObjectRef) -> Eval (Hashed String, Object)
    toNameObj (s, ref) = ((,) s) <$> readIORef ref
 -}
+
+importModule :: FilePath -> Eval Object
+importModule path = do
+{-
+   maybeImported <- lookupModule name
+   case maybeImported of
+      Just obj -> return obj
+      Nothing -> do
+-}
+         compileModuleAndLoadInit path
+
+compileModuleAndLoadInit :: FilePath -> Eval Object
+compileModuleAndLoadInit path = do
+{-
+   maybePath <- findModulePath name
+   case maybePath of
+      Nothing -> raise ("could not find module")
+      Just path -> do
+         compiled <- isCompiled path
+         if compiled
+            then liftIO $ load path "init"
+            else do
+-}
+               objFile <- liftIO $ compilePythonToObjectFile path -- may raise exception
+               loadStatus <- liftIO $ load_ objFile [] "init" -- should catch haskell exceptions here
+               case loadStatus of
+                  LoadSuccess _module init -> init
+                  LoadFailure errs -> error ("load failed: " ++ show errs)

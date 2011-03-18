@@ -22,9 +22,10 @@ import Berp.Base.SemanticTypes (Object (..), Procedure, Eval, ObjectRef)
 import Berp.Base.Mangle (mangle)
 import qualified Berp.Base.Prims as Prims (printObject, pyCallCC)
 import Berp.Base.Builtins.Utils (primFun)
-import Berp.Base.LiftedIO as LIO (hFlush, putStr, putChar, getLine)
+import Berp.Base.LiftedIO as LIO (hFlush, hPutStr, hPutChar, getLine)
 import Berp.Base.Object (dir, identityOf)
 import Berp.Base.Unique (uniqueInteger)
+import Berp.Base.Monad (withStdout)
 import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 import {-# SOURCE #-} Berp.Base.StdTypes.Integer (int)
@@ -41,7 +42,8 @@ _s_input = do
       str <- LIO.getLine
       return $ string str 
    printer :: Object -> Eval ()
-   printer obj@(String {}) = LIO.putStr $ object_string obj
+   printer obj@(String {}) = do
+      withStdout $ \h -> LIO.hPutStr h $ object_string obj
    printer other = Prims.printObject other
 
 _s_print :: ObjectRef 
@@ -50,11 +52,11 @@ _s_print = do
    where
    procedure :: Procedure
    procedure objs = do
-      sequence_ $ intersperse (LIO.putChar ' ') $ map printer objs
-      LIO.putChar '\n'
+      sequence_ $ intersperse (withStdout $ \h -> LIO.hPutChar h ' ') $ map printer objs
+      withStdout $ flip LIO.hPutChar '\n'
       return none
    printer :: Object -> Eval ()
-   printer obj@(String {}) = LIO.putStr $ object_string obj
+   printer obj@(String {}) = withStdout $ \h -> LIO.hPutStr h $ object_string obj
    printer other = Prims.printObject other
 
 _s_dir :: ObjectRef 

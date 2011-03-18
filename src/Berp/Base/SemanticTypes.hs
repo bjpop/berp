@@ -19,6 +19,7 @@ module Berp.Base.SemanticTypes
    ( Procedure, ControlStack (..), EvalState (..), Object (..), Eval, ObjectRef
    , HashTable, HashSet, ListArray, Arity )  where
 
+import System.IO (Handle)
 import Control.Monad.State.Strict (StateT)
 import Control.Monad.Cont (ContT)
 import Data.IntMap (IntMap)
@@ -56,7 +57,16 @@ instance Show ControlStack where
    show (WhileLoop {}) = "WhileLoop"
    show (GeneratorCall {}) = "GeneratorCall"
 
-data EvalState = EvalState { control_stack :: !ControlStack }
+data EvalState =
+   EvalState
+   { control_stack :: !ControlStack
+   -- the handles are motivated by dynamic linking which seems to
+   -- invalidate them, at least for ghc 6.12.3. I'm not sure if
+   -- this is the expected semantics of plugins.
+   , state_stdin :: !Handle
+   , state_stdout :: !Handle
+   , state_stderr :: !Handle
+   }
 
 type Eval a = StateT EvalState (ContT Object IO) a
 

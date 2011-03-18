@@ -30,6 +30,9 @@ import System.Exit (ExitCode (..), exitWith)
 -- import Berp.Interpreter.Repl (repl)
 import Berp.Version (versionString)
 -- import Berp.Compile.Driver (compilePythonToHaskell, compileHaskellToExe)
+import System.IO (stdin, stdout, stderr)
+import Berp.Base (importModule, runEval)
+
 
 main :: IO ()
 main = do
@@ -43,60 +46,10 @@ main = do
       exitWith ExitSuccess
    maybeInputDetails <- getInputDetails argMap
    case maybeInputDetails of
-      -- Nothing -> repl
       Nothing -> return () -- XXX call the interpreter.
-      Just (_sourceName, _fileContents) ->
-         -- compileAndExecute argMap sourceName fileContents
-         return () -- XXX dynamically import the module mentioned on the command line.
-{-
-         -- probably need to catch exceptions
-         runStmt =<< importModule sourceName
--}
-
-{-
-compileAndExecute :: Args ArgIndex -> FilePath -> String -> IO ()
-compileAndExecute argMap sourceName fileContents = do
-   haskellSrc <- compilePythonToHaskell fileContents sourceName
-{-
-   pyModule <- parseAndCheckErrors fileContents sourceName
-   -- turn this into the Main module
-   haskellSrc <- prettyPrint <$> patchMainModule <$> compiler pyModule
--}
-   when (gotArg argMap ShowHaskell) $ do
-      putStrLn haskellSrc
-      exitWith ExitSuccess
-
-   let outputName = takeBaseName sourceName
-       haskellFilename = outputName <.> "hs"
-       interfaceFilename = outputName <.> "hi"
-       objectFilename = outputName <.> "o"
-       exeFilename = "." </> outputName
-       ghcStr = maybe "ghc" id (getArg argMap WithGHC)
-{-
-   writeFile haskellFilename (haskellSrc ++ "\n")
-   exitCodeCompile <- system $ ghcCommand argMap "-O2" "-v0" haskellFilename
--}
-   exitCodeCompile <- compileHaskellToExe ghcStr haskellFilename (haskellSrc ++ "\n")
-   when (gotArg argMap Compile) $ exitWith ExitSuccess
-   case exitCodeCompile of
-      ExitFailure {} -> exitWith exitCodeCompile
-      ExitSuccess -> do
-         exeStatus <- system exeFilename
-         let tempFiles = [haskellFilename, interfaceFilename, objectFilename]
-         when (gotArg argMap Clean) $ do
-            mapM_ removeFile tempFiles
-         when (gotArg argMap Clobber) $ do
-            mapM_ removeFile (exeFilename : tempFiles)
-         exitWith exeStatus
--}
-
-{-
-parseAndCheckErrors :: String -> FilePath -> IO ModuleSpan
-parseAndCheckErrors fileContents sourceName =
-   case parseModule fileContents sourceName of
-      Left e -> error $ show e
-      Right (pyModule, _comments) -> return pyModule
--}
+      Just (sourceName, _fileContents) -> do
+         _module <- runEval stdin stdout stderr $ importModule sourceName
+         return ()
 
 getInputDetails :: Args ArgIndex -> IO (Maybe (FilePath, String))
 getInputDetails argMap =
@@ -105,14 +58,6 @@ getInputDetails argMap =
       Just inputFileName -> do
          cs <- readFile inputFileName
          return $ Just (inputFileName, cs)
-
-{-
-ghcCommand :: Args ArgIndex -> String -> String -> String -> String
-ghcCommand argMap optimise verbosity inputFile =
-   unwords [ghcName, "--make", optimise, verbosity, inputFile]
-   where
-   ghcName = maybe "ghc" id (getArg argMap WithGHC)
--}
 
 data ArgIndex
    = Help

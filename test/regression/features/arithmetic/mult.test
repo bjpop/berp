@@ -1,4 +1,4 @@
-berp mult.py
+berp mult.py > foobar
 <<<
 >>>
 22212

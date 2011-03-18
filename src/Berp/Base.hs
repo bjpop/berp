@@ -19,8 +19,9 @@ module Berp.Base
    , continue, while, whileElse, for, forElse, ifThen, (@@), tailCall, tuple, read, var
    , (%), (+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), and, or, not, klass, setattr, list, dictionary
    , subs, try, tryElse, tryFinally, tryElseFinally, except, exceptDefault, raise, reRaise, raiseFrom
-   , pure, pureObject, yield, generator, returnGenerator, unaryMinus, unaryPlus, invert, runStmt
-   , runExpr, interpretStmt, topVar, unpack, setitem, Pat (..), complex, set, mkModule)
+   , pure, pureObject, yield, generator, returnGenerator, unaryMinus, unaryPlus, invert, runEval
+   , interpretStmt, topVar, unpack, setitem, Pat (..), complex, set, mkModule
+   , importModule )
    where
 
 import Prelude ()
@@ -30,10 +31,10 @@ import Berp.Base.Prims
    ( (=:), stmt, ifThenElse, ret, pass, break, continue, while, whileElse, for, forElse, ifThen,
      (@@), tailCall, read, var, setattr, subs, try, tryElse, tryFinally, tryElseFinally, except,
      exceptDefault, raise, reRaise, raiseFrom, yield, def, lambda, generator, returnGenerator, topVar, pure,
-     pureObject, unpack, setitem, Pat (..))
+     pureObject, unpack, setitem, Pat (..), importModule)
 import Berp.Base.Operators
    ((%), (+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), and, or, unaryMinus, unaryPlus, invert, not)
-import Berp.Base.Monad (runExpr, runStmt, interpretStmt)
+import Berp.Base.Monad (runEval, interpretStmt)
 import Berp.Base.Class (klass)
 import Berp.Base.StdTypes.Integer (int)
 import Berp.Base.StdTypes.Tuple (tuple)

@@ -497,19 +497,6 @@ binds all the free variables. Something akin to the way we propose to handle
 way. Perhaps there is a performance issue due to loading times? Maybe we can
 avoid touching the file system?
 
-How to split up the code:
-
-   executable: main
-   compiler: library
-   runtime: library
-
-   executable imports the runtime - by calling importModule (and hence the compiler) (okay).
-   runtime imports the compiler (importModule is in the runtime and it calls the compiler) (okay).
-   compiler does not import the runtime (otherwise we'd have a cycle).
-
-   Looks like cabal does not support more than one library per package description, so we may have to
-   split the code into two packages. Want to make sure revision control history is preserved.
-
 We could use the dynamic import facility to link the compiled program to the base library. That is
 we compile a special module in the base library and dynamically load it a runtime. Or maybe it is just
 better to statically import it? Again the availability of dynamic linking makes a difference to the
@@ -519,9 +506,10 @@ Implementation strategy:
 
    1. Add a module data constructor to the Object type. Done.
    2. Modify compilation of a Python module to use the init binding, (Done)
-      and implement mkModule (Done). Split the code up into executable
-      compiler and runtime (Pending). Need to handle the main function to evaluate
-      the whole program. (Pending)
+      and implement mkModule (Done). Move compiler code into library (Done).
+      Implement a basic importModule (Pending).
+      Need to handle the main function to evaluate the whole program, this will
+      basically just call importModule (Pending)
    3. Get the simple case of "import Foo" to work. Don't worry about
       caching imports. Don't worry about the search path. Just find
       modules in the current directory.
