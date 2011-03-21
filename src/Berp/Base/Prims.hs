@@ -26,7 +26,8 @@ module Berp.Base.Prims
    , raise, reRaise, raiseFrom, primitive, generator, yield, generatorNext
    , def, lambda, returnGenerator, printObject, topVar, Applicative.pure
    , pureObject, showObject, returningProcedure, pyCallCC, unpack
-   , next, setitem, Pat (G, V), getIterator, mapIterator, importModule) where
+   , next, setitem, Pat (G, V), getIterator, mapIterator
+   , importModule, importModuleRef) where
 
 import Prelude hiding (break, read, putStr)
 import System.Plugins (load_, LoadStatus (..))
@@ -435,9 +436,9 @@ showObject obj@(String {}) = return ("'" ++ object_string obj ++ "'")
 showObject obj = object_string <$> callSpecialMethod obj specialStrName []
 
 pyCallCC :: Object -> Eval Object
-pyCallCC fun = 
+pyCallCC fun =
    callCC $ \ret -> do
-      context <- getControlStack 
+      context <- getControlStack
       let cont = function 1 $ \(obj:_) -> do
                     -- XXX should this run finalisers on the way out?
                     setControlStack context
@@ -527,6 +528,9 @@ mkModule namesRefs = do
    toNameObj :: (Hashed String, ObjectRef) -> Eval (Hashed String, Object)
    toNameObj (s, ref) = ((,) s) <$> readIORef ref
 -}
+
+importModuleRef :: FilePath -> Eval ObjectRef
+importModuleRef path = newIORef =<< importModule path
 
 importModule :: FilePath -> Eval Object
 importModule path = do

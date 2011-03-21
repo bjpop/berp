@@ -21,7 +21,7 @@ newtype IdentString = IdentString { fromIdentString :: String }
    deriving (Eq, Ord, Show)
 
 class ToIdentString t where
-   toIdentString :: t -> IdentString 
+   toIdentString :: t -> IdentString
 
 instance ToIdentString IdentString where
    toIdentString = id

@@ -394,15 +394,15 @@ would be compiled to:
 
 or maybe (this is probably better):
 
-   _s_Foo <- importModule "Foo"
+   _s_Foo <- importModuleRef "Foo"
 
 where
 
    importModule :: String -> Eval Object
 
-or
+and/or
 
-   importModule :: String -> Eval ObjectRef
+   importModuleRef :: String -> Eval ObjectRef
 
 with pseudo code:
 
@@ -434,9 +434,9 @@ with pseudo code:
 
 assuming:
 
-   load :: Typeable a => FilePath -> String -> IO a
+   load :: FilePath -> String -> IO a
 
-or something like that. Do we need the typeable constraint?
+or something like that.
 
 Each Python module should be compiled to a Haskell binding defining
 and init function which is the only variable exported from the
@@ -502,21 +502,63 @@ we compile a special module in the base library and dynamically load it a runtim
 better to statically import it? Again the availability of dynamic linking makes a difference to the
 size of the resulting executable.
 
+It looks like dynamic loading might invalidate any global state in the program.
+Though it might be a bug, currently the stdandard IO devices do not seem to
+persist as expected across a dynamic load (this is evident when the stdout is
+redirected on the shell, after a dynamic load it seems the redirection is
+lost and the output disappears). There are a few cases of global state in the
+current implementation which could do with a revision in light of this
+discovery. We use unsafePerformIO to make some otherwise effectful operations into
+globals. This is safe because we are careful to ensure that the effects are
+benign, such as allocating IORefs, but even so, the use of unsafe operations
+seems less than ideal. A few observations:
+   - If these things are truly constant, then we should never need the IO monad. Hopefully global
+     constant bindings should suffice, immutable data structures.
+   - For most/all such global constants, the point of making them global is to simplify
+     scoping issues (they are in scope everywhere). An alternative approach is to bring them
+     into scope by importing them, just as the import mechanism will bring other things into scope.
+     We could pretend that every Python module has an implicit:
+
+        from builtins import *
+
+     at the top, where builtins is a special module which is part of the base library
+     implementation. This might ultimately be a cleaner solution to the problem. Then everything
+     will be in the Eval monad, and there will be no unsafePerformIO. However, a more static
+     approach might be more efficient as it seems that dynamic linking is a little bit slow.
+     Obviously berp will have to know how to find builtins.o in order to link it in.
+
+Module naming strategy. Given a module called Foo.py, what is the name of the resulting Haskell module?
+Haskell modules have an internal name and the filename is somewhat ancilliary. However, it tends to make
+things easy for GHC if the module name is the same as the file name. This can cause trouble because of
+capitalisation (and maybe there are other issues). The proposal is to prepend "Berp_" onto the front of every
+name. For example, Foo.py will become (Berp_Foo.hs, module Berp_Foo), whereas foo.py will
+become (Berp_foo.py, module Berp_foo). Even more name mangling might be needed if python allows characters in
+its name that are not allowed in Haskell modules. I'm not aware of any other issues at the moment, but maybe
+there are unusual things like unicode issues to consider.
+
+Small problem found: we don't currently do a proper job of bound methods. This causes trouble with imports
+like so:
+    import Foo
+    Foo.f()
+We treat this like this was a method call of f on Foo, which means we add Foo as the first argument,
+which is not correct. We need to distinguish between method lookups and module attribute lookups.
+
 Implementation strategy:
 
    1. Add a module data constructor to the Object type. Done.
    2. Modify compilation of a Python module to use the init binding, (Done)
       and implement mkModule (Done). Move compiler code into library (Done).
-      Implement a basic importModule (Pending).
+      Implement a basic importModule (Done).
       Need to handle the main function to evaluate the whole program, this will
-      basically just call importModule (Pending)
-   3. Get the simple case of "import Foo" to work. Don't worry about
+      basically just call importModule (Done).
+   3. Get module name mangling to work. (Done)
+   4. Get the simple case of "import Foo" to work. Don't worry about
       caching imports. Don't worry about the search path. Just find
-      modules in the current directory.
-   4. Get it working in the interpreter.
-   5. Add import caching.
-   6. Implement the more difficult case of "from Foo import (x,y,z)"
-   7. Implement the hardest case of "from Foo import *".
-   8. Add search path for files.
+      modules in the current directory. (Done)
+   5. Get it working in the interpreter. (Maybe skip if tricky).
+   6. Add import caching (Pending).
+   7. Implement the more difficult case of "from Foo import (x,y,z)"
+   8. Implement the hardest case of "from Foo import *".
+   9. Add search path for files.
    --- stop here and release the code ---
-   9. Consider what's needed for packages.
+   10. Consider what's needed for packages.

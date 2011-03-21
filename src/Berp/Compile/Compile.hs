@@ -13,7 +13,7 @@
 --
 -----------------------------------------------------------------------------
 
-module Berp.Compile.Compile (patchMainModule, compiler, Compilable (..)) where
+module Berp.Compile.Compile (patchModuleName, compiler, Compilable (..)) where
 
 import Prelude hiding (read, init, mapM, putStrLn, sequence)
 import Language.Python.Common.PrettyAST ()
@@ -72,15 +72,9 @@ instance Compilable InterpreterStmt where
       initDecl :: Hask.Exp -> Hask.Decl
       initDecl = patBind bogusSrcLoc $ pvar Prim.initName
 
-patchMainModule :: Hask.Module -> Hask.Module
-patchMainModule (Hask.Module loc _name pragmas warnings exports imports decls)
-   = Hask.Module loc mainName pragmas warnings exports imports (mainDecl:decls)
-   where
-   mainDecl :: Hask.Decl
-   mainDecl =
-      patBind bogusSrcLoc mainPatName $ app Prim.runStmt Prim.init
-   mainPatName = pvar $ name "main"
-   mainName = ModuleName "Main"
+patchModuleName :: String -> Hask.Module -> Hask.Module
+patchModuleName newName (Hask.Module loc _name pragmas warnings exports imports decls)
+   = Hask.Module loc (ModuleName newName) pragmas warnings exports imports decls
 
 instance Compilable ModuleSpan where
    type CompileResult ModuleSpan = Hask.Module
@@ -240,7 +234,22 @@ instance Compilable StatementSpan where
                  return (stmts1 ++ stmts2 ++ [newStmt])
    compile (Break {}) = returnStmt Prim.break
    compile (Continue {}) = returnStmt Prim.continue
+   compile (Import { import_items = items }) = mapM compile items
    compile other = unsupported $ prettyText other
+
+instance Compilable ImportItemSpan where
+   type CompileResult ImportItemSpan = Hask.Stmt
+   compile (ImportItem {import_item_name = dottedName, import_as_name = maybeAsName }) =
+      case maybeAsName of
+         Just _asName -> undefined
+         Nothing ->
+            case dottedName of
+               [ident] -> do
+                  let mangledPatVar = identToMangledPatVar ident
+                  return $ genStmt bogusSrcLoc
+                                   mangledPatVar
+                                   $ app Prim.importModuleRef $ strE $ (ident_string ident ++ ".py")
+               other -> error ("import of " ++ show dottedName ++ " not supported")
 
 docString :: SuiteSpan -> Exp
 docString (StmtExpr { stmt_expr = Strings { strings_strings = ss }} : _)

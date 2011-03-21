@@ -25,28 +25,30 @@ import System.Cmd (system)
 -- import System.FilePath ((</>), (<.>), takeBaseName)
 import System.FilePath ((<.>), takeBaseName)
 import System.Plugins (make, MakeStatus (..))
-import Berp.Compile.Compile (compiler)
+import Berp.Compile.Compile (compiler, patchModuleName)
 
 compilePythonToObjectFile :: FilePath -> IO FilePath
 compilePythonToObjectFile path = do
+   -- putStrLn $ "Compiling " ++ path
+   let outputName = takeBaseName path
+       mangledName = "Berp_" ++ outputName
+       haskellFilename = mangledName <.> "hs"
+       objectFilename = mangledName <.> "o"
    -- XXX this could fail, and we need a way to find modules in a search path
    fileContents <- readFile path
    pyModule <- parseAndCheckErrors fileContents path
-   haskellSrc <- prettyPrint <$> compiler pyModule
-   let outputName = takeBaseName path
-       haskellFilename = outputName <.> "hs"
-       -- interfaceFilename = outputName <.> "hi"
-       objectFilename = outputName <.> "o"
+   haskellSrc <- prettyPrint <$> patchModuleName mangledName <$> compiler pyModule
    writeFile haskellFilename (haskellSrc ++ "\n")
-   -- _exitCodeCompile <- system $ ghcCommand "-O2" "-v0" haskellFilename
+{-
    _exitCodeCompile <- system $ ghcCommand "-O2" "-v0" haskellFilename
    return objectFilename
-{-
+-}
+
    compileStatus <- make haskellFilename ["-O2", "-v0"]
    case compileStatus of
-      MakeFailure _errs -> error "make failed"
+      MakeFailure errs -> error $ "make failed: " ++ show errs
       MakeSuccess _makeCode objectPath -> return objectPath
--}
+
 
 parseAndCheckErrors :: String -> FilePath -> IO ModuleSpan
 parseAndCheckErrors fileContents sourceName =

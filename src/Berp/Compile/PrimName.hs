@@ -213,6 +213,9 @@ pass = prim "pass"
 mkModule :: Exp
 mkModule = prim "mkModule"
 
+importModuleRef :: Exp
+importModuleRef = prim "importModuleRef"
+
 string :: String -> Exp
 string s = app (prim "string") (strE s)
 

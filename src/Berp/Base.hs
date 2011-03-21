@@ -21,7 +21,7 @@ module Berp.Base
    , subs, try, tryElse, tryFinally, tryElseFinally, except, exceptDefault, raise, reRaise, raiseFrom
    , pure, pureObject, yield, generator, returnGenerator, unaryMinus, unaryPlus, invert, runEval
    , interpretStmt, topVar, unpack, setitem, Pat (..), complex, set, mkModule
-   , importModule )
+   , importModule, importModuleRef )
    where
 
 import Prelude ()
@@ -31,7 +31,7 @@ import Berp.Base.Prims
    ( (=:), stmt, ifThenElse, ret, pass, break, continue, while, whileElse, for, forElse, ifThen,
      (@@), tailCall, read, var, setattr, subs, try, tryElse, tryFinally, tryElseFinally, except,
      exceptDefault, raise, reRaise, raiseFrom, yield, def, lambda, generator, returnGenerator, topVar, pure,
-     pureObject, unpack, setitem, Pat (..), importModule)
+     pureObject, unpack, setitem, Pat (..), importModule, importModuleRef)
 import Berp.Base.Operators
    ((%), (+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), and, or, unaryMinus, unaryPlus, invert, not)
 import Berp.Base.Monad (runEval, interpretStmt)

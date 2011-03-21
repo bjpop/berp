@@ -94,6 +94,7 @@ dictOf :: Object -> Maybe Object
 dictOf obj@(Object {}) = Just $ object_dict obj
 dictOf obj@(Type {}) = Just $ object_dict obj
 dictOf obj@(Function {}) = Just $ object_dict obj
+dictOf obj@(Module {}) = Just $ object_dict obj
 dictOf _other = Nothing
 
 lookupAttribute :: Object -> Hashed String -> Eval Object
