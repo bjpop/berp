@@ -11,15 +11,20 @@
 --
 -----------------------------------------------------------------------------
 
-module Berp.Base.Monad (runEval, interpretStmt, constantIO, constantEval, withStdout) where
+module Berp.Base.Monad
+   ( runEval, interpretStmt, constantIO, constantEval, withStdout
+   , updateModuleCache, lookupModuleCache
+   ) where
 
+import Control.Applicative ((<$>))
 import System.IO (Handle)
-import Control.Monad.State.Strict (evalStateT, gets)
+import Control.Monad.State.Strict (evalStateT, gets, modify)
 import Control.Monad.Cont (runContT)
 import System.IO.Unsafe (unsafePerformIO)
 import Berp.Base.SemanticTypes (Object (..), Eval, EvalState (..), ControlStack(EmptyStack))
 -- import Berp.Base.Prims (printObject)
 import Berp.Base.LiftedIO as LIO (putStr)
+import qualified Data.Map as Map (Map, empty, lookup, insert)
 
 runEval :: Handle -> Handle -> Handle -> Eval Object -> IO Object
 runEval stdin stdout stderr comp =
@@ -34,7 +39,18 @@ initState stdin stdout stderr =
    , state_stdin = stdin
    , state_stdout = stdout
    , state_stderr = stderr
+   , state_moduleCache = Map.empty
    }
+
+lookupModuleCache :: String -> Eval (Maybe Object)
+lookupModuleCache moduleName =
+   Map.lookup moduleName <$> gets state_moduleCache
+
+-- XXX is there a lazy leak here in the update?
+updateModuleCache :: String -> Object -> Eval ()
+updateModuleCache moduleName object = do
+   oldCache <- gets state_moduleCache
+   modify $ \state -> state { state_moduleCache = Map.insert moduleName object oldCache }
 
 withStdout :: (Handle -> Eval a) -> Eval a
 withStdout f = f =<< getStdout
@@ -80,4 +96,5 @@ constantState =
    , state_stdin = error "stdin not defined for constant state"
    , state_stdout = error "stdout not defined for constant state"
    , state_stderr = error "stderr not defined for constant state"
+   , state_moduleCache = error "module cache not defined for constant state"
    }

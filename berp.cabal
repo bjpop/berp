@@ -44,7 +44,8 @@ Executable berp
       filepath == 1.1.*,
       process == 1.0.*,
       parseargs == 0.1.*,
-      plugins == 1.5.*
+      plugins == 1.5.*,
+      directory == 1.0.*
   other-modules:
       Paths_berp
       Berp.Base

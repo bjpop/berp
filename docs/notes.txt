@@ -543,6 +543,22 @@ like so:
 We treat this like this was a method call of f on Foo, which means we add Foo as the first argument,
 which is not correct. We need to distinguish between method lookups and module attribute lookups.
 
+Question: what is considered to be defined at the top-level of a module? Obviously all top-bound variables,
+but what about things imported from other modules? Seems like the answer is yes.
+The semantics of which top-level variables are bound to the module object is probably a dynamic property
+of the program, so our static mkModule technique is probably wrong. For example, consider this top-level code:
+
+   if cond:
+      x = 5
+   else:
+      y = 12
+
+The value of cond will determine whether x or y is bound in the module. Currently we compile this code so that
+both x and y are considered in scope, which is clearly wrong. The solution is to rejig the way the variables in
+top scope are declared. First we need to push the declarations into the inner scopes where they are defined. Second we need to make the variable declaration operator modify some state value in the eval monad. Third we
+need to collect all the dynamically declared variables at the end of the evaluation of a module and bind
+them to the resulting module object. This change could break things, so we need to think about it carefully.
+
 Implementation strategy:
 
    1. Add a module data constructor to the Object type. Done.
@@ -555,10 +571,13 @@ Implementation strategy:
    4. Get the simple case of "import Foo" to work. Don't worry about
       caching imports. Don't worry about the search path. Just find
       modules in the current directory. (Done)
-   5. Get it working in the interpreter. (Maybe skip if tricky).
-   6. Add import caching (Pending).
-   7. Implement the more difficult case of "from Foo import (x,y,z)"
-   8. Implement the hardest case of "from Foo import *".
-   9. Add search path for files.
+   5. Avoid recompiling haskell modules that are already compiled. (Done)
+   6. Add import caching (Done).
+   7. Get top-level variable declarations working dynamically, and thus
+      fix the way they are bound to the module object, see notes above (Pending)
+   8. Implement the more difficult case of "from Foo import (x,y,z)"
+   9. Implement the hardest case of "from Foo import *".
+   10. Add search path for files.
+   11. Get it working in the interpreter. (Maybe skip if tricky).
    --- stop here and release the code ---
    10. Consider what's needed for packages.

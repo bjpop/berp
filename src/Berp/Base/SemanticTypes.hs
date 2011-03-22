@@ -17,12 +17,13 @@
 
 module Berp.Base.SemanticTypes
    ( Procedure, ControlStack (..), EvalState (..), Object (..), Eval, ObjectRef
-   , HashTable, HashSet, ListArray, Arity )  where
+   , HashTable, HashSet, ListArray, Arity, ModuleCache )  where
 
 import System.IO (Handle)
 import Control.Monad.State.Strict (StateT)
 import Control.Monad.Cont (ContT)
 import Data.IntMap (IntMap)
+import Data.Map (Map)
 import Data.IORef (IORef)
 import Data.Complex (Complex)
 import Data.Array.IO (IOArray)
@@ -66,7 +67,10 @@ data EvalState =
    , state_stdin :: !Handle
    , state_stdout :: !Handle
    , state_stderr :: !Handle
+   , state_moduleCache :: !ModuleCache
    }
+
+type ModuleCache = Map String Object
 
 type Eval a = StateT EvalState (ContT Object IO) a
 

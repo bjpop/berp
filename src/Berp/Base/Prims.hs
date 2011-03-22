@@ -42,8 +42,9 @@ import Berp.Base.LiftedIO as LIO (putStrLn)
 #endif
 import qualified Control.Applicative as Applicative (pure)
 import Control.Applicative ((<$>))
-import Berp.Base.Monad (withStdout)
-import Berp.Base.SemanticTypes (Object (..), ObjectRef, Procedure, Eval, EvalState(..), ControlStack(..), Arity)
+import Berp.Base.Monad (withStdout, updateModuleCache, lookupModuleCache)
+import Berp.Base.SemanticTypes
+   ( Object (..), ObjectRef, Procedure, Eval, EvalState(..), ControlStack(..), Arity )
 import Berp.Base.Truth (truth)
 import {-# SOURCE #-} Berp.Base.Object
    ( typeOf, dictOf, lookupAttribute, lookupSpecialAttribute, objectEquality, isIterator )
@@ -515,32 +516,18 @@ mapIterator f obj = do
          f =<< next iterObj
          pass
 
-{-
-mkModule :: [(Hashed String, ObjectRef)] -> Eval Object
-mkModule namesRefs = do
-   namesObjs <- mapM toNameObj namesRefs
-   dict <- mkAttributes namesObjs
-   identity <- newIdentity
-   return $
-      Module { object_identity = identity
-             , object_dict = dict }
-   where
-   toNameObj :: (Hashed String, ObjectRef) -> Eval (Hashed String, Object)
-   toNameObj (s, ref) = ((,) s) <$> readIORef ref
--}
-
 importModuleRef :: FilePath -> Eval ObjectRef
 importModuleRef path = newIORef =<< importModule path
 
 importModule :: FilePath -> Eval Object
 importModule path = do
-{-
-   maybeImported <- lookupModule name
+   maybeImported <- lookupModuleCache path
    case maybeImported of
       Just obj -> return obj
       Nothing -> do
--}
-         compileModuleAndLoadInit path
+         obj <- compileModuleAndLoadInit path
+         updateModuleCache path obj
+         return obj
 
 compileModuleAndLoadInit :: FilePath -> Eval Object
 compileModuleAndLoadInit path = do
