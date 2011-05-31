@@ -1,0 +1,109 @@
+Implementing comprehensions.
+
+We have four kinds:
+   - Generator expressions.
+   - List comprehensions.
+   - Set comprehensions.
+   - Dict comprehensions.
+
+Basic idea is to turn them all into generators, and for list, set and dict,
+wrap the output of the generator in a constructor.
+
+That is:
+
+   [ x + 1 for x in e ]
+
+becomes:
+
+   list(x + 1 for x in e)
+
+Then we compile generators into for loops:
+
+So:
+
+   list(x + 1 for x in e)
+
+becomes:
+
+   def gen():
+       for x in e:
+           yield x + 1
+   list(gen())
+
+But this is a little bit costly due to the creation of a new function
+and the unnecessary use of iterators. We can specialise the construction
+of the set/list/dictionary.
+
+So instead:
+
+   [ x + 1 for x in e ]
+
+becomes:
+
+   v = list()
+   for x in e:
+      v.append(x + 1)
+
+and v is the value of the whole expression.
+
+Generator comprehensions need to be treated differently, because:
+
+   (x + 1 for x in e)
+
+should not be:
+
+   for x in e:
+      yield x + 1
+
+because you get a yield outside a function. Instead it should be:
+
+   def v():
+      for x in e:
+         yield x + 1
+   v()
+
+But it is overkill to define a function for this. Instead we want
+to compile to a version which uses mkGenerator:
+
+   mkGenerator [[ for x in e: yield x + 1 ]]
+
+Syntax:
+
+   exp_comp := [comp] | {comp}_set | {comp}_dict | (comp)
+   comp     := exp forpart
+   forpart  := for pat in exp rest
+   rest     := epsilon | ifpart | forpart
+   ifpart   := if exp rest
+
+[[ [comp] ]] =
+
+   var = list()
+   [[ comp ]]_(var,List)
+
+[[ {comp}_set ]] =
+
+   var = set()
+   [[ comp ]]_(var,Set)
+
+[[ {comp}_dict ]] =
+
+   var = dict()
+   [[ comp ]]_(var,Dict)
+
+[[ (comp) ]] = mkGenerator ([[ comp ]]_(?,Gen))
+
+[[ exp forpart ]]_(var,type) =
+
+   [[ forpart ]]_(updater(type,var,result))
+
+[[ for pat in exp rest ]]_(result) =
+
+   for pat in exp:
+       [[ rest ]]_(result)
+
+[[ epsilon ]]_(result) = result
+
+[[ if exp rest ]]_(result) =
+
+   if exp:
+       [[ rest ]]_(result)

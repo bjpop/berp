@@ -1,0 +1,96 @@
+Compiling variables.
+
+Ideally we would compile Python variables into Haskell variables. But Python
+variables can be updated inside loops and closures, whereas Haskell variables
+cannot. The next best thing is to use IORefs. A promising scheme is to
+compile each Python variable into a Haskell variable bound to an IORef. A read
+from a Python variable becomes a readIORef, likewise writeIORef.
+
+A few problems still remain. Python's scoping rules are slightly different to
+Haskell.
+
+Nested references to variables can be annotated as "global" and "nonlocal", otherwise
+a nested assignment creates a new local variable. The main issue is that Python
+variable binding (declaration) sites are potentially ambiguous (there is no separate syntax
+to introduce a new variable - assignment is used, but this is problematic when
+another variable of the same name is already in scope).
+
+Here is an example:
+
+x = 12
+def f():
+   x = 144
+   def g():
+     global x
+     x = 42
+   g()
+f()
+print(x)
+
+This prints 42. If you remove the "global x" then the program prints 12.
+Note that the "global x" causes the innermost x to refer to the outermost x, thus
+skipping the one in the middle. Haskell's nested scoping does not have an
+equivalent way to skip enclosing scope.
+
+One possible way to avoid this is to rename global variables, in psuedo
+compiled haskell:
+
+global_x = newVariable "x"
+writeIORef global_x 12
+f = def (\[] -> do
+   x = newVariable "x"
+   writeIORef x 144
+   g = def (\[] -> do
+     writeIORef global_x 42
+     )
+   g @@ []
+   )
+f @@ []
+print @@ [global_x]
+
+This looks good but has problems with "nonlocal".
+
+In any case there remain some issues. The global scope of a module needs to be
+treated specially (and differently) to local scopes. This is because the global
+scope is not statically determined and this is visible in the variables
+exported by the module (which become attributes of the module object returned
+by the module when it is evaluated).
+
+For example, we can have at the top level:
+
+if cond:
+   x = 12
+else:
+   y = 12
+
+Depending on the result of evaluating 'cond', either x will be defined or y
+will be defined, but (assuming this is all the code to consider) not both.
+This will be visible in the attributes of the module object arising from this
+code. A related aspect is caused by the star style of import:
+
+from Foo import *
+
+When compiling this statement we don't know what variables will be bound.
+We will only discover these variables at runtime when the code is executed.
+
+We note that CPython does not allow 'star' imports in non-global scopes,
+presumably for the very problems/reasons mentioned in these notes.
+
+The upshot of this is that we need to treat the global scope in a dynamic
+fashion instead of a static fashion. As an aside, we didn't learn of this issue until
+we tried to compile modules. It was hoped that all variables could be
+treated uniformly as IORefs. It seems likely that we can treat local scopes
+by using IORefs, but for the global scope we will have to use a dictionary
+passed around in (the state part of) the Eval monad. This means when we compile
+the program we need to distinguish between local and global variables. It also
+means that functions definitions will have to be "closed" over their global scope
+at the point of definition, and carry that global scope with them. Incidentally
+CPython includes a __globals__ attribute on functions for this very purpsoe.
+CPython also has a __closure__ although it is not clear that we can (or want to)
+support this. For locals we are using Haskell closures to implement Python closures
+which is hopefully reasonably efficient. It would seem to be rather unfortunate
+if we had to implement local scopes as dictionaries. Imagine an inner loop which
+reads repeatedly from a variable. It would entail a lot of dictionary lookups.
+
+I think that the different handling of the global scope will also sort out the
+problem of "global" declarations mentioned above.
