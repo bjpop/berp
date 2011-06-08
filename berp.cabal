@@ -21,6 +21,8 @@ stability:           experimental
 tested-with:         GHC==6.10.4
 extra-source-files:  src/include/BerpDebug.h
 
+-- XXX at the moment we compile each module twice. Would be good to avoid this.
+
 Executable berp
   ghc-options: -Wall -fno-warn-name-shadowing -fno-warn-orphans
   main-is:
@@ -32,20 +34,24 @@ Executable berp
       src/include
   build-depends:
       base == 4.*,
-      monads-tf == 0.1.*,
+      -- monads-tf == 0.1.*,
+      monads-tf,
       transformers == 0.2.*,
-      containers < 0.4,
+      containers,
       ghc-prim,
       array < 0.4,
       extensible-exceptions == 0.1.*,
-      language-python == 0.3.*,
+      language-python,
       ghc >= 6.10,
-      haskell-src-exts == 1.9.*,
-      filepath == 1.1.*,
+      -- haskell-src-exts == 1.9.*,
+      haskell-src-exts,
+      filepath,
       process == 1.0.*,
-      parseargs == 0.1.*,
+      -- parseargs == 0.1.*,
+      parseargs,
       plugins == 1.5.*,
-      directory == 1.0.*
+      -- directory == 1.0.*
+      directory
   other-modules:
       Paths_berp
       Berp.Base
@@ -93,13 +99,13 @@ Executable berp
       Berp.Base.Truth
       Berp.Base.Unique
       Berp.Compile.Compile
+      Berp.Compile.HsSyntaxUtils
       Berp.Compile.IdentString
       Berp.Compile.Monad
-      Berp.Compile.HsSyntaxUtils
-      Berp.Compile.PySyntaxUtils
       Berp.Compile.PrimName
+      Berp.Compile.PySyntaxUtils
+      Berp.Compile.Scope
       Berp.Compile.Utils
-      Berp.Compile.VarSet
 
 Library
    ghc-options: -Wall -fno-warn-name-shadowing -fno-warn-orphans
@@ -109,18 +115,22 @@ Library
       src
    build-depends:
       base == 4.*,
-      monads-tf == 0.1.*,
+      -- monads-tf == 0.1.*,
+      monads-tf,
       transformers == 0.2.*,
-      containers < 0.4,
+      containers,
       ghc-prim,
       array < 0.4,
       extensible-exceptions == 0.1.*,
-      language-python == 0.3.*,
+      language-python,
       ghc >= 6.10,
-      haskell-src-exts == 1.9.*,
-      filepath == 1.1.*,
+      -- haskell-src-exts == 1.9.*,
+      haskell-src-exts,
+      -- filepath == 1.1.*,
+      filepath,
       process == 1.0.*,
-      parseargs == 0.1.*,
+      -- parseargs == 0.1.*,
+      parseargs,
       plugins == 1.5.*
    exposed-modules:
       Berp.Base
@@ -175,5 +185,5 @@ Library
       Berp.Compile.HsSyntaxUtils
       Berp.Compile.PySyntaxUtils
       Berp.Compile.PrimName
+      Berp.Compile.Scope
       Berp.Compile.Utils
-      Berp.Compile.VarSet

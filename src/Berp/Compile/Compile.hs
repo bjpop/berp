@@ -35,7 +35,7 @@ import Berp.Compile.Utils
 import Berp.Base.Mangle (mangle)
 import Berp.Base.Hash (Hash (..))
 import Berp.Compile.IdentString (IdentString (..), ToIdentString (..), identString)
-import Berp.Compile.VarSet (VarSet)
+import Berp.Compile.Scope (Scope (..), VarSet, topBindings, funBindings)
 
 compiler :: Compilable a => a -> IO (CompileResult a)
 compiler = runCompileMonad . compile

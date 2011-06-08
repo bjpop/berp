@@ -21,12 +21,11 @@ import Language.Python.Common.AST
 import Language.Python.Common.SrcLocation
 import Language.Haskell.Exts.Syntax (Name)
 import Language.Haskell.Exts.Build (name)
-import Data.Set
 import Control.Applicative hiding (empty)
-import Berp.Compile.VarSet (VarSet)
 import qualified MonadUtils (MonadIO (..))
 import Exception (ExceptionMonad (..))
 import Control.Exception.Extensible (block, unblock, catch)
+import Berp.Compile.Scope (VarSet, Scope (..), emptyScope)
 
 data State
     = State
@@ -34,27 +33,6 @@ data State
       , seenYield :: !Bool
       , scope :: Scope
       }
-
-data Scope
-   = Scope
-     { localVars :: !VarSet     -- local to a block (not params)
-     , paramVars :: !VarSet     -- bound in the parameters of the innermost enclosing function
-     , globalVars :: !VarSet    -- declared as "global" in the source
-     , enclosingVars :: !VarSet -- in scope enclosing a block, but not global
-     , nestingLevel :: !NestingLevel
-     }
-     deriving (Show)
-
--- This must remain empty, because it is used to create new scopes.
-emptyScope :: Scope
-emptyScope
-   = Scope
-     { localVars = empty
-     , paramVars = empty
-     , globalVars = empty
-     , enclosingVars = empty
-     , nestingLevel = 0
-     }
 
 getScope :: Compile Scope
 getScope = gets scope
@@ -69,8 +47,6 @@ initState
      , seenYield = False
      , scope = emptyScope
      }
-
-type NestingLevel = Int
 
 newtype Compile a
    = Compile (StateT State IO a)
