@@ -18,7 +18,7 @@ import Berp.Base.Monad (constantIO)
 import Berp.Base.SemanticTypes (Procedure, Object (..))
 import Berp.Base.StdTypes.Bool (true, false)
 import Berp.Base.Identity (newIdentity, Identity)
-import Berp.Base.Attributes (mkAttributes)
+import Berp.Base.Attributes (mkAttributesList)
 import Berp.Base.StdNames
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.ObjectBase (objectBase)
@@ -38,7 +38,7 @@ noneClass = constantIO $ do
    newType [string "NoneType", objectBase, dict]
 
 attributes :: IO Object
-attributes = mkAttributes
+attributes = mkAttributesList
    [ (specialEqName, primitive 2 eq)
    , (specialStrName, primitive 1 str)
    ]

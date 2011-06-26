@@ -20,7 +20,7 @@ import Control.Monad.Trans (liftIO)
 import Berp.Base.SemanticTypes (Object (..), Procedure)
 import Berp.Base.Monad (constantIO)
 import Berp.Base.Identity (newIdentity)
-import Berp.Base.Attributes (mkAttributes)
+import Berp.Base.Attributes (mkAttributesList)
 import Berp.Base.Object (typeOf)
 import Berp.Base.Prims (primitive, callMethod, returningProcedure)
 import Berp.Base.StdNames
@@ -87,7 +87,7 @@ instantiate objectType args = do
 
 attributes :: IO Object
 attributes =
-   mkAttributes [ (mroName, primitive 1 mroMethod) ]
+   mkAttributesList [ (mroName, primitive 1 mroMethod) ]
 
 mroMethod :: Procedure
 mroMethod (obj:_) = return $ object_mro obj 

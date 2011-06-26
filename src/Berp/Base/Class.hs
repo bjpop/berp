@@ -27,26 +27,26 @@ import Berp.Base.SemanticTypes (Eval, Object (..), ObjectRef)
 import Berp.Base.Prims (printObject)
 #endif
 import Berp.Base.Hash (Hashed)
-import Berp.Base.Attributes (mkAttributes)
+import Berp.Base.Attributes (mkAttributesList)
 import Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.String (string)
 import Berp.Base.StdTypes.Tuple (tuple)
-import Berp.Base.StdTypes.None (none)
+-- import Berp.Base.StdTypes.None (none)
 import Berp.Base.StdTypes.Object (object)
 
-klass :: Ident -> ObjectRef -> [Object] -> Eval [(Hashed String, ObjectRef)] -> Eval Object 
-klass className ident srcBases attributesComp = do
+klass :: Ident -> [Object] -> Eval [(Hashed String, ObjectRef)] -> Eval Object
+klass className srcBases attributesComp = do
    -- if the source lists no bases for the class, then force it to be (object)
    let trueBases = if null srcBases then [object] else srcBases 
-   attributes <- attributesComp 
+   attributes <- attributesComp
    attributesObjects <- mapM getIdentObj attributes
-   classDict <- mkAttributes attributesObjects
+   classDict <- mkAttributesList attributesObjects
    typeObject <- liftIO $ newType [string className, tuple trueBases, classDict]
-   writeIORef ident $ typeObject 
+   -- writeIORef ident $ typeObject
    IF_DEBUG((printObject $ object_mro typeObject) >> putStr "\n")
-   return none
+   return typeObject
    where
-   getIdentObj :: MonadIO m => (a, ObjectRef) -> m (a, Object) 
+   getIdentObj :: MonadIO m => (a, ObjectRef) -> m (a, Object)
    getIdentObj (ident, ref) = do
       obj <- readIORef ref
       return (ident, obj)

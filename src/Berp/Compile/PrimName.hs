@@ -125,6 +125,12 @@ primOp = op . sym
 assignOp :: QOp
 assignOp = primOp "=:"
 
+writeLocal :: Exp
+writeLocal = prim "writeLocal"
+
+writeGlobal :: Exp
+writeGlobal = prim "writeGlobal"
+
 setAttr :: Exp
 setAttr = prim "setattr"
 
@@ -193,6 +199,12 @@ apply = primOp "@@"
 
 read :: Exp
 read = prim "read"
+
+readLocal :: Exp
+readLocal = prim "readLocal"
+
+readGlobal :: Exp
+readGlobal = prim "readGlobal"
 
 integer :: Integer -> Exp
 integer i = app (prim "integer") (intE i)

@@ -20,6 +20,8 @@ module Berp.Compile.Scope
    , topBindings
    , funBindings
    , prettyVarSet
+   , isLocal
+   , isGlobal
    ) where
 
 import Language.Python.Common.AST as Py
@@ -31,13 +33,34 @@ import Berp.Compile.PySyntaxUtils (varToString, paramIdent)
 
 data Scope
    = Scope
-     { localVars :: !VarSet     -- local to a block (not params)
-     , paramVars :: !VarSet     -- bound in the parameters of the innermost enclosing function
-     , globalVars :: !VarSet    -- declared as "global" in the source
-     , enclosingVars :: !VarSet -- in scope enclosing a block, but not global
-     , nestingLevel :: !NestingLevel
+     { localVars :: !VarSet          -- local to a block (not params)
+       -- we keep params separate because we want to include them in enclosing vars
+       -- but we want to distinguish them from locals.
+     , paramVars :: !VarSet          -- bound in the parameters of the innermost enclosing function
+     , globalVars :: !VarSet         -- declared as "global" in the source
+     , enclosingVars :: !VarSet      -- in scope enclosing a block, but not global
+     , nestingLevel :: !NestingLevel -- how deep are we in the scope?
      }
      deriving (Show)
+
+-- a variable is global iff it is explicitly declared so in this scope, or
+-- it is neither local nor defined in an enclosing scope nor a parameter of an enclosing function
+isGlobal :: IdentString -> Scope -> Bool
+isGlobal ident scope =
+   ident `member` (globalVars scope) ||
+   (ident `notMember` (localVars scope) &&
+    ident `notMember` (enclosingVars scope) &&
+    ident `notMember` (paramVars scope))
+
+-- a variable is local if it is in the localVars
+isLocal :: IdentString -> Scope -> Bool
+isLocal ident scope = ident `member` localVars scope
+
+type NestingLevel = Int
+
+-- this is the level of the top scope in a module (and the interpreter REPL scope).
+outermostNestingLevel :: NestingLevel
+outermostNestingLevel = 0
 
 -- This must remain empty, because it is used to create new scopes.
 emptyScope :: Scope
@@ -47,13 +70,12 @@ emptyScope
      , paramVars = empty
      , globalVars = empty
      , enclosingVars = empty
-     , nestingLevel = 0
+     , nestingLevel = outermostNestingLevel
      }
-
-type NestingLevel = Int
 
 type VarSet = Set IdentString
 
+-- Collect all the variables which are assigned to in a list of expressions (patterns).
 -- XXX Incomplete
 assignTargets :: [ExprSpan] -> VarSet
 assignTargets = foldl' addTarget mempty
@@ -67,6 +89,16 @@ assignTargets = foldl' addTarget mempty
    exprVars (Paren { paren_expr = expr }) = exprVars expr
    exprVars _other = Set.empty
 
+-- XXX I think this should now just make empty scopes.
+-- top level is somewhat special because
+-- all assigned variables are global, there should be no "nonlocal" declarations and "global"
+-- declarations are pointless. There is also no enclosing scope. Also variables defined at
+-- the top level don't need to be treated as enclosing variables for nested scopes because
+-- they are global (they aren't in the local closure, only the global closure - which is treated
+-- specially).
+topBindings :: Scope
+topBindings = emptyScope
+{-
 topBindings :: SuiteSpan -> Either String Scope
 topBindings stmts
    | not $ Set.null nonLocals
@@ -74,6 +106,7 @@ topBindings stmts
    | otherwise = Right $ emptyScope { localVars = locals, globalVars = globals }
    where
    (locals, nonLocals, globals) = termBindings stmts
+-}
 
 funBindings :: DefinedVars t => [ParameterSpan] -> t -> Either String Scope
 funBindings params term
@@ -92,10 +125,15 @@ termBindings term
    = (theseLocals, theseNonLocals, theseGlobals)
    where
    varBindings = definedVars term
+   -- here we consider globals and nonlocals as those variables explicitly declared such
+   -- this is not necessarily the full set of globals on nonlocals, but it provides sufficient
+   -- information for compilation.
    theseGlobals = globals varBindings
    theseNonLocals = nonlocals varBindings
+   -- local variables are those assigned variables which are not declared nonlocal or global
    theseLocals = (Set.\\) ((Set.\\) (assigned varBindings) theseGlobals) theseNonLocals
 
+-- check that the parameters of a function, the nonlocals and the globals are all disjoint.
 allDisjoint :: VarSet -> VarSet -> VarSet -> Maybe String
 allDisjoint params nonlocals globals
    = if not (Set.null ps_ns)
@@ -113,8 +151,12 @@ allDisjoint params nonlocals globals
 prettyVarSet :: VarSet -> String
 prettyVarSet = concat . intersperse "," . Prelude.map fromIdentString . Set.toList
 
-data BindingSets
-   = BindingSets { assigned :: VarSet, nonlocals :: VarSet, globals :: VarSet }
+data BindingSets =
+   BindingSets
+   { assigned :: VarSet   -- variables assigned to in this scope
+   , nonlocals :: VarSet  -- variables declared nonlocal in this scope
+   , globals :: VarSet    -- variables declared global in this scope
+   }
 
 instance Monoid BindingSets where
    mempty = BindingSets { assigned = Set.empty, nonlocals = Set.empty, globals = Set.empty }
@@ -124,6 +166,8 @@ instance Monoid BindingSets where
         , nonlocals = nonlocals x `mappend` nonlocals y
         , globals = globals x `mappend` globals y }
 
+-- determine the set of variables which are either assigned to or explicitly declared global or
+-- nonlocal in the current scope.
 class DefinedVars t where
    definedVars :: t -> BindingSets
 
@@ -144,11 +188,12 @@ instance DefinedVars (StatementSpan) where
    definedVars (For { for_targets = t, for_body = b, for_else = e })
       = mempty { assigned = assignTargets t} `mappend` definedVars b `mappend` definedVars e
    -- Any definedVars made inside a function body are not collected.
-   -- The function name _is_ collected.
+   -- The function name _is_ collected, because it is assigned in the current scope,
+   -- likewise for the class name.
    definedVars (Fun { fun_name = n })
       = mempty { assigned = Set.singleton $ toIdentString n }
    definedVars (Class { class_name = ident, class_body = _b })
-      = mempty { assigned = Set.singleton $ toIdentString ident } -- `mappend` definedVars b 
+      = mempty { assigned = Set.singleton $ toIdentString ident }
    definedVars (Conditional { cond_guards = g, cond_else = e })
       = definedVars g `mappend` definedVars e
    definedVars (Assign { assign_to = t })
@@ -160,14 +205,13 @@ instance DefinedVars (StatementSpan) where
    definedVars (With { with_body = b })
       = definedVars b
    definedVars (Global { global_vars = idents })
-      = mempty { globals = Set.fromList $ Prelude.map toIdentString idents } 
+      = mempty { globals = Set.fromList $ Prelude.map toIdentString idents }
    definedVars (NonLocal { nonLocal_vars = idents })
       = mempty { nonlocals = Set.fromList $ Prelude.map toIdentString idents }
-   -- definedVars ( StmtExpr { stmt_expr = e }) = definedVars e
    definedVars ( StmtExpr {} ) = mempty
    definedVars _other = mempty
 
--- We don't need to look inside expressions because:
+-- We don't need to look inside expressions (or anything inside them) because:
 -- 1) Generally expressions do not introduce new variables,
 --    except for lambdas and comprehensions. 
 --    Lambdas are easy to handle because all the variables
@@ -176,29 +220,4 @@ instance DefinedVars (StatementSpan) where
 --    statements suffice.
 -- 2) Expressions do not contain nested statements.
 instance DefinedVars ExprSpan where
-{-
-   definedVars ( Generator { gen_comprehension = comp })
-      = definedVars comp
-   definedVars ( ListComp { list_comprehension = comp })
-      = definedVars comp
-   definedVars ( DictComp { dict_comprehension = comp })
-      = definedVars comp
--}
    definedVars _other = mempty
-
-{-
-instance DefinedVars (ComprehensionSpan e) where
-   definedVars comp = definedVars $ comprehension_for comp
-
-instance DefinedVars CompForSpan where
-   definedVars (CompFor { comp_for_exprs = es, comp_in_expr = e, comp_for_iter = i })
-      = mempty { assigned = assignTargets es} `mappend` definedVars e `mappend` definedVars i
-
-instance DefinedVars CompIterSpan where
-   definedVars (IterFor { comp_iter_for = i }) = definedVars i
-   definedVars (IterIf { comp_iter_if = i }) = definedVars i
-
-instance DefinedVars CompIfSpan where
-   definedVars (CompIf { comp_if = e, comp_if_iter = i })
-      = definedVars e `mappend` definedVars i
--}

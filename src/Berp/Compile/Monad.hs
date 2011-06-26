@@ -34,6 +34,11 @@ data State
       , scope :: Scope
       }
 
+withScope :: (Scope -> b) -> Compile b
+withScope f = do
+   s <- getScope
+   return $ f s
+
 getScope :: Compile Scope
 getScope = gets scope
 

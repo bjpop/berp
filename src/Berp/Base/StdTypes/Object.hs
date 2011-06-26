@@ -16,7 +16,7 @@ module Berp.Base.StdTypes.Object (object) where
 import Prelude hiding (init)
 import Berp.Base.SemanticTypes (Procedure, Object (..))
 import Berp.Base.Monad (constantIO)
-import Berp.Base.Attributes (mkAttributes)
+import Berp.Base.Attributes (mkAttributesList)
 import Berp.Base.StdNames
 import Berp.Base.Prims (primitive)
 import Berp.Base.Object (identityOf)
@@ -33,7 +33,7 @@ object = constantIO $ do
    newType [string "object", emptyTuple, dict]
 
 attributes :: IO Object
-attributes = mkAttributes
+attributes = mkAttributesList
    [ (specialStrName, primitive 1 str)
    , (specialEqName, primitive 2 eq)
    , (specialInitName, primitive 1 init)

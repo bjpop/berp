@@ -19,7 +19,7 @@ import Berp.Base.Monad (constantIO)
 import Berp.Base.SemanticTypes (Procedure, Object (..), Eval)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.HashTable as Hash (fromList, empty, mappings, lookup)
-import Berp.Base.Attributes (mkAttributes)
+import Berp.Base.Attributes (mkAttributesList)
 import {-# SOURCE #-} Berp.Base.Builtins.Exceptions (keyError)
 import Berp.Base.StdNames
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
@@ -53,7 +53,7 @@ dictionaryClass = constantIO $ do
    newType [string "dict", objectBase, dict]
 
 attributes :: IO Object 
-attributes = mkAttributes 
+attributes = mkAttributesList 
    [ (specialEqName, primitive 2 eq)
    , (specialStrName, primitive 1 str)
    , (specialGetItemName, primitive 2 getItem)

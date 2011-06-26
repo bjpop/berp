@@ -12,7 +12,7 @@
 -----------------------------------------------------------------------------
 
 module Berp.Base.Builtins.Constants
-   (_s_object, _s_type, _s_bool, _s_set)
+   (object, _s_object, _s_type, _s_bool, _s_set)
    where
 
 import Berp.Base.SemanticTypes (ObjectRef)

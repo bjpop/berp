@@ -35,7 +35,8 @@ import Berp.Compile.Utils
 import Berp.Base.Mangle (mangle)
 import Berp.Base.Hash (Hash (..))
 import Berp.Compile.IdentString (IdentString (..), ToIdentString (..), identString)
-import Berp.Compile.Scope (Scope (..), VarSet, topBindings, funBindings)
+import Berp.Compile.Scope as Scope (Scope (..), VarSet, topBindings, funBindings)
+import qualified Berp.Compile.Scope as Scope (isGlobal, isLocal)
 
 compiler :: Compilable a => a -> IO (CompileResult a)
 compiler = runCompileMonad . compile
@@ -52,10 +53,12 @@ instance Compilable a => Compilable (Maybe a) where
    type CompileResult (Maybe a) = Maybe (CompileResult a)
    compile = mapM compile
 
+-- XXX this is all bogus and needs to change
 instance Compilable InterpreterStmt where
    type CompileResult InterpreterStmt = [Hask.Stmt]
    compile (InterpreterStmt suite) = do
-      suiteBindings <- checkEither $ topBindings suite
+      -- suiteBindings <- checkEither $ topBindings suite
+      let suiteBindings = topBindings
       oldScope <- getScope
       let oldLocals = localVars oldScope
       let suiteLocals = localVars suiteBindings
@@ -79,16 +82,17 @@ patchModuleName newName (Hask.Module loc _name pragmas warnings exports imports 
 instance Compilable ModuleSpan where
    type CompileResult ModuleSpan = Hask.Module
    compile (Py.Module suite) = do
-      bindings <- checkEither $ topBindings suite
-      stmts <- nestedScope bindings $ compile $ Block suite
-      mkMod <- mkModuleStmt $ localVars bindings
-      let allStmts = stmts ++ mkMod
+      -- bindings <- checkEither $ topBindings suite
+      stmts <- nestedScope topBindings $ compile $ Block suite
+      -- mkMod <- mkModuleStmt $ localVars bindings
+      let allStmts = stmts ++ [qualStmt Prim.mkModule]
       let init = initDecl $ doBlock allStmts
       return $ Hask.Module bogusSrcLoc modName pragmas warnings exports imports [init]
       where
       modName = ModuleName "M" -- this will get patched later
       initDecl :: Hask.Exp -> Hask.Decl
       initDecl = patBind bogusSrcLoc $ pvar Prim.initName
+{-
       mkModuleStmt :: VarSet -> Compile [Hask.Stmt]
       mkModuleStmt vars = do
          let varList = Set.toList vars
@@ -99,6 +103,7 @@ instance Compilable ModuleSpan where
          compiledIdent <- compile ident
          let haskVar = Hask.var $ identToMangledName ident
          return $ Hask.tuple [compiledIdent, haskVar]
+-}
       pragmas = []
       warnings = Nothing
       exports = Nothing -- should change this to init
@@ -106,6 +111,8 @@ instance Compilable ModuleSpan where
 instance Compilable StatementSpan where
    type (CompileResult StatementSpan) = [Stmt]
 
+   -- XXX is it necessary to compile generators this way?
+   -- can the yield statement be made to dynamically build a generator object?
    compile (Fun {fun_name = fun, fun_args = params, fun_body = body}) = do
       oldSeenYield <- getSeenYield
       unSetSeenYield
@@ -120,10 +127,14 @@ instance Compilable StatementSpan where
                 -- the compiled code is slightly uglier.
                 then app Prim.returnGenerator $ parens compiledBody
                 else compiledBody
-      let lambda = lamE bogusSrcLoc [args] lambdaBody
-      let arityExp = intE $ fromIntegral $ length params
-      let doc = docString body
-      returnStmt $ appFun Prim.def [identToMangledVar fun, arityExp, doc, parens lambda]
+          lambda = lamE bogusSrcLoc [args] lambdaBody
+          arityExp = intE $ fromIntegral $ length params
+          doc = docString body
+          defExp = appFun Prim.def [arityExp, doc, parens lambda]
+      (binderStmts, binderExp) <- stmtBinder defExp
+      writeStmt <- qualStmt <$> compileWrite fun binderExp
+      return $ binderStmts ++ [writeStmt]
+
    -- Handle the single assignment case specially. In the multi-assign case
    -- we want to share the evaluation of the rhs, hence the use of compileExprComp.
    -- This is not needed in the single assign case, and would be overkill in general.
@@ -178,16 +189,23 @@ instance Compilable StatementSpan where
    -- XXX fixme, only supports one target
    compile (For { for_targets = [var], for_generator = generator, for_body = body, for_else = elseSuite }) = do
       (generatorStmts, compiledGenerator) <- compileExprObject generator
-      compiledBody <- compileSuiteDo body
+      -- compiledBody <- compileSuiteDo body
+      compiledStmtss <- compile body
+      newVar  <- freshHaskellVar
+      writeStmt <- qualStmt <$> compileWrite var (Hask.var newVar)
+      let lambdaBody = lamE bogusSrcLoc [pvar newVar] $ doBlock $ (writeStmt : concat compiledStmtss)
       let compiledVar = identToMangledVar var
       if isEmptySuite elseSuite
-         then return (generatorStmts ++ [qualStmt $ appFun Prim.for [compiledVar, compiledGenerator, parens compiledBody]])
+         then return (generatorStmts ++ [qualStmt $ appFun Prim.for [compiledGenerator, parens lambdaBody]])
          else do
             compiledElse <- compileSuiteDo elseSuite
-            return (generatorStmts ++ [qualStmt $ appFun Prim.forElse [compiledVar, compiledGenerator, parens compiledBody, parens compiledElse]])
+            return (generatorStmts ++ [qualStmt $ appFun Prim.forElse [compiledGenerator, parens lambdaBody, parens compiledElse]])
    compile (Pass {}) = returnStmt Prim.pass
    compile (NonLocal {}) = return []
    compile (Global {}) = return []
+   -- XXX need to check if we are compiling a local or global variable.
+   -- XXX perhaps the body of a class is evaluated in a similar fashion to a module?
+   -- more dynamic than currently. Yes it is!
    compile (Class { class_name = ident, class_args = args, class_body = body }) = do
       bindings <- checkEither $ funBindings [] body
       -- XXX slightly dodgy since the syntax allows Argument types in class definitions but
@@ -196,13 +214,17 @@ instance Compilable StatementSpan where
       (argsStmtss, compiledArgs) <- mapAndUnzipM (compileExprObject . arg_expr) args
       compiledBody <- nestedScope bindings $ compile $ Block body
       let locals = Set.toList $ localVars bindings
-      attributes <- qualStmt <$> app Prim.pure <$> listE <$> mapM compileClassLocal locals 
-      let newStmt = qualStmt $ appFun Prim.klass
-                       [ strE $ identString ident
-                       , identToMangledVar ident
-                       , listE compiledArgs
-                       , parens $ doBlock $ compiledBody ++ [attributes]]
-      return (concat argsStmtss ++ [newStmt])
+      attributes <- qualStmt <$> app Prim.pure <$> listE <$> mapM compileClassLocal locals
+      let klassExp = appFun Prim.klass
+                        [ strE $ identString ident
+                        -- , identToMangledVar ident
+                        , listE compiledArgs
+                        , parens $ doBlock $ compiledBody ++ [attributes]]
+
+      (binderStmts, binderExp) <- stmtBinder klassExp
+      writeStmt <- qualStmt <$> compileWrite ident binderExp
+
+      return (concat argsStmtss ++ binderStmts ++ [writeStmt])
       where
       compileClassLocal :: IdentString -> Compile Hask.Exp
       compileClassLocal ident = do
@@ -236,6 +258,20 @@ instance Compilable StatementSpan where
    compile (Continue {}) = returnStmt Prim.continue
    compile (Import { import_items = items }) = mapM compile items
    compile other = unsupported $ prettyText other
+
+compileRead :: ToIdentString a => a -> Compile Exp
+compileRead ident = do
+   compiledIdent <- compile $ toIdentString ident
+   global <- isGlobal ident
+   let reader = if global then Prim.readGlobal else Prim.readLocal
+   return $ app reader compiledIdent
+
+compileWrite :: ToIdentString a => a -> Exp -> Compile Exp
+compileWrite ident exp = do
+   compiledIdent <- compile $ toIdentString ident
+   global <- isGlobal ident
+   let writer = if global then Prim.writeGlobal else Prim.writeLocal
+   return $ appFun writer [compiledIdent, exp]
 
 instance Compilable ImportItemSpan where
    type CompileResult ImportItemSpan = Hask.Stmt
@@ -272,12 +308,17 @@ instance Compilable IdentSpan where
    compile = compile . toIdentString
 
 instance Compilable IdentString where
-   type CompileResult IdentString = Hask.Exp
-   compile ident = do
-      let str = identString ident
-          mangled = mangle str
-          hashedVal = intE $ fromIntegral $ hash str
-      return $ Hask.tuple [hashedVal, strE mangled]
+    type CompileResult IdentString = Hask.Exp
+    compile ident = do
+       global <- isGlobal ident
+       if global
+          then do
+             let str = identString $ toIdentString ident
+                 mangled = mangle str
+                 hashedVal = intE $ fromIntegral $ hash str
+             return $ Hask.tuple [hashedVal, strE mangled]
+          else
+             return $ identToMangledVar ident
 
 instance Compilable ExprSpan where
    type (CompileResult ExprSpan) = ([Stmt], Exp)
@@ -288,14 +329,14 @@ instance Compilable ExprSpan where
    compile (Py.Int { int_value = i}) = returnExp $ intE i
    compile (Py.Float { float_value = f}) = returnExp $ Lit $ Frac $ toRational f
    compile (Py.Imaginary { imaginary_value = i}) =
-      -- returnExp $ appFun Prim.complex [Lit $ Frac 0, Lit $ Frac $ toRational i]
       returnExp $ app Prim.complex $ paren c
       where
       real = Lit $ Frac 0
       imag = Lit $ Frac $ toRational i
       c = infixApp real (op $ sym ":+") imag
-   compile (Py.Var { var_ident = ident}) =
-      returnExp $ app Prim.read $ identToMangledVar ident
+   compile (Py.Var { var_ident = ident}) = do
+      readExp <- compileRead ident
+      return ([], readExp)
    compile (Py.BinaryOp { operator = op, left_op_arg = leftExp, right_op_arg = rightExp })
       | Dot {} <- op, Py.Var { var_ident = method } <- rightExp = do
            (leftStmts, compiledLeft) <- compileExprObject leftExp
@@ -389,6 +430,7 @@ compileComprehens ty comprehension = do
        newLocals = Set.insert (toIdentString v) oldLocals
    let newBindings = bindings { localVars = newLocals }
    compiledBody <- nestedScope newBindings $ compile $ Block [initStmt, desugaredFor]
+   -- XXX this should be a readLocal
    return (compiledBody, app Prim.read $ identToMangledVar v)
 
 comprehensInit :: ComprehensType -> ExprSpan -> StatementSpan
@@ -524,6 +566,7 @@ compileHandler asName (Handler { handler_clause = clause, handler_suite = body }
                Nothing -> return []
                Just (Py.Var { var_ident = ident }) -> do
                   identDecl <- declareVar ident
+                  -- XXX I think this should always be a local variable assignment
                   let newAssign = qualStmt $ infixApp (Hask.var $ identToMangledName ident) Prim.assignOp asName
                   return [identDecl, newAssign]
                other -> error $ "exception expression not a variable: " ++ show other
@@ -552,9 +595,8 @@ compileAssign (Py.Subscript { subscriptee = objExpr, subscript_expr = sub }) rhs
    (stmtsSub, compiledSub) <- compileExprObject sub
    let newStmt = qualStmt $ appFun Prim.setItem [compiledObj, compiledSub, rhs]
    return (stmtsObj ++ stmtsSub ++ [newStmt])
-compileAssign (Py.Var { var_ident = ident}) rhs = do
-   let newStmt = qualStmt $ infixApp (identToMangledVar ident) Prim.assignOp rhs
-   return [newStmt]
+compileAssign (Py.Var { var_ident = ident}) rhs =
+   (:[]) <$> qualStmt <$> compileWrite ident rhs
 compileAssign lhs _rhs = error $ "Assignment to " ++ prettyText lhs
 
 compileUnpack :: [Py.ExprSpan] -> Hask.Exp -> Compile [Stmt]
@@ -563,12 +605,12 @@ compileUnpack exps rhs = do
    returnStmt $ appFun Prim.unpack [pat, rhs]
    where
    mkUnpackPat :: [Py.ExprSpan] -> Hask.Exp
-   mkUnpackPat listExps = 
-      appFun (Con $ UnQual $ name "G") 
+   mkUnpackPat listExps =
+      appFun (Con $ UnQual $ name "G")
              [ intE $ fromIntegral $ length listExps
              , listE $ map unpackComponent listExps]
    unpackComponent :: Py.ExprSpan ->  Hask.Exp
-   unpackComponent (Py.Var { var_ident = ident }) = 
+   unpackComponent (Py.Var { var_ident = ident }) =
       App (Con $ UnQual $ name "V") (identToMangledVar ident)
    unpackComponent (Py.List { list_exprs = elements }) = mkUnpackPat elements 
    unpackComponent (Py.Tuple { tuple_exprs = elements }) = mkUnpackPat elements
@@ -631,41 +673,41 @@ declareVar :: ToIdentString a => a -> Compile Hask.Stmt
 declareVar ident = do
    let mangledPatVar = identToMangledPatVar ident
        str = strE $ identString ident
-   return $ genStmt bogusSrcLoc mangledPatVar $ app Prim.variable str 
+   return $ genStmt bogusSrcLoc mangledPatVar $ app Prim.variable str
 
 compileGuard :: Hask.Exp -> (ExprSpan, SuiteSpan) -> Compile Hask.Exp
-compileGuard elseExp (guard, body) = 
+compileGuard elseExp (guard, body) =
    Hask.conditional <$> compileExprBlock guard <*> compileSuiteDo body <*> pure elseExp
 
 imports :: [ImportDecl]
 imports = [importBerp, importPrelude]
 
 importBerp :: ImportDecl
-importBerp = 
+importBerp =
    ImportDecl
-   { importLoc = bogusSrcLoc 
-   , importModule = Prim.berpModuleName 
-   , importQualified = False 
-   , importSrc = False 
-   , importAs  = Nothing 
-   , importSpecs = Nothing 
+   { importLoc = bogusSrcLoc
+   , importModule = Prim.berpModuleName
+   , importQualified = False
+   , importSrc = False
+   , importAs  = Nothing
+   , importSpecs = Nothing
    , importPkg = Nothing
    }
 
 importPrelude :: ImportDecl
-importPrelude = 
+importPrelude =
    ImportDecl
-   { importLoc = bogusSrcLoc 
-   , importModule = Prim.preludeModuleName 
-   , importQualified = True 
-   , importSrc = False 
-   , importAs  = Nothing 
-   , importSpecs = Nothing 
+   { importLoc = bogusSrcLoc
+   , importModule = Prim.preludeModuleName
+   , importQualified = True
+   , importSrc = False
+   , importAs  = Nothing
+   , importSpecs = Nothing
    , importPkg = Nothing
    }
 
 identToMangledName :: ToIdentString a => a -> Hask.Name
-identToMangledName = name . mangle . identString  
+identToMangledName = name . mangle . identString
 
 identToMangledVar :: ToIdentString a => a -> Hask.Exp
 identToMangledVar = Hask.var . identToMangledName
@@ -680,9 +722,9 @@ class Validate t where
 instance Validate [HandlerSpan] where
    validate [] = fail "Syntax Error: Syntax Error: try statement must have one or more handlers"
    validate [_] = return ()
-   validate (h:hs) 
+   validate (h:hs)
        | Nothing <- except_clause $ handler_clause h
-            = if null hs then return () 
+            = if null hs then return ()
                          else fail "Syntax Error: default 'except:' must be last"
        | otherwise = validate hs
 
@@ -698,16 +740,24 @@ trimString (x:xs)
    | otherwise = x : trimStringEnd xs
 
 trimStringEnd :: String -> String
-trimStringEnd [] = [] 
+trimStringEnd [] = []
 trimStringEnd str@[x]
       | isQuote x = []
       | otherwise = str
 trimStringEnd str@[x,y,z]
       | all isQuote str && all (== x) [y,z] = []
-      | otherwise = x : trimStringEnd [y,z] 
-trimStringEnd (x:xs) = x : trimStringEnd xs 
+      | otherwise = x : trimStringEnd [y,z]
+trimStringEnd (x:xs) = x : trimStringEnd xs
 
 isQuote :: Char -> Bool
 isQuote '\'' = True
 isQuote '"' = True
 isQuote _ = False 
+
+-- test if a variable is global
+isGlobal :: ToIdentString a => a -> Compile Bool
+isGlobal ident = withScope $ \scope -> Scope.isGlobal (toIdentString ident) scope
+
+-- test if a variable is local
+isLocal :: IdentString -> Compile Bool
+isLocal ident = withScope $ \scope -> Scope.isLocal ident scope

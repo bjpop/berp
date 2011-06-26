@@ -19,7 +19,7 @@ import Berp.Base.Prims (binOp)
 import Berp.Base.SemanticTypes (Object (..))
 import Berp.Base.Identity (newIdentity)
 import {-# SOURCE #-} Berp.Base.StdTypes.Bool (bool)
-import Berp.Base.Attributes (mkAttributes)
+import Berp.Base.Attributes (mkAttributesList)
 import Berp.Base.StdNames
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.ObjectBase (objectBase)
@@ -44,7 +44,7 @@ stringClass = constantIO $ do
    newType [string "str", objectBase, dict]
 
 attributes :: IO Object
-attributes = mkAttributes
+attributes = mkAttributesList
    [ (specialEqName, eq)
    , (specialStrName, str)
    , (specialAddName, add)

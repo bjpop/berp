@@ -76,7 +76,7 @@ hashObject object = do
       Integer {} -> return $ fromInteger $ object_integer hashResult
       _other -> fail $ "__hash__ method on object does not return an integer: " ++ show object
 
-empty :: MonadIO m => m HashTable 
+empty :: MonadIO m => m HashTable
 empty = newIORef IntMap.empty
 
 fromList :: [(Object, Object)] -> Eval HashTable
@@ -128,9 +128,9 @@ stringInsert (hashValue, str) value hashTable = do
          let stringObject = string str
          valRef <- newIORef value
          let newTable = IntMap.insert hashValue [(stringObject, valRef)] table 
-         writeIORef hashTable newTable 
+         writeIORef hashTable newTable
       Just matches -> do
-         updated <- linearInsertString str matches value 
+         updated <- linearInsertString str matches value
          if updated
             then return ()
             else do
@@ -141,11 +141,11 @@ stringInsert (hashValue, str) value hashTable = do
                writeIORef hashTable newTable
    where
    linearInsertString :: MonadIO m => String -> [(Object, ObjectRef)] -> Object -> m Bool 
-   linearInsertString _ [] _ = return False 
+   linearInsertString _ [] _ = return False
    linearInsertString str ((key, valRef) : rest) obj
       | objectEqualityString str key = do
            writeIORef valRef obj
-           return True 
+           return True
       | otherwise = linearInsertString str rest obj
 
 -- XXX Potential space leak by not deleteing old versions of key in the table.

@@ -20,7 +20,7 @@ import Berp.Base.Monad (constantIO)
 import Berp.Base.SemanticTypes (Procedure, Object (..), Eval)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.HashSet as Hash (fromList, empty, elements, insert)
-import Berp.Base.Attributes (mkAttributes)
+import Berp.Base.Attributes (mkAttributesList)
 import Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.ObjectBase (objectBase)
 import Berp.Base.StdTypes.String (string)
@@ -69,7 +69,7 @@ setClass = constantIO $ do
 
 
 attributes :: IO Object
-attributes = mkAttributes
+attributes = mkAttributesList
    [ (specialEqName, primitive 2 eq)
    , (specialStrName, primitive 1 str)
    , (addName, primitive 2 add)

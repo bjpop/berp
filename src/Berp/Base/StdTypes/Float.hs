@@ -17,7 +17,7 @@ import Berp.Base.Monad (constantIO)
 import Berp.Base.Prims (primitive, raise)
 import Berp.Base.SemanticTypes (Object (..), Eval)
 import Berp.Base.Identity (newIdentity)
-import Berp.Base.Attributes (mkAttributes)
+import Berp.Base.Attributes (mkAttributesList)
 import Berp.Base.StdNames
 import Berp.Base.Builtins (notImplementedError)
 import Berp.Base.Operators
@@ -43,7 +43,7 @@ floatClass = constantIO $ do
    newType [string "float", objectBase, dict]
 
 attributes :: IO Object
-attributes = mkAttributes
+attributes = mkAttributesList
    [ (specialAddName, add)
    , (specialSubName, sub)
    , (specialMulName, mul)

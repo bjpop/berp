@@ -22,7 +22,7 @@ import Berp.Base.Prims (primitive, yield, pass, showObject)
 import Berp.Base.Monad (constantIO)
 import Berp.Base.SemanticTypes (Procedure, Object (..), Eval, ListArray)
 import Berp.Base.Identity (newIdentity)
-import Berp.Base.Attributes (mkAttributes)
+import Berp.Base.Attributes (mkAttributesList)
 import Berp.Base.StdNames
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.ObjectBase (objectBase)
@@ -137,7 +137,7 @@ listClass = constantIO $ do
    newType [string "list", objectBase, dict]
 
 attributes :: IO Object
-attributes = mkAttributes
+attributes = mkAttributesList
    [ (specialEqName, eq)
    , (specialStrName, primitive 1 str)
    , (specialGetItemName, primitive 2 getItem)

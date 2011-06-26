@@ -17,17 +17,29 @@
 
 module Berp.Base.SemanticTypes
    ( Procedure, ControlStack (..), EvalState (..), Object (..), Eval, ObjectRef
-   , HashTable, HashSet, ListArray, Arity, ModuleCache )  where
+   , HashTable, HashSet, ListArray, Arity, ModuleCache, GlobalScope (..)
+   , initState )  where
 
 import System.IO (Handle)
 import Control.Monad.State.Strict (StateT)
 import Control.Monad.Cont (ContT)
 import Data.IntMap (IntMap)
-import Data.Map (Map)
+import Data.Map as Map (Map, empty)
 import Data.IORef (IORef)
 import Data.Complex (Complex)
 import Data.Array.IO (IOArray)
 import Berp.Base.Identity (Identity)
+
+data GlobalScope
+   = TopGlobalScope { global_scope_bindings :: !HashTable }
+   | NestedGlobalScope
+     { global_scope_bindings :: !HashTable
+     , global_scope_tail :: GlobalScope
+     }
+
+instance Show GlobalScope where
+   show (TopGlobalScope {}) = "TopGlobalScope"
+   show (NestedGlobalScope {}) = "NestedGlobalScope"
 
 data ControlStack
    = EmptyStack
@@ -61,6 +73,7 @@ instance Show ControlStack where
 data EvalState =
    EvalState
    { control_stack :: !ControlStack
+   , state_global_scope :: !GlobalScope
    -- the handles are motivated by dynamic linking which seems to
    -- invalidate them, at least for ghc 6.12.3. I'm not sure if
    -- this is the expected semantics of plugins.
@@ -68,6 +81,17 @@ data EvalState =
    , state_stdout :: !Handle
    , state_stderr :: !Handle
    , state_moduleCache :: !ModuleCache
+   }
+
+initState :: Handle -> Handle -> Handle -> HashTable -> EvalState
+initState stdin stdout stderr globalScope =
+   EvalState
+   { control_stack = EmptyStack
+   , state_global_scope = TopGlobalScope globalScope
+   , state_stdin = stdin
+   , state_stdout = stdout
+   , state_stderr = stderr
+   , state_moduleCache = Map.empty
    }
 
 type ModuleCache = Map String Object
@@ -155,6 +179,7 @@ data Object
      , object_procedure :: !Procedure
      , object_arity :: !Arity
      , object_dict :: !Object -- dictionary
+     , object_global_scope :: !(Maybe HashTable) -- primitives don't have a global scope
      }
    | String
      { object_identity :: !Identity

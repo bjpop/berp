@@ -27,12 +27,13 @@ module Berp.Base.Prims
    , def, lambda, returnGenerator, printObject, topVar, Applicative.pure
    , pureObject, showObject, returningProcedure, pyCallCC, unpack
    , next, setitem, Pat (G, V), getIterator, mapIterator
-   , importModule, importModuleRef) where
+   , importModule, importModuleRef, readGlobal, writeGlobal, readLocal
+   , writeLocal, getGlobalScopeHashTable ) where
 
 import Prelude hiding (break, read, putStr)
 import System.Plugins (load_, LoadStatus (..))
 import Control.Monad (zipWithM)
-import Control.Monad.State (gets)
+import Control.Monad.State (gets, modify)
 import Control.Monad.Cont (callCC)
 import Data.Array.IO (getElems)
 import Berp.Compile (compilePythonToObjectFile)
@@ -44,7 +45,7 @@ import qualified Control.Applicative as Applicative (pure)
 import Control.Applicative ((<$>))
 import Berp.Base.Monad (withStdout, updateModuleCache, lookupModuleCache)
 import Berp.Base.SemanticTypes
-   ( Object (..), ObjectRef, Procedure, Eval, EvalState(..), ControlStack(..), Arity )
+   ( HashTable, Object (..), ObjectRef, Procedure, Eval, EvalState(..), ControlStack(..), Arity, GlobalScope (..) )
 import Berp.Base.Truth (truth)
 import {-# SOURCE #-} Berp.Base.Object
    ( typeOf, dictOf, lookupAttribute, lookupSpecialAttribute, objectEquality, isIterator )
@@ -53,13 +54,13 @@ import Berp.Base.ControlStack
 import Berp.Base.StdNames (specialDocName, specialStrName, specialSetItemName, specialGetItemName, specialNextName, specialIterName)
 import Berp.Base.Exception (RuntimeError (..), throw)
 import Berp.Base.Ident (Ident)
-import {-# SOURCE #-} Berp.Base.HashTable as Hash (stringInsert, insert)
+import {-# SOURCE #-} Berp.Base.HashTable as Hash (empty, stringInsert, insert, stringLookup)
 import {-# SOURCE #-} Berp.Base.StdTypes.Function (function)
 import {-# SOURCE #-} Berp.Base.StdTypes.List (updateListElement)
 import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
 import {-# SOURCE #-} Berp.Base.StdTypes.Bool (true, false)
 import {-# SOURCE #-} Berp.Base.StdTypes.Generator (generator)
-import {-# SOURCE #-} Berp.Base.Builtins.Exceptions (stopIteration, typeError, valueError)
+import {-# SOURCE #-} Berp.Base.Builtins.Exceptions (stopIteration, typeError, valueError, nameError)
 
 data Pat = G Int [Pat] | V ObjectRef
 
@@ -68,8 +69,11 @@ data Pat = G Int [Pat] | V ObjectRef
 pureObject :: Object -> Eval Object
 pureObject = Applicative.pure
 
+getGlobalScopeHashTable :: Eval HashTable
+getGlobalScopeHashTable = global_scope_bindings <$> gets state_global_scope
+
 primitive :: Arity -> Procedure -> Object
-primitive arity = function arity . returningProcedure
+primitive arity proc = function arity (returningProcedure proc) Nothing
 
 returningProcedure :: Procedure -> Procedure
 returningProcedure proc args = do
@@ -86,7 +90,31 @@ var :: Ident -> Eval ObjectRef
 var s = newIORef (error $ "undefined variable: " ++ s)
 
 read :: ObjectRef -> Eval Object
-read = readIORef 
+read = readIORef
+
+readLocal :: ObjectRef -> Eval Object
+readLocal = readIORef
+
+writeLocal :: ObjectRef -> Object -> Eval Object
+writeLocal var obj = writeIORef var obj >> return none
+
+readGlobal :: Hashed String -> Eval Object
+readGlobal var = do
+   -- scope <- gets state_global_scope
+   -- bindings <- readIORef $ global_scope_bindings scope
+   -- let bindings = global_scope_bindings scope
+   globalScope <- getGlobalScopeHashTable
+   maybeObj <- stringLookup var globalScope
+   case maybeObj of
+      -- Nothing -> raise nameError
+      Nothing -> error (snd var)
+      Just obj -> return obj
+
+writeGlobal :: Hashed String -> Object -> Eval Object
+writeGlobal var obj = do
+   globalScope <- getGlobalScopeHashTable
+   stringInsert var obj globalScope
+   return none
 
 ret :: Object -> Eval Object
 ret obj = do
@@ -94,7 +122,7 @@ ret obj = do
    procedure_return stack obj
 
 pass :: Eval Object
-pass = return none 
+pass = return none
 
 break :: Eval Object
 break = do
@@ -110,39 +138,52 @@ continue = do
 -- are not printed by default, so it matches the same behaviour as the
 -- CPython interpreter.
 (=:) :: ObjectRef -> Object -> Eval Object
-ident =: obj = writeIORef ident obj >> return none 
+ident =: obj = writeIORef ident obj >> return none
 
 -- XXX we could have specialised versions for certain small arities and thus
 -- dispense with the list of objects
-(@@) :: Object -> [Object] -> Eval Object 
+(@@) :: Object -> [Object] -> Eval Object
 obj @@ args = do
-    case obj of 
-        Function { object_procedure = proc, object_arity = arity }
-           | arity == -1 || arity == length args -> 
-                callProcedure proc args 
+    case obj of
+        Function { object_procedure = proc
+                 , object_arity = arity
+                 , object_global_scope = globals }
+           | arity == -1 || arity == length args -> do
+                pushGlobalScope globals
+                result <- callProcedure proc args
+                popGlobalScope
+                return result
            -- XXX should be raise of arity, typeError exception
-           | otherwise -> raise typeError 
+           | otherwise -> raise typeError
+        -- XXX not sure if this needs global scope push/pop
         Type { object_constructor = proc } -> callProcedure proc args
         -- XXX should try to find "__call__" attribute on object
-        _other -> raise typeError 
+        _other -> raise typeError
 
 callProcedure :: Procedure -> [Object] -> Eval Object
-callProcedure proc args = 
-   callCC $ \ret -> do 
+callProcedure proc args =
+   callCC $ \ret -> do
       push $ ProcedureCall ret
-      proc args 
+      proc args
 
-tailCall :: Object -> [Object] -> Eval Object 
+-- need to hanfle global scope properly. Can't push/pop, that would invalidate
+-- the tail call. Instead need to modify in place the top global scope.
+tailCall :: Object -> [Object] -> Eval Object
 tailCall obj args = do
-    case obj of 
-        Function { object_procedure = proc, object_arity = arity }
-           | arity == -1 || arity == length args -> proc args
-           | otherwise -> raise typeError 
+    case obj of
+        Function { object_procedure = proc
+                 , object_arity = arity
+                 , object_global_scope = globals }
+           | arity == -1 || arity == length args -> do
+                modifyGlobalScope globals
+                proc args
+           | otherwise -> raise typeError
+        -- XXX not sure if we have to handle global scope here
         Type { object_constructor = proc } -> proc args
         -- XXX should try to find "__call__" attribute on object
         _other -> raise typeError
 
-ifThenElse :: Eval Object -> Eval Object -> Eval Object -> Eval Object 
+ifThenElse :: Eval Object -> Eval Object -> Eval Object -> Eval Object
 ifThenElse condComp trueComp falseComp = do
     cond <- condComp
     if truth cond then trueComp else falseComp
@@ -174,18 +215,18 @@ desugars to --->
       suite2
 -}
 
-for :: ObjectRef -> Object -> Eval Object -> Eval Object
-for var exp body = forElse var exp body pass 
+for :: Object -> (Object -> Eval Object) -> Eval Object
+for exp body = forElse exp body pass
 
-forElse :: ObjectRef -> Object -> Eval Object -> Eval Object -> Eval Object
-forElse var expObj suite1 suite2 = do
+forElse :: Object -> (Object -> Eval Object) -> Eval Object -> Eval Object
+forElse expObj suite1 suite2 = do
    iterObj <- callMethod expObj specialIterName [] -- this could be specialised
    cond <- newIORef true
    let tryBlock = do -- nextObj <- callMethod iterObj specialNextName [] -- this could be specialised
                      nextObj <- next iterObj
-                     writeIORef var nextObj
-                     suite1
-   let handler e = except e stopIteration ((writeIORef cond false) >> pass) (raise e) 
+                     -- writeIORef var nextObj
+                     suite1 nextObj
+   let handler e = except e stopIteration ((writeIORef cond false) >> pass) (raise e)
    let whileBlock = try tryBlock handler
    whileElse (readIORef cond) whileBlock suite2
 
@@ -398,25 +439,26 @@ generatorNext (obj:_) = do
    ret result
 generatorNext [] = error "Generator applied to no arguments"
 
-def :: ObjectRef -> Arity -> Object -> ([ObjectRef] -> Eval Object) -> Eval Object
-def ident arity docString fun = do
-   let procedureObj = function arity closure
+def :: Arity -> Object -> ([ObjectRef] -> Eval Object) -> Eval Object
+def arity docString fun = do
+   globalScope <- getGlobalScopeHashTable
+   let procedureObj = function arity closure (Just globalScope)
    _ <- setattr procedureObj specialDocName docString
-   writeIORef ident procedureObj
-   return none
+   return procedureObj
    where
    closure :: Procedure
    closure params = do
-      argsRefs <- mapM newIORef params 
-      fun argsRefs 
+      argsRefs <- mapM newIORef params
+      fun argsRefs
 
 lambda :: Arity -> ([ObjectRef] -> Eval Object) -> Eval Object
-lambda arity fun = 
-   return $ function arity closure 
+lambda arity fun = do
+   globalScope <- getGlobalScopeHashTable
+   return $ function arity closure (Just globalScope)
    where
-   closure :: Procedure 
+   closure :: Procedure
    closure params = do
-      argsRefs <- mapM newIORef params 
+      argsRefs <- mapM newIORef params
       fun argsRefs
 
 returnGenerator :: Eval Object -> Eval Object
@@ -440,10 +482,12 @@ pyCallCC :: Object -> Eval Object
 pyCallCC fun =
    callCC $ \ret -> do
       context <- getControlStack
-      let cont = function 1 $ \(obj:_) -> do
-                    -- XXX should this run finalisers on the way out?
-                    setControlStack context
-                    ret obj
+      let cont = function 1
+                          (\(obj:_) -> do
+                             -- XXX should this run finalisers on the way out?
+                             setControlStack context
+                             ret obj)
+                          Nothing
       -- XXX can this be a tail call?
       fun @@ [cont]
 
@@ -546,3 +590,44 @@ compileModuleAndLoadInit path = do
                case loadStatus of
                   LoadSuccess _module init -> init
                   LoadFailure errs -> error ("load failed: " ++ show errs)
+
+{-
+mkModule :: Eval Object
+mkModule = do
+   dict <- mkAttributes =<< getGlobalScopeHashTable
+   identity <- newIdentity
+   return $
+      Module { object_identity = identity
+             , object_dict = dict }
+-}
+
+pushGlobalScope :: Maybe HashTable -> Eval ()
+-- we don't have a readl hashtable to push (ie for prims) so we duplicate the top
+-- of the stack, to make sure we have something to pop later
+pushGlobalScope Nothing = do
+   scope <- gets state_global_scope
+   let hashTable = global_scope_bindings scope
+   let newScope = NestedGlobalScope hashTable scope
+   modify $ \state -> state { state_global_scope = newScope }
+pushGlobalScope (Just hashTable) = do
+   scope <- gets state_global_scope
+   let newScope = NestedGlobalScope hashTable scope
+   modify $ \state -> state { state_global_scope = newScope }
+
+popGlobalScope :: Eval ()
+popGlobalScope = do
+   scope <- gets state_global_scope
+   case scope of
+      NestedGlobalScope {} ->
+         modify $ \state -> state { state_global_scope = global_scope_tail scope }
+      -- XXX this should be an exception
+      TopGlobalScope {} -> error "tried to pop the top global scope"
+
+modifyGlobalScope :: Maybe HashTable -> Eval ()
+-- we don't have a real hashtable, so leave the global scope alone
+-- eg we are doing a tail call on a primitive.
+modifyGlobalScope Nothing = return ()
+modifyGlobalScope (Just hashTable) = do
+   oldHashTable <- getGlobalScopeHashTable
+   newTable <- readIORef hashTable
+   writeIORef oldHashTable newTable

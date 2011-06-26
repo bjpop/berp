@@ -18,7 +18,7 @@ import Berp.Base.Monad (constantIO)
 import Berp.Base.Prims (primitive, raise)
 import Berp.Base.SemanticTypes (Object (..), Eval)
 import Berp.Base.Identity (newIdentity)
-import Berp.Base.Attributes (mkAttributes)
+import Berp.Base.Attributes (mkAttributesList)
 import Berp.Base.Builtins (typeError, notImplementedError)
 import Berp.Base.StdNames
 import Berp.Base.Truth (truth)
@@ -59,7 +59,7 @@ boolClass = constantIO $ do
    mkBool _other = raise typeError
 
 attributes :: IO Object
-attributes = mkAttributes
+attributes = mkAttributesList
    [ (specialAndName, and)
    , (specialOrName, or)
    , (specialStrName, str)

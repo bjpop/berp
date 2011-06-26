@@ -13,13 +13,13 @@
 
 module Berp.Base.StdTypes.Module (mkModule, moduleClass) where
 
--- import Berp.Base.Prims (primitive)
+import Berp.Base.Prims (getGlobalScopeHashTable)
 import Control.Applicative ((<$>))
 import Berp.Base.LiftedIO (readIORef)
 import Berp.Base.Monad (constantIO)
 import Berp.Base.SemanticTypes (Object (..), ObjectRef, Eval)
 import Berp.Base.Identity (newIdentity)
-import Berp.Base.Attributes (mkAttributes)
+import Berp.Base.Attributes (mkAttributes, mkAttributesList)
 import Berp.Base.Hash (Hashed)
 -- import Berp.Base.StdNames
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
@@ -33,13 +33,24 @@ moduleClass = constantIO $ do
    newType [string "module", objectBase, dict]
 
 attributes :: IO Object
-attributes = mkAttributes [ ]
+attributes = mkAttributesList []
 
 -- Maybe this belongs in Prims, but we end up with more cyclic dependencies.
+-- XXX fixme
+
+mkModule :: Eval Object
+mkModule = do
+   dict <- mkAttributes =<< getGlobalScopeHashTable
+   identity <- newIdentity
+   return $
+      Module { object_identity = identity
+             , object_dict = dict }
+
+{-
 mkModule :: [(Hashed String, ObjectRef)] -> Eval Object
 mkModule namesRefs = do
    namesObjs <- mapM toNameObj namesRefs
-   dict <- mkAttributes namesObjs
+   dict <- mkAttributesList namesObjs
    identity <- newIdentity
    return $
       Module { object_identity = identity
@@ -47,3 +58,4 @@ mkModule namesRefs = do
    where
    toNameObj :: (Hashed String, ObjectRef) -> Eval (Hashed String, Object)
    toNameObj (s, ref) = ((,) s) <$> readIORef ref
+-}

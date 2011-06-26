@@ -31,8 +31,9 @@ import System.Exit (ExitCode (..), exitWith)
 import Berp.Version (versionString)
 -- import Berp.Compile.Driver (compilePythonToHaskell, compileHaskellToExe)
 import System.IO (stdin, stdout, stderr)
-import Berp.Base (importModule, runEval)
-
+import Berp.Base (importModule, runEval, initBuiltins)
+import Berp.Base.HashTable as HashTable (empty)
+import Berp.Base.SemanticTypes (initState)
 
 main :: IO ()
 main = do
@@ -48,7 +49,10 @@ main = do
    case maybeInputDetails of
       Nothing -> return () -- XXX call the interpreter.
       Just (sourceName, _fileContents) -> do
-         _module <- runEval stdin stdout stderr $ importModule sourceName
+         -- _module <- runEval stdin stdout stderr $ importModule sourceName
+         globalScope <- HashTable.empty
+         _module <- runEval (initState stdin stdout stderr globalScope)
+                            (initBuiltins >> importModule sourceName)
          return ()
 
 getInputDetails :: Args ArgIndex -> IO (Maybe (FilePath, String))

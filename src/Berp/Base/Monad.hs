@@ -21,26 +21,28 @@ import System.IO (Handle)
 import Control.Monad.State.Strict (evalStateT, gets, modify)
 import Control.Monad.Cont (runContT)
 import System.IO.Unsafe (unsafePerformIO)
-import Berp.Base.SemanticTypes (Object (..), Eval, EvalState (..), ControlStack(EmptyStack))
+import qualified Data.Map as Map (lookup, insert)
+import Berp.Base.SemanticTypes
+   (Object (..), Eval, EvalState (..), ControlStack (EmptyStack), GlobalScope (..))
 -- import Berp.Base.Prims (printObject)
 import Berp.Base.LiftedIO as LIO (putStr)
-import qualified Data.Map as Map (Map, empty, lookup, insert)
 
-runEval :: Handle -> Handle -> Handle -> Eval Object -> IO Object
-runEval stdin stdout stderr comp =
-   runContT (evalStateT comp state) return
-   where
-   state = initState stdin stdout stderr
 
-initState :: Handle -> Handle -> Handle -> EvalState
-initState stdin stdout stderr =
+runEval :: EvalState -> Eval Object -> IO Object
+runEval state comp = runContT (evalStateT comp state) return
+
+{-
+initState :: Handle -> Handle -> Handle -> HashTable -> EvalState
+initState stdin stdout stderr globalScope =
    EvalState
    { control_stack = EmptyStack
+   , global_scope = TopGlobalScope globalScope
    , state_stdin = stdin
    , state_stdout = stdout
    , state_stderr = stderr
    , state_moduleCache = Map.empty
    }
+-}
 
 lookupModuleCache :: String -> Eval (Maybe Object)
 lookupModuleCache moduleName =
@@ -85,14 +87,17 @@ interpretStmt comp = undefined
 constantIO :: IO a -> a
 constantIO = unsafePerformIO
 
+-- XXX this needs to be removed
 constantEval :: Eval Object -> Object
 constantEval comp = constantIO $ runContT (evalStateT comp constantState) return
 
 -- Use with extra care
+-- XXX this needs to be removed
 constantState :: EvalState
 constantState =
    EvalState
    { control_stack = EmptyStack
+   , state_global_scope = error "global scope not defined for constant state"
    , state_stdin = error "stdin not defined for constant state"
    , state_stdout = error "stdout not defined for constant state"
    , state_stderr = error "stderr not defined for constant state"
