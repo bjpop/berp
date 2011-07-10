@@ -89,17 +89,20 @@ instance Compilable ModuleSpan where
                     importedModules)
       where
       initDecl :: Hask.Exp -> Hask.Decl
-      initDecl = patBind bogusSrcLoc $ pvar $ name "init"
+      initDecl = patBind bogusSrcLoc $ pvar $ name initName
       pragmas = []
       warnings = Nothing
-      exports = Nothing -- should change this to init
+      exports = Just [EVar $ UnQual $ name initName]
       srcImports names = mkImportStmts $ map mkSrcImport names
       stdImports = mkImportStmts [(Prim.preludeModuleName,False,Just []),
                                   (Prim.berpModuleName,False,Nothing)]
       imports names = stdImports ++ srcImports (map mkBerpModuleName names)
 
+initName :: String
+initName = "init"
+
 mkSrcImport :: String -> (ModuleName, Bool, Maybe [String])
-mkSrcImport name = (ModuleName name, True, Just ["init"])
+mkSrcImport name = (ModuleName name, True, Just [initName])
 
 mkImportStmts :: [(ModuleName, Bool, Maybe [String])] -> [ImportDecl]
 mkImportStmts = map toImportStmt
@@ -119,35 +122,6 @@ toImportStmt (moduleName, qualified, items) =
 mkImportSpecs :: Maybe [String] -> Maybe (Bool, [ImportSpec])
 mkImportSpecs Nothing = Nothing
 mkImportSpecs (Just items) = Just (False, map (IVar . name) items)
-
-{-
-imports :: [ImportDecl]
-imports = [importBerp, importPrelude]
-
-importBerp :: ImportDecl
-importBerp =
-   ImportDecl
-   { importLoc = bogusSrcLoc
-   , importModule = Prim.berpModuleName
-   , importQualified = False
-   , importSrc = False
-   , importAs  = Nothing
-   , importSpecs = Nothing
-   , importPkg = Nothing
-   }
-
-importPrelude :: ImportDecl
-importPrelude =
-   ImportDecl
-   { importLoc = bogusSrcLoc
-   , importModule = Prim.preludeModuleName
-   , importQualified = True
-   , importSrc = False
-   , importAs  = Nothing
-   , importSpecs = Nothing
-   , importPkg = Nothing
-   }
--}
 
 instance Compilable StatementSpan where
    type (CompileResult StatementSpan) = [Stmt]
@@ -216,7 +190,6 @@ instance Compilable StatementSpan where
    -}
    compile (StmtExpr { stmt_expr = expr }) = do
       (stmts, compiledExpr) <- compileExprComp expr
-      -- let newStmt = qualStmt $ app Prim.stmt $ parens compiledExpr
       let newStmt = qualStmt $ compiledExpr
       return (stmts ++ [newStmt])
    compile (While { while_cond = cond, while_body = body, while_else = elseSuite }) = do
@@ -230,7 +203,6 @@ instance Compilable StatementSpan where
    -- XXX fixme, only supports one target
    compile (For { for_targets = [var], for_generator = generator, for_body = body, for_else = elseSuite }) = do
       (generatorStmts, compiledGenerator) <- compileExprObject generator
-      -- compiledBody <- compileSuiteDo body
       compiledStmtss <- compile body
       newVar  <- freshHaskellVar
       writeStmt <- qualStmt <$> compileWrite var (Hask.var newVar)
@@ -257,7 +229,6 @@ instance Compilable StatementSpan where
       attributes <- qualStmt <$> app Prim.pure <$> listE <$> mapM compileClassLocal locals
       let klassExp = appFun Prim.klass
                         [ strE $ identString ident
-                        -- , identToMangledVar ident
                         , listE compiledArgs
                         , parens $ doBlock $ compiledBody ++ [attributes]]
 
@@ -278,7 +249,6 @@ instance Compilable StatementSpan where
       let handlerLam = lamE bogusSrcLoc [pvar asName] handlerExp
       compiledElse <- compile elseSuite
       compiledFinally <- compile finally
-      -- returnStmt $ appFun Prim.try [parens bodyExp, handlerLam]
       returnStmt $ mkTry (parens bodyExp) handlerLam (concat compiledElse) (concat compiledFinally)
    compile (Raise { raise_expr = RaiseV3 raised }) = 
       case raised of
@@ -316,20 +286,18 @@ compileWrite ident exp = do
 instance Compilable ImportItemSpan where
    type CompileResult ImportItemSpan = [Hask.Stmt]
    compile (ImportItem {import_item_name = dottedName, import_as_name = maybeAsName }) =
-      case maybeAsName of
-         Just _asName -> error "import as name not supported"
-         Nothing ->
-            case dottedName of
-               [ident] -> do
-                  let identStr = ident_string ident
-                      berpIdentStr = mkBerpModuleName identStr
-                  let importExp = appFun Prim.importModule
-                                     [strE identStr, qvar (ModuleName berpIdentStr) (name "init")]
-                  (binderStmts, binderExp) <- stmtBinder importExp
-                  writeStmt <- qualStmt <$> compileWrite ident binderExp
-                  addImport identStr
-                  return (binderStmts ++ [writeStmt])
-               _other -> error ("import of " ++ show dottedName ++ " not supported")
+      case dottedName of
+         [ident] -> do
+            let identStr = ident_string ident
+                berpIdentStr = mkBerpModuleName identStr
+                importExp = appFun Prim.importModule
+                                     [strE identStr, qvar (ModuleName berpIdentStr) (name initName)]
+            (binderStmts, binderExp) <- stmtBinder importExp
+            let objectName = maybe ident id maybeAsName
+            writeStmt <- qualStmt <$> compileWrite objectName binderExp
+            addImport identStr
+            return (binderStmts ++ [writeStmt])
+         _other -> error ("import of " ++ show dottedName ++ " not supported")
 
 mkBerpModuleName :: String -> String
 mkBerpModuleName = ("Berp_" ++)

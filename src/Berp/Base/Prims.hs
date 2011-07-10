@@ -559,11 +559,6 @@ mapIterator f obj = do
          f =<< next iterObj
          pass
 
-{-
-importModuleRef :: FilePath -> Eval ObjectRef
-importModuleRef path = newIORef =<< importModule path
--}
-
 importModule :: FilePath -> Eval Object -> Eval Object
 importModule path comp = do
    maybeImported <- lookupModuleCache path
@@ -574,51 +569,8 @@ importModule path comp = do
          updateModuleCache path obj
          return obj
 
-{-
-         liftIO $ putStrLn $ "loading " ++ path
-         obj <- compileModuleAndLoadInit path
-         liftIO $ putStrLn $ "loaded " ++ path
-         updateModuleCache path obj
-         return obj
--}
-
-{-
-compileModuleAndLoadInit :: FilePath -> Eval Object
-compileModuleAndLoadInit path = do
-{-
-   maybePath <- findModulePath name
-   case maybePath of
-      Nothing -> raise ("could not find module")
-      Just path -> do
-         compiled <- isCompiled path
-         if compiled
-            then liftIO $ load path "init"
-            else do
--}
-               liftIO $ putStrLn "compiling to object file"
-               moduleUnique <- nextModuleUnique
-               objFile <- liftIO $ compilePythonToObjectFile path -- may raise exception
-               liftIO $ putStrLn "compiled to object file"
-               liftIO $ putStrLn $ "loading " ++ " " ++ objFile
-               loadStatus <- liftIO $ load_ objFile [] "init" -- should catch haskell exceptions here
-               liftIO $ putStrLn "loaded"
-               case loadStatus of
-                  LoadSuccess _module init -> init
-                  LoadFailure errs -> error ("load failed: " ++ show errs)
--}
-
-{-
-mkModule :: Eval Object
-mkModule = do
-   dict <- mkAttributes =<< getGlobalScopeHashTable
-   identity <- newIdentity
-   return $
-      Module { object_identity = identity
-             , object_dict = dict }
--}
-
 pushGlobalScope :: Maybe HashTable -> Eval ()
--- we don't have a readl hashtable to push (ie for prims) so we duplicate the top
+-- we don't have a real hashtable to push (ie for prims) so we duplicate the top
 -- of the stack, to make sure we have something to pop later
 pushGlobalScope Nothing = do
    scope <- gets state_global_scope
