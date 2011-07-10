@@ -54,12 +54,15 @@ attributes = mkAttributesList
    , (specialStrName, str)
    ]
 
-eq :: Object 
+eq :: Object
 eq = error "== on tuple not defined"
 
-str :: Object 
-str = primitive 1 $ \[x] -> do
-   strings <- mapM showObject $ object_tuple x
-   case strings of
-      [oneString] -> return $ string $ "(" ++ oneString ++ ",)"
-      _other -> return $ string $ "(" ++ concat (intersperse ", " strings) ++ ")"
+str :: Object
+str = primitive 1 fun
+   where
+   fun (x:_) = do
+      strings <- mapM showObject $ object_tuple x
+      case strings of
+         [oneString] -> return $ string $ "(" ++ oneString ++ ",)"
+         _other -> return $ string $ "(" ++ concat (intersperse ", " strings) ++ ")"
+   fun _other = error "str method on tuple applied to wrong number of arguments"

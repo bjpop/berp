@@ -51,10 +51,22 @@ attributes = mkAttributesList
    ]
 
 eq :: Object
-eq = primitive 2 $ \[x,y] -> binOp x y object_string (==) (Prelude.return . bool)
+-- eq = primitive 2 $ \(x:y:_) -> binOp x y object_string (==) (Prelude.return . bool)
+eq = primitive 2 fun
+   where
+   fun (x:y:_) = binOp x y object_string (==) (Prelude.return . bool)
+   fun _other = error "eq method on strings applied to wrong number of arguments"
 
 str :: Object
-str = primitive 1 $ \[x] -> Prelude.return x
+-- str = primitive 1 $ \(x:_) -> Prelude.return x
+str = primitive 1 fun
+   where
+   fun (x:_) = Prelude.return x
+   fun _other = error "str method on strings applied to wrong number of arguments"
 
 add :: Object
-add = primitive 2 $ \[x,y] -> binOp x y object_string (++) (Prelude.return . string)
+-- add = primitive 2 $ \(x:y:_) -> binOp x y object_string (++) (Prelude.return . string)
+add = primitive 2 fun
+   where
+   fun (x:y:_) = binOp x y object_string (++) (Prelude.return . string)
+   fun _other = error "add method on strings applied to wrong number of arguments"

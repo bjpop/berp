@@ -27,23 +27,23 @@ module Berp.Base.Prims
    , def, lambda, returnGenerator, printObject, topVar, Applicative.pure
    , pureObject, showObject, returningProcedure, pyCallCC, unpack
    , next, setitem, Pat (G, V), getIterator, mapIterator
-   , importModule, importModuleRef, readGlobal, writeGlobal, readLocal
+   , importModule, readGlobal, writeGlobal, readLocal
    , writeLocal, getGlobalScopeHashTable ) where
 
 import Prelude hiding (break, read, putStr)
-import System.Plugins (load_, LoadStatus (..))
+-- import System.Plugins (load_, LoadStatus (..))
 import Control.Monad (zipWithM)
 import Control.Monad.State (gets, modify)
 import Control.Monad.Cont (callCC)
 import Data.Array.IO (getElems)
-import Berp.Compile (compilePythonToObjectFile)
-import Berp.Base.LiftedIO as LIO (readIORef, writeIORef, newIORef, hPutStr, liftIO)
+-- import Berp.Compile (compilePythonToObjectFile)
+import Berp.Base.LiftedIO as LIO (readIORef, writeIORef, newIORef, liftIO, putStr)
 #ifdef DEBUG
 import Berp.Base.LiftedIO as LIO (putStrLn)
 #endif
 import qualified Control.Applicative as Applicative (pure)
 import Control.Applicative ((<$>))
-import Berp.Base.Monad (withStdout, updateModuleCache, lookupModuleCache)
+import Berp.Base.Monad ( updateModuleCache, lookupModuleCache)
 import Berp.Base.SemanticTypes
    ( HashTable, Object (..), ObjectRef, Procedure, Eval, EvalState(..), ControlStack(..), Arity, GlobalScope (..) )
 import Berp.Base.Truth (truth)
@@ -54,13 +54,13 @@ import Berp.Base.ControlStack
 import Berp.Base.StdNames (specialDocName, specialStrName, specialSetItemName, specialGetItemName, specialNextName, specialIterName)
 import Berp.Base.Exception (RuntimeError (..), throw)
 import Berp.Base.Ident (Ident)
-import {-# SOURCE #-} Berp.Base.HashTable as Hash (empty, stringInsert, insert, stringLookup)
+import {-# SOURCE #-} Berp.Base.HashTable as Hash (stringInsert, insert, stringLookup)
 import {-# SOURCE #-} Berp.Base.StdTypes.Function (function)
 import {-# SOURCE #-} Berp.Base.StdTypes.List (updateListElement)
 import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
 import {-# SOURCE #-} Berp.Base.StdTypes.Bool (true, false)
 import {-# SOURCE #-} Berp.Base.StdTypes.Generator (generator)
-import {-# SOURCE #-} Berp.Base.Builtins.Exceptions (stopIteration, typeError, valueError, nameError)
+import {-# SOURCE #-} Berp.Base.Builtins.Exceptions (stopIteration, typeError, valueError)
 
 data Pat = G Int [Pat] | V ObjectRef
 
@@ -469,9 +469,7 @@ returnGenerator cont = do
 printObject :: Object -> Eval ()
 printObject obj = do
    str <- showObject obj
-   -- stdout <- getStdout
-   -- hPutStr stdout str
-   withStdout $ \h -> hPutStr h str
+   LIO.putStr str
 
 showObject :: Object -> Eval String
 -- XXX this should really choose the right quotes based on the content of the string.
@@ -482,14 +480,15 @@ pyCallCC :: Object -> Eval Object
 pyCallCC fun =
    callCC $ \ret -> do
       context <- getControlStack
-      let cont = function 1
-                          (\(obj:_) -> do
-                             -- XXX should this run finalisers on the way out?
-                             setControlStack context
-                             ret obj)
-                          Nothing
+      let cont = function 1 (contFun ret context) Nothing
       -- XXX can this be a tail call?
       fun @@ [cont]
+   where
+   contFun ret context (obj:_) = do
+      -- XXX should this run finalisers on the way out?
+      setControlStack context
+      ret obj
+   contFun _ret _context _other = error "continuation applied to the wrong number of arguments"
 
 next :: Object -> Eval Object
 next obj = callMethod obj specialNextName []
@@ -560,19 +559,30 @@ mapIterator f obj = do
          f =<< next iterObj
          pass
 
+{-
 importModuleRef :: FilePath -> Eval ObjectRef
 importModuleRef path = newIORef =<< importModule path
+-}
 
-importModule :: FilePath -> Eval Object
-importModule path = do
+importModule :: FilePath -> Eval Object -> Eval Object
+importModule path comp = do
    maybeImported <- lookupModuleCache path
    case maybeImported of
       Just obj -> return obj
       Nothing -> do
-         obj <- compileModuleAndLoadInit path
+         obj <- comp
          updateModuleCache path obj
          return obj
 
+{-
+         liftIO $ putStrLn $ "loading " ++ path
+         obj <- compileModuleAndLoadInit path
+         liftIO $ putStrLn $ "loaded " ++ path
+         updateModuleCache path obj
+         return obj
+-}
+
+{-
 compileModuleAndLoadInit :: FilePath -> Eval Object
 compileModuleAndLoadInit path = do
 {-
@@ -585,11 +595,17 @@ compileModuleAndLoadInit path = do
             then liftIO $ load path "init"
             else do
 -}
+               liftIO $ putStrLn "compiling to object file"
+               moduleUnique <- nextModuleUnique
                objFile <- liftIO $ compilePythonToObjectFile path -- may raise exception
+               liftIO $ putStrLn "compiled to object file"
+               liftIO $ putStrLn $ "loading " ++ " " ++ objFile
                loadStatus <- liftIO $ load_ objFile [] "init" -- should catch haskell exceptions here
+               liftIO $ putStrLn "loaded"
                case loadStatus of
                   LoadSuccess _module init -> init
                   LoadFailure errs -> error ("load failed: " ++ show errs)
+-}
 
 {-
 mkModule :: Eval Object

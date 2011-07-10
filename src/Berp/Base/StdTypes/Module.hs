@@ -14,14 +14,10 @@
 module Berp.Base.StdTypes.Module (mkModule, moduleClass) where
 
 import Berp.Base.Prims (getGlobalScopeHashTable)
-import Control.Applicative ((<$>))
-import Berp.Base.LiftedIO (readIORef)
 import Berp.Base.Monad (constantIO)
-import Berp.Base.SemanticTypes (Object (..), ObjectRef, Eval)
+import Berp.Base.SemanticTypes (Object (..), Eval)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes, mkAttributesList)
-import Berp.Base.Hash (Hashed)
--- import Berp.Base.StdNames
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.ObjectBase (objectBase)
 import Berp.Base.StdTypes.String (string)

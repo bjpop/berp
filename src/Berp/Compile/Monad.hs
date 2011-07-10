@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, FlexibleInstances, TypeFamilies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, FlexibleInstances, MultiParamTypeClasses #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -17,22 +17,40 @@ module Berp.Compile.Monad where
 
 import Prelude hiding (catch)
 import Control.Monad.State.Strict as State hiding (State)
-import Language.Python.Common.AST
+-- import Control.Monad.IO.Class (MonadIO (..))
+import Control.Monad.State.Class (MonadState (..))
 import Language.Python.Common.SrcLocation
+import Language.Python.Common.AST (IdentSpan, Ident (..))
 import Language.Haskell.Exts.Syntax (Name)
 import Language.Haskell.Exts.Build (name)
 import Control.Applicative hiding (empty)
-import qualified MonadUtils (MonadIO (..))
-import Exception (ExceptionMonad (..))
-import Control.Exception.Extensible (block, unblock, catch)
-import Berp.Compile.Scope (VarSet, Scope (..), emptyScope)
+-- import Control.Monad
+-- import qualified MonadUtils (MonadIO (..))
+-- import Exception (ExceptionMonad (..))
+-- import Control.Exception.Extensible (block, unblock, catch)
+import qualified Data.Set as Set (Set, insert, empty)
+import Berp.Compile.Scope (Scope (..), emptyScope)
+
+type ImportSet = Set.Set String
 
 data State
     = State
       { unique :: !Integer
       , seenYield :: !Bool
       , scope :: Scope
+      , importModules :: !ImportSet
       }
+
+getImports :: Compile ImportSet
+getImports = gets importModules
+
+setImports :: ImportSet -> Compile ()
+setImports is = modify $ \state -> state { importModules = is }
+
+addImport :: String -> Compile ()
+addImport i = do
+   imports <- getImports
+   setImports $ Set.insert i imports
 
 withScope :: (Scope -> b) -> Compile b
 withScope f = do
@@ -51,32 +69,42 @@ initState
      { unique = 0
      , seenYield = False
      , scope = emptyScope
+     , importModules = Set.empty
      }
 
 newtype Compile a
    = Compile (StateT State IO a)
-   deriving (Monad, Functor, MonadIO, ExceptionMonad, Applicative)
+   -- deriving (Monad, Functor, MonadIO, ExceptionMonad, Applicative)
+   deriving (Monad, Functor, MonadIO, Applicative)
 
 -- the MonadState instance can't be derived by GHC
 -- because we're using the monads-tf (type families), and they 
 -- cause the GHC deriver to choke. Sigh.
 
-instance MonadState Compile where
-   type (StateType Compile) = State
+
+
+instance MonadState State Compile where
+   -- type (StateType Compile) = State
    get = Compile get
    put s = Compile $ put s
 
+
+
 -- needed to use Compile inside the GhcT monad transformer.
-instance MonadUtils.MonadIO Compile where
+{-
+instance MonadIO Compile where
    liftIO = State.liftIO
+-}
 
 -- needed to use Compile inside the GhcT monad transformer.
 -- instance (Monoid w) => ExceptionMonad (RWST r w s IO) where
+{-
 instance ExceptionMonad (StateT s IO) where
     gcatch m f = StateT $ \s -> runStateT m s
                            `catch` \e -> runStateT (f e) s
     gblock       = mapStateT block
     gunblock     = mapStateT unblock
+-}
 
 runCompileMonad :: Compile a -> IO a
 runCompileMonad (Compile comp) =

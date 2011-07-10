@@ -19,14 +19,11 @@ import Prelude hiding (print, id)
 import Control.Monad (when)
 import System.IO (stdout)
 import Data.List (intersperse)
-import Berp.Base.SemanticTypes (Object (..), Procedure, Eval, ObjectRef)
-import Berp.Base.Mangle (mangle)
+import Berp.Base.SemanticTypes (Object (..), Procedure, Eval)
 import qualified Berp.Base.Prims as Prims (printObject, pyCallCC, primitive)
-import Berp.Base.Builtins.Utils (primFun)
-import Berp.Base.LiftedIO as LIO (hFlush, hPutStr, hPutChar, getLine)
+import Berp.Base.LiftedIO as LIO (hFlush, putStr, putChar, getLine)
 import qualified Berp.Base.Object as Object (dir, identityOf)
 import Berp.Base.Unique (uniqueInteger)
-import Berp.Base.Monad (withStdout)
 import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 import {-# SOURCE #-} Berp.Base.StdTypes.Integer (int)
@@ -44,7 +41,7 @@ input = do
       return $ string str
    printer :: Object -> Eval ()
    printer obj@(String {}) = do
-      withStdout $ \h -> LIO.hPutStr h $ object_string obj
+      LIO.putStr $ object_string obj
    printer other = Prims.printObject other
 
 print :: Object
@@ -53,11 +50,11 @@ print =
    where
    procedure :: Procedure
    procedure objs = do
-      sequence_ $ intersperse (withStdout $ \h -> LIO.hPutChar h ' ') $ map printer objs
-      withStdout $ flip LIO.hPutChar '\n'
+      sequence_ $ intersperse (LIO.putChar ' ') $ map printer objs
+      LIO.putChar '\n'
       return none
    printer :: Object -> Eval ()
-   printer obj@(String {}) = withStdout $ \h -> LIO.hPutStr h $ object_string obj
+   printer obj@(String {}) = LIO.putStr $ object_string obj
    printer other = Prims.printObject other
 
 dir :: Object

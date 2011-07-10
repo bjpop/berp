@@ -19,7 +19,7 @@ configure:
 
 .PHONY : install 
 install:
-	cabal install
+	cabal install --disable-library-profiling --disable-executable-profiling --disable-documentation
 
 .PHONY : test
 test:

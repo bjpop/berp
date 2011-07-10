@@ -67,12 +67,15 @@ mkOp :: (Object -> Object -> Eval Object) ->
         (Object -> Object -> Eval Object) ->
         (Object -> Object -> Eval Object) ->
         Object
-mkOp opComplex opFloat opInt = primitive 2 $ \[x,y] ->
-   case y of
-      Complex {} -> opComplex x y
-      Float {} -> opFloat x y
-      Integer {} -> opInt x y
-      _other -> raise notImplementedError
+mkOp opComplex opFloat opInt = primitive 2 fun
+   where
+   fun (x:y:_) =
+      case y of
+         Complex {} -> opComplex x y
+         Float {} -> opFloat x y
+         Integer {} -> opInt x y
+         _other -> raise notImplementedError
+   fun _other = error "operator on Complex applied to wrong number of arguments"
 
 add :: Object
 add = mkOp addComplexComplexComplex addComplexFloatComplex addComplexIntComplex
@@ -90,7 +93,10 @@ eq :: Object
 eq = mkOp eqComplexComplexBool eqComplexFloatBool eqComplexIntBool
 
 str :: Object
-str = primitive 1 $ \[x] -> return $ string $ showComplex x
+str = primitive 1 fun
+   where
+   fun (x:_) = return $ string $ showComplex x
+   fun _other = error "str method on Complex applied to wrong number of arguments"
 
 showComplex :: Object -> String
 showComplex obj

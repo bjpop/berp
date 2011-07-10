@@ -57,11 +57,14 @@ attributes = mkAttributesList
    ]
 
 mkOp :: (Object -> Object -> Eval Object) -> (Object -> Object -> Eval Object) -> Object
-mkOp opFloat opInt = primitive 2 $ \[x,y] ->
-   case y of
-      Float {} -> opFloat x y
-      Integer {} -> opInt x y
-      _other -> raise notImplementedError
+mkOp opFloat opInt = primitive 2 fun
+   where
+   fun (x:y:_) =
+      case y of
+         Float {} -> opFloat x y
+         Integer {} -> opInt x y
+         _other -> raise notImplementedError
+   fun _other = error "operator on Float applied to wrong number of arguments"
 
 add :: Object
 add = mkOp addFloatFloatFloat addFloatIntFloat
@@ -91,4 +94,7 @@ eq :: Object
 eq = mkOp eqFloatFloatBool eqFloatIntBool
 
 str :: Object
-str = primitive 1 $ \[x] -> return $ string $ show $ object_float x
+str = primitive 1 fun
+   where
+   fun (x:_) = return $ string $ show $ object_float x
+   fun _other = error "str method on Float applied to wrong number of arguments"

@@ -17,7 +17,6 @@ module Berp.Base.Builtins
 
 import Berp.Base.SemanticTypes (Eval, Object)
 import Berp.Base.Hash (hashedStr)
-import Berp.Base.Mangle (mangle)
 import Berp.Base.Prims (writeGlobal)
 import Berp.Base.Builtins.Constants as Constants
    (object, _s_object, _s_type, _s_bool, _s_set)
@@ -47,5 +46,5 @@ initBuiltins = do
 
 defineBuiltin :: String -> Object -> Eval ()
 defineBuiltin name obj = do
-   writeGlobal (hashedStr name) obj
+   _ <- writeGlobal (hashedStr name) obj
    return ()

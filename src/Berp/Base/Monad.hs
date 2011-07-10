@@ -12,37 +12,21 @@
 -----------------------------------------------------------------------------
 
 module Berp.Base.Monad
-   ( runEval, interpretStmt, constantIO, constantEval, withStdout
+   ( runEval, interpretStmt, constantIO, constantEval
    , updateModuleCache, lookupModuleCache
    ) where
 
 import Control.Applicative ((<$>))
-import System.IO (Handle)
 import Control.Monad.State.Strict (evalStateT, gets, modify)
 import Control.Monad.Cont (runContT)
 import System.IO.Unsafe (unsafePerformIO)
 import qualified Data.Map as Map (lookup, insert)
 import Berp.Base.SemanticTypes
-   (Object (..), Eval, EvalState (..), ControlStack (EmptyStack), GlobalScope (..))
--- import Berp.Base.Prims (printObject)
-import Berp.Base.LiftedIO as LIO (putStr)
+   (Object (..), Eval, EvalState (..), ControlStack (EmptyStack))
 
 
 runEval :: EvalState -> Eval Object -> IO Object
 runEval state comp = runContT (evalStateT comp state) return
-
-{-
-initState :: Handle -> Handle -> Handle -> HashTable -> EvalState
-initState stdin stdout stderr globalScope =
-   EvalState
-   { control_stack = EmptyStack
-   , global_scope = TopGlobalScope globalScope
-   , state_stdin = stdin
-   , state_stdout = stdout
-   , state_stderr = stderr
-   , state_moduleCache = Map.empty
-   }
--}
 
 lookupModuleCache :: String -> Eval (Maybe Object)
 lookupModuleCache moduleName =
@@ -54,17 +38,11 @@ updateModuleCache moduleName object = do
    oldCache <- gets state_moduleCache
    modify $ \state -> state { state_moduleCache = Map.insert moduleName object oldCache }
 
-withStdout :: (Handle -> Eval a) -> Eval a
-withStdout f = f =<< getStdout
-
-getStdout :: Eval Handle
-getStdout = gets state_stdout
-
 -- This is used by the interactive interpreter to evaluate the 
 -- statements entered by the user. Note that it does not print
 -- None values, following the same behaviour of CPython.
 interpretStmt :: Eval Object -> IO ()
-interpretStmt comp = undefined
+interpretStmt _comp = undefined
 {-
    _ <- runExpr $ do
       obj <- comp
@@ -98,8 +76,5 @@ constantState =
    EvalState
    { control_stack = EmptyStack
    , state_global_scope = error "global scope not defined for constant state"
-   , state_stdin = error "stdin not defined for constant state"
-   , state_stdout = error "stdout not defined for constant state"
-   , state_stderr = error "stderr not defined for constant state"
    , state_moduleCache = error "module cache not defined for constant state"
    }

@@ -55,10 +55,13 @@ attributes = mkAttributesList
    ]
 
 mkOp :: (Object -> Object -> Eval Object) -> Object
-mkOp op = primitive 2 $ \[x,y] ->
-   case y of
-      Integer {} -> op x y
-      _other -> raise notImplementedError
+mkOp op = primitive 2 fun
+   where
+   fun (x:y:_) =
+      case y of
+         Integer {} -> op x y
+         _other -> raise notImplementedError
+   fun _other = error "operator on Int applied to wrong number of arguments"
 
 add :: Object
 add = mkOp addIntIntInt
@@ -91,4 +94,7 @@ modulus :: Object
 modulus = mkOp modIntIntInt
 
 str :: Object
-str = primitive 1 $ \[x] -> return $ string $ show $ object_integer x
+str = primitive 1 fun
+   where
+   fun (x:_) = return $ string $ show $ object_integer x
+   fun _other = error "str method on Int applied to the wrong number of arguments"

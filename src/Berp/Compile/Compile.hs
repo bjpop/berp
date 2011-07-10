@@ -13,7 +13,7 @@
 --
 -----------------------------------------------------------------------------
 
-module Berp.Compile.Compile (patchModuleName, compiler, Compilable (..)) where
+module Berp.Compile.Compile (compiler, Compilable (..)) where
 
 import Prelude hiding (read, init, mapM, putStrLn, sequence)
 import Language.Python.Common.PrettyAST ()
@@ -35,8 +35,8 @@ import Berp.Compile.Utils
 import Berp.Base.Mangle (mangle)
 import Berp.Base.Hash (Hash (..))
 import Berp.Compile.IdentString (IdentString (..), ToIdentString (..), identString)
-import Berp.Compile.Scope as Scope (Scope (..), VarSet, topBindings, funBindings)
-import qualified Berp.Compile.Scope as Scope (isGlobal, isLocal)
+import Berp.Compile.Scope as Scope (Scope (..), topBindings, funBindings)
+import qualified Berp.Compile.Scope as Scope (isGlobal)
 
 compiler :: Compilable a => a -> IO (CompileResult a)
 compiler = runCompileMonad . compile
@@ -75,38 +75,79 @@ instance Compilable InterpreterStmt where
       initDecl :: Hask.Exp -> Hask.Decl
       initDecl = patBind bogusSrcLoc $ pvar Prim.initName
 
-patchModuleName :: String -> Hask.Module -> Hask.Module
-patchModuleName newName (Hask.Module loc _name pragmas warnings exports imports decls)
-   = Hask.Module loc (ModuleName newName) pragmas warnings exports imports decls
-
 instance Compilable ModuleSpan where
-   type CompileResult ModuleSpan = Hask.Module
+   type CompileResult ModuleSpan = String -> (Hask.Module, [String])
    compile (Py.Module suite) = do
-      -- bindings <- checkEither $ topBindings suite
       stmts <- nestedScope topBindings $ compile $ Block suite
-      -- mkMod <- mkModuleStmt $ localVars bindings
       let allStmts = stmts ++ [qualStmt Prim.mkModule]
-      let init = initDecl $ doBlock allStmts
-      return $ Hask.Module bogusSrcLoc modName pragmas warnings exports imports [init]
+      importedModules <- Set.toList <$> getImports
+      return $ \modName ->
+                   let init = initDecl $ doBlock allStmts in
+                   (Hask.Module bogusSrcLoc
+                      (ModuleName modName) pragmas warnings exports
+                      (imports importedModules) [init],
+                    importedModules)
       where
-      modName = ModuleName "M" -- this will get patched later
       initDecl :: Hask.Exp -> Hask.Decl
-      initDecl = patBind bogusSrcLoc $ pvar Prim.initName
-{-
-      mkModuleStmt :: VarSet -> Compile [Hask.Stmt]
-      mkModuleStmt vars = do
-         let varList = Set.toList vars
-         compiledVars <- mapM compileExportedVar varList
-         returnStmt $ app Prim.mkModule $ listE compiledVars
-      compileExportedVar :: IdentString -> Compile Hask.Exp
-      compileExportedVar ident = do
-         compiledIdent <- compile ident
-         let haskVar = Hask.var $ identToMangledName ident
-         return $ Hask.tuple [compiledIdent, haskVar]
--}
+      initDecl = patBind bogusSrcLoc $ pvar $ name "init"
       pragmas = []
       warnings = Nothing
       exports = Nothing -- should change this to init
+      srcImports names = mkImportStmts $ map mkSrcImport names
+      stdImports = mkImportStmts [(Prim.preludeModuleName,False,Just []),
+                                  (Prim.berpModuleName,False,Nothing)]
+      imports names = stdImports ++ srcImports (map mkBerpModuleName names)
+
+mkSrcImport :: String -> (ModuleName, Bool, Maybe [String])
+mkSrcImport name = (ModuleName name, True, Just ["init"])
+
+mkImportStmts :: [(ModuleName, Bool, Maybe [String])] -> [ImportDecl]
+mkImportStmts = map toImportStmt
+
+toImportStmt :: (ModuleName, Bool, Maybe [String]) -> ImportDecl
+toImportStmt (moduleName, qualified, items) =
+   ImportDecl
+   { importLoc = bogusSrcLoc
+   , importModule = moduleName
+   , importQualified = qualified
+   , importSrc = False
+   , importAs  = Nothing
+   , importSpecs = mkImportSpecs items
+   , importPkg = Nothing
+   }
+
+mkImportSpecs :: Maybe [String] -> Maybe (Bool, [ImportSpec])
+mkImportSpecs Nothing = Nothing
+mkImportSpecs (Just items) = Just (False, map (IVar . name) items)
+
+{-
+imports :: [ImportDecl]
+imports = [importBerp, importPrelude]
+
+importBerp :: ImportDecl
+importBerp =
+   ImportDecl
+   { importLoc = bogusSrcLoc
+   , importModule = Prim.berpModuleName
+   , importQualified = False
+   , importSrc = False
+   , importAs  = Nothing
+   , importSpecs = Nothing
+   , importPkg = Nothing
+   }
+
+importPrelude :: ImportDecl
+importPrelude =
+   ImportDecl
+   { importLoc = bogusSrcLoc
+   , importModule = Prim.preludeModuleName
+   , importQualified = True
+   , importSrc = False
+   , importAs  = Nothing
+   , importSpecs = Nothing
+   , importPkg = Nothing
+   }
+-}
 
 instance Compilable StatementSpan where
    type (CompileResult StatementSpan) = [Stmt]
@@ -194,7 +235,6 @@ instance Compilable StatementSpan where
       newVar  <- freshHaskellVar
       writeStmt <- qualStmt <$> compileWrite var (Hask.var newVar)
       let lambdaBody = lamE bogusSrcLoc [pvar newVar] $ doBlock $ (writeStmt : concat compiledStmtss)
-      let compiledVar = identToMangledVar var
       if isEmptySuite elseSuite
          then return (generatorStmts ++ [qualStmt $ appFun Prim.for [compiledGenerator, parens lambdaBody]])
          else do
@@ -256,7 +296,7 @@ instance Compilable StatementSpan where
                  return (stmts1 ++ stmts2 ++ [newStmt])
    compile (Break {}) = returnStmt Prim.break
    compile (Continue {}) = returnStmt Prim.continue
-   compile (Import { import_items = items }) = mapM compile items
+   compile (Import { import_items = items }) = concat <$> mapM compile items
    compile other = unsupported $ prettyText other
 
 compileRead :: ToIdentString a => a -> Compile Exp
@@ -274,18 +314,25 @@ compileWrite ident exp = do
    return $ appFun writer [compiledIdent, exp]
 
 instance Compilable ImportItemSpan where
-   type CompileResult ImportItemSpan = Hask.Stmt
+   type CompileResult ImportItemSpan = [Hask.Stmt]
    compile (ImportItem {import_item_name = dottedName, import_as_name = maybeAsName }) =
       case maybeAsName of
-         Just _asName -> undefined
+         Just _asName -> error "import as name not supported"
          Nothing ->
             case dottedName of
                [ident] -> do
-                  let mangledPatVar = identToMangledPatVar ident
-                  return $ genStmt bogusSrcLoc
-                                   mangledPatVar
-                                   $ app Prim.importModuleRef $ strE $ (ident_string ident ++ ".py")
-               other -> error ("import of " ++ show dottedName ++ " not supported")
+                  let identStr = ident_string ident
+                      berpIdentStr = mkBerpModuleName identStr
+                  let importExp = appFun Prim.importModule
+                                     [strE identStr, qvar (ModuleName berpIdentStr) (name "init")]
+                  (binderStmts, binderExp) <- stmtBinder importExp
+                  writeStmt <- qualStmt <$> compileWrite ident binderExp
+                  addImport identStr
+                  return (binderStmts ++ [writeStmt])
+               _other -> error ("import of " ++ show dottedName ++ " not supported")
+
+mkBerpModuleName :: String -> String
+mkBerpModuleName = ("Berp_" ++)
 
 docString :: SuiteSpan -> Exp
 docString (StmtExpr { stmt_expr = Strings { strings_strings = ss }} : _)
@@ -679,32 +726,7 @@ compileGuard :: Hask.Exp -> (ExprSpan, SuiteSpan) -> Compile Hask.Exp
 compileGuard elseExp (guard, body) =
    Hask.conditional <$> compileExprBlock guard <*> compileSuiteDo body <*> pure elseExp
 
-imports :: [ImportDecl]
-imports = [importBerp, importPrelude]
 
-importBerp :: ImportDecl
-importBerp =
-   ImportDecl
-   { importLoc = bogusSrcLoc
-   , importModule = Prim.berpModuleName
-   , importQualified = False
-   , importSrc = False
-   , importAs  = Nothing
-   , importSpecs = Nothing
-   , importPkg = Nothing
-   }
-
-importPrelude :: ImportDecl
-importPrelude =
-   ImportDecl
-   { importLoc = bogusSrcLoc
-   , importModule = Prim.preludeModuleName
-   , importQualified = True
-   , importSrc = False
-   , importAs  = Nothing
-   , importSpecs = Nothing
-   , importPkg = Nothing
-   }
 
 identToMangledName :: ToIdentString a => a -> Hask.Name
 identToMangledName = name . mangle . identString
@@ -757,7 +779,3 @@ isQuote _ = False
 -- test if a variable is global
 isGlobal :: ToIdentString a => a -> Compile Bool
 isGlobal ident = withScope $ \scope -> Scope.isGlobal (toIdentString ident) scope
-
--- test if a variable is local
-isLocal :: IdentString -> Compile Bool
-isLocal ident = withScope $ \scope -> Scope.isLocal ident scope

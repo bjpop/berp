@@ -20,7 +20,6 @@ module Berp.Base.SemanticTypes
    , HashTable, HashSet, ListArray, Arity, ModuleCache, GlobalScope (..)
    , initState )  where
 
-import System.IO (Handle)
 import Control.Monad.State.Strict (StateT)
 import Control.Monad.Cont (ContT)
 import Data.IntMap (IntMap)
@@ -74,15 +73,18 @@ data EvalState =
    EvalState
    { control_stack :: !ControlStack
    , state_global_scope :: !GlobalScope
-   -- the handles are motivated by dynamic linking which seems to
-   -- invalidate them, at least for ghc 6.12.3. I'm not sure if
-   -- this is the expected semantics of plugins.
-   , state_stdin :: !Handle
-   , state_stdout :: !Handle
-   , state_stderr :: !Handle
    , state_moduleCache :: !ModuleCache
    }
 
+initState :: HashTable -> EvalState
+initState globalScope =
+   EvalState
+   { control_stack = EmptyStack
+   , state_global_scope = TopGlobalScope globalScope
+   , state_moduleCache = Map.empty
+   }
+
+{-
 initState :: Handle -> Handle -> Handle -> HashTable -> EvalState
 initState stdin stdout stderr globalScope =
    EvalState
@@ -92,7 +94,9 @@ initState stdin stdout stderr globalScope =
    , state_stdout = stdout
    , state_stderr = stderr
    , state_moduleCache = Map.empty
+   , state_moduleUnique = 0
    }
+-}
 
 type ModuleCache = Map String Object
 

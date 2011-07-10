@@ -14,26 +14,16 @@
 
 module Main where
 
--- import Language.Python.Version3.Parser (parseModule)
--- import Language.Python.Common.AST (ModuleSpan)
 import Control.Monad (when)
--- import Control.Applicative ((<$>))
--- import Language.Haskell.Exts.Pretty
--- import Berp.Compile.Compile (compiler, patchMainModule)
 import System.Console.ParseArgs
    (Argtype (..), argDataOptional, argDataDefaulted, Arg (..)
    , gotArg, getArg, parseArgsIO, ArgsComplete (..), Args(..))
--- import System.Cmd (system)
 import System.Exit (ExitCode (..), exitWith)
--- import System.FilePath ((</>), (<.>), takeBaseName)
--- import System.Directory (removeFile)
--- import Berp.Interpreter.Repl (repl)
+import System.FilePath (takeBaseName)
 import Berp.Version (versionString)
--- import Berp.Compile.Driver (compilePythonToHaskell, compileHaskellToExe)
-import System.IO (stdin, stdout, stderr)
-import Berp.Base (importModule, runEval, initBuiltins)
-import Berp.Base.HashTable as HashTable (empty)
-import Berp.Base.SemanticTypes (initState)
+import qualified Data.Set as Set (Set, empty, insert, notMember)
+import Berp.Compile (compilePythonToHaskell)
+import System.Cmd (system)
 
 main :: IO ()
 main = do
@@ -49,11 +39,21 @@ main = do
    case maybeInputDetails of
       Nothing -> return () -- XXX call the interpreter.
       Just (sourceName, _fileContents) -> do
-         -- _module <- runEval stdin stdout stderr $ importModule sourceName
-         globalScope <- HashTable.empty
-         _module <- runEval (initState stdin stdout stderr globalScope)
-                            (initBuiltins >> importModule sourceName)
+         compilePythonFilesToHaskell Set.empty [sourceName]
+         writeFile "Main.hs" (mkMainFunction $ mkHaskellModName sourceName)
+         -- XXX check exit codes
+         _ <- system "ghc --make -O2 Main.hs"
+         _ <- system "./Main"
          return ()
+
+compilePythonFilesToHaskell :: Set.Set String -> [FilePath] -> IO ()
+compilePythonFilesToHaskell _previous [] = return ()
+compilePythonFilesToHaskell previous (f:fs)
+   | f `Set.notMember` previous = do
+      (_haskellFile, imports) <- compilePythonToHaskell f
+      let pyImports = map (++ ".py") imports
+      compilePythonFilesToHaskell (Set.insert f previous) (fs ++ pyImports)
+   | otherwise = compilePythonFilesToHaskell previous fs
 
 getInputDetails :: Args ArgIndex -> IO (Maybe (FilePath, String))
 getInputDetails argMap =
@@ -62,6 +62,17 @@ getInputDetails argMap =
       Just inputFileName -> do
          cs <- readFile inputFileName
          return $ Just (inputFileName, cs)
+
+mkHaskellModName :: String -> String
+mkHaskellModName pyFileName = "Berp_" ++ takeBaseName pyFileName
+
+mkMainFunction :: String -> String
+mkMainFunction modName = unlines
+   [ "module Main where"
+   , "import Prelude ()"
+   , "import Berp.Base (run)"
+   , "import " ++ modName ++ " (init)"
+   , "main = run init" ]
 
 data ArgIndex
    = Help

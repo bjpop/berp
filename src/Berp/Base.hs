@@ -21,17 +21,17 @@ module Berp.Base
    , subs, try, tryElse, tryFinally, tryElseFinally, except, exceptDefault, raise, reRaise, raiseFrom
    , pure, pureObject, yield, generator, returnGenerator, unaryMinus, unaryPlus, invert, runEval
    , interpretStmt, topVar, unpack, setitem, Pat (..), complex, set, mkModule
-   , importModule, importModuleRef, readGlobal, writeGlobal, readLocal, writeLocal )
+   , importModule, readGlobal, writeGlobal, readLocal, writeLocal, run )
    where
 
-import Prelude ()
+import Prelude (IO, (>>), return)
 import Data.Complex as Complex (Complex (..))
 import Berp.Base.Builtins as Builtins
 import Berp.Base.Prims
    ( (=:), stmt, ifThenElse, ret, pass, break, continue, while, whileElse, for, forElse, ifThen,
      (@@), tailCall, read, var, setattr, subs, try, tryElse, tryFinally, tryElseFinally, except,
      exceptDefault, raise, reRaise, raiseFrom, yield, def, lambda, generator, returnGenerator, topVar, pure,
-     pureObject, unpack, setitem, Pat (..), importModule, importModuleRef, readGlobal, writeGlobal,
+     pureObject, unpack, setitem, Pat (..), importModule, readGlobal, writeGlobal,
      readLocal, writeLocal )
 import Berp.Base.Operators
    ((%), (+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), and, or, unaryMinus, unaryPlus, invert, not)
@@ -47,3 +47,13 @@ import Berp.Base.StdTypes.Dictionary (dictionary)
 import Berp.Base.StdTypes.Set (set)
 import Berp.Base.StdTypes.Complex (complex)
 import Berp.Base.StdTypes.Module (mkModule)
+import Berp.Base.HashTable as HashTable (empty)
+import Berp.Base.SemanticTypes (initState, Eval, Object)
+
+-- we put this here because it is hard to find a better home.
+-- probably need some module refactoring to find a better place.
+run :: Eval Object -> Prelude.IO ()
+run comp = do
+   table <- HashTable.empty
+   _ <- runEval (initState table) (Builtins.initBuiltins >> comp)
+   return ()

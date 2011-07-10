@@ -56,7 +56,10 @@ str :: Object
 str = primitive 1 $ \_ -> return $ string $ "Generator"
 
 iter :: Object
-iter = primitive 1 $ \(x:_) -> return x
+iter = primitive 1 fun
+   where
+   fun (x:_) = return x
+   fun _other = error "iter method on generator applied to the wrong number of arguments"
 
 next :: Object
 next = function 1 generatorNext Nothing

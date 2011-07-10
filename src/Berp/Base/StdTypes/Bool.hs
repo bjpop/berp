@@ -66,10 +66,13 @@ attributes = mkAttributesList
    ]
 
 mkOp :: (Object -> Object -> Eval Object) -> Object
-mkOp op = primitive 2 $ \[x,y] ->
-   case y of
-      Bool {} -> op x y
-      _other -> raise notImplementedError
+mkOp op = primitive 2 fun
+   where
+   fun (x:y:_) =
+      case y of
+         Bool {} -> op x y
+         _other -> raise notImplementedError
+   fun _other = error "operator on Bool applied to wrong number of arguments"
 
 and :: Object
 and = mkOp Op.and
@@ -78,4 +81,7 @@ or :: Object
 or = mkOp Op.or
 
 str :: Object
-str = primitive 1 $ \[x] -> Prelude.return $ string $ show $ object_bool x
+str = primitive 1 fun
+   where
+   fun (x:_) = Prelude.return $ string $ show $ object_bool x
+   fun _other = error "str method on Bool applied to wrong number of arguments"

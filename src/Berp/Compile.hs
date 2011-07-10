@@ -13,22 +13,39 @@
 --
 -----------------------------------------------------------------------------
 
-module Berp.Compile ( compilePythonToObjectFile ) where
+module Berp.Compile ( compilePythonToHaskell ) where
 
 import Language.Python.Version3.Parser (parseModule)
 import Language.Python.Common.AST (ModuleSpan)
-import Control.Applicative ((<$>))
-import Control.Monad (when)
 import Language.Haskell.Exts.Pretty (prettyPrint)
-import System.Cmd (system)
 import System.Directory (doesFileExist, getModificationTime)
--- import System.Exit (ExitCode (..))
--- import System.FilePath ((</>), (<.>), takeBaseName)
 import System.FilePath ((<.>), takeBaseName)
-import System.Plugins (make, MakeStatus (..))
-import Berp.Compile.Compile (compiler, patchModuleName)
+import Berp.Compile.Compile (compiler)
 
 -- XXX we need a way to find modules in a search path
+compilePythonToHaskell :: FilePath -> IO (FilePath, [String])
+compilePythonToHaskell path = do
+   fileExists <- doesFileExist path
+   if not fileExists
+      then error $ "Python source file not found: " ++ path
+      else do
+         let outputName = takeBaseName path
+             mangledName = "Berp_" ++ outputName
+             haskellFilename = mangledName <.> "hs"
+         needsCompilation <- isFileOutOfDate haskellFilename path
+         if needsCompilation
+            then do
+               fileContents <- readFile path
+               pyModule <- parseAndCheckErrors fileContents path
+               moduleMaker <- compiler pyModule
+               let (haskellMod, imports) = moduleMaker mangledName
+                   haskellSrc = prettyPrint haskellMod
+               writeFile haskellFilename (haskellSrc ++ "\n")
+               return (haskellFilename, imports)
+            else return (haskellFilename, [])
+
+-- XXX we need a way to find modules in a search path
+{-
 compilePythonToObjectFile :: FilePath -> IO FilePath
 compilePythonToObjectFile path = do
    fileExists <- doesFileExist path
@@ -39,30 +56,36 @@ compilePythonToObjectFile path = do
              mangledName = "Berp_" ++ outputName
              haskellFilename = mangledName <.> "hs"
              objectFilename = mangledName <.> "o"
-         needsCompilation <- isObjectFileOutOfDate objectFilename path
+         needsCompilation <- isFileOutOfDate objectFilename path
          when needsCompilation $ do
             fileContents <- readFile path
             pyModule <- parseAndCheckErrors fileContents path
-            haskellSrc <- prettyPrint <$> patchModuleName mangledName <$> compiler pyModule
+            -- haskellSrc <- prettyPrint <$> patchModuleName mangledName <$> compiler pyModule
+            moduleMaker <- compiler pyModule
+            let haskellSrc = prettyPrint $ moduleMaker mangledName
+            -- haskellSrc <- prettyPrint <$> compiler pyModule
             writeFile haskellFilename (haskellSrc ++ "\n")
-            compileStatus <- make haskellFilename ["-O2", "-v0"]
+            -- compileStatus <- make haskellFilename ["-O2", "-v0"]
+            -- compileStatus <- make haskellFilename ["-v0"]
+            compileStatus <- make haskellFilename ["-fPIC"]
             case compileStatus of
                MakeFailure errs -> error $ unlines errs
                MakeSuccess _makeCode _objectPath -> return ()
          return objectFilename
+-}
 
--- check if the object file is older/younger than the corresponding python file
--- Return True if the object file does not exist, or the object file is older than
+-- check if the file is older/younger than the corresponding python file
+-- Return True if the file does not exist, or the file is older than
 -- the Python file. Older means: has a time stamp _less_ than the other file.
 -- We assume we've already checked that the Python file exists.
-isObjectFileOutOfDate :: FilePath -> FilePath -> IO Bool
-isObjectFileOutOfDate objectPath pythonPath = do
-   objExist <- doesFileExist objectPath
-   if objExist
+isFileOutOfDate :: FilePath -> FilePath -> IO Bool
+isFileOutOfDate filePath pythonPath = do
+   exists <- doesFileExist filePath
+   if exists
       then do
-         objTime <- getModificationTime objectPath
+         time <- getModificationTime filePath
          pyTime <- getModificationTime pythonPath
-         return (objTime < pyTime)
+         return (time < pyTime)
       else return True
 
 parseAndCheckErrors :: String -> FilePath -> IO ModuleSpan

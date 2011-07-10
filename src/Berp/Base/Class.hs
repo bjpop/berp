@@ -20,7 +20,7 @@
 
 module Berp.Base.Class (klass) where
 
-import Berp.Base.LiftedIO (liftIO, MonadIO, writeIORef, readIORef)
+import Berp.Base.LiftedIO (liftIO, MonadIO, readIORef)
 import Berp.Base.Ident
 import Berp.Base.SemanticTypes (Eval, Object (..), ObjectRef)
 #ifdef DEBUG
@@ -42,7 +42,6 @@ klass className srcBases attributesComp = do
    attributesObjects <- mapM getIdentObj attributes
    classDict <- mkAttributesList attributesObjects
    typeObject <- liftIO $ newType [string className, tuple trueBases, classDict]
-   -- writeIORef ident $ typeObject
    IF_DEBUG((printObject $ object_mro typeObject) >> putStr "\n")
    return typeObject
    where

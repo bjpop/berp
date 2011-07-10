@@ -34,70 +34,18 @@ Executable berp
       src/include
   build-depends:
       base == 4.*,
-      -- monads-tf == 0.1.*,
-      monads-tf,
+      mtl == 2.*,
       transformers == 0.2.*,
       containers,
-      ghc-prim,
-      array < 0.4,
-      extensible-exceptions == 0.1.*,
       language-python,
-      ghc >= 6.10,
-      -- haskell-src-exts == 1.9.*,
       haskell-src-exts,
       filepath,
       process == 1.0.*,
-      -- parseargs == 0.1.*,
       parseargs,
-      plugins == 1.5.*,
-      -- directory == 1.0.*
       directory
   other-modules:
       Paths_berp
-      Berp.Base
-      Berp.Base.Hash
-      Berp.Base.Mangle
-      Berp.Version
       Berp.Compile
-      Berp.Base.Attributes
-      Berp.Base.Builtins
-      Berp.Base.Builtins.Constants
-      Berp.Base.Builtins.Exceptions
-      Berp.Base.Builtins.Functions
-      Berp.Base.Builtins.Utils
-      Berp.Base.Class
-      Berp.Base.ControlStack
-      Berp.Base.Exception
-      Berp.Base.ExitCodes
-      Berp.Base.HashSet
-      Berp.Base.HashTable
-      Berp.Base.Ident
-      Berp.Base.Identity
-      Berp.Base.LiftedIO
-      Berp.Base.Monad
-      Berp.Base.Object
-      Berp.Base.Operators
-      Berp.Base.Prims
-      Berp.Base.SemanticTypes
-      Berp.Base.StdNames
-      Berp.Base.StdTypes.Bool
-      Berp.Base.StdTypes.Complex
-      Berp.Base.StdTypes.Dictionary
-      Berp.Base.StdTypes.Float
-      Berp.Base.StdTypes.Function
-      Berp.Base.StdTypes.Generator
-      Berp.Base.StdTypes.Integer
-      Berp.Base.StdTypes.List
-      Berp.Base.StdTypes.Module
-      Berp.Base.StdTypes.None
-      Berp.Base.StdTypes.Object
-      Berp.Base.StdTypes.ObjectBase
-      Berp.Base.StdTypes.Set
-      Berp.Base.StdTypes.String
-      Berp.Base.StdTypes.Tuple
-      Berp.Base.StdTypes.Type
-      Berp.Base.Truth
-      Berp.Base.Unique
       Berp.Compile.Compile
       Berp.Compile.HsSyntaxUtils
       Berp.Compile.IdentString
@@ -115,29 +63,14 @@ Library
       src
    build-depends:
       base == 4.*,
-      -- monads-tf == 0.1.*,
-      monads-tf,
+      mtl == 2.*,
       transformers == 0.2.*,
       containers,
-      ghc-prim,
       array < 0.4,
       extensible-exceptions == 0.1.*,
-      language-python,
-      ghc >= 6.10,
-      -- haskell-src-exts == 1.9.*,
-      haskell-src-exts,
-      -- filepath == 1.1.*,
-      filepath,
-      process == 1.0.*,
-      -- parseargs == 0.1.*,
-      parseargs,
-      plugins == 1.5.*
+      filepath
    exposed-modules:
       Berp.Base
-      Berp.Base.Hash
-      Berp.Base.Mangle
-      Berp.Version
-      Berp.Compile
    other-modules:
       Paths_berp
       Berp.Base.Attributes
@@ -150,11 +83,13 @@ Library
       Berp.Base.ControlStack
       Berp.Base.Exception
       Berp.Base.ExitCodes
+      Berp.Base.Hash
       Berp.Base.HashSet
       Berp.Base.HashTable
       Berp.Base.Ident
       Berp.Base.Identity
       Berp.Base.LiftedIO
+      Berp.Base.Mangle
       Berp.Base.Monad
       Berp.Base.Object
       Berp.Base.Operators
@@ -179,11 +114,4 @@ Library
       Berp.Base.StdTypes.Type
       Berp.Base.Truth
       Berp.Base.Unique
-      Berp.Compile.Compile
-      Berp.Compile.IdentString
-      Berp.Compile.Monad
-      Berp.Compile.HsSyntaxUtils
-      Berp.Compile.PySyntaxUtils
-      Berp.Compile.PrimName
-      Berp.Compile.Scope
-      Berp.Compile.Utils
+      Berp.Version
