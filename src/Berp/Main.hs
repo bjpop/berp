@@ -20,6 +20,7 @@ import System.Console.ParseArgs
    , gotArg, getArg, parseArgsIO, ArgsComplete (..), Args(..))
 import System.Exit (ExitCode (..), exitWith)
 import System.FilePath (takeBaseName)
+import System.Directory (doesFileExist)
 import Berp.Version (versionString)
 import qualified Data.Set as Set (Set, empty, insert, notMember)
 import Berp.Compile (compilePythonToHaskell)
@@ -37,23 +38,32 @@ main = do
       exitWith ExitSuccess
    maybeInputDetails <- getInputDetails argMap
    case maybeInputDetails of
-      Nothing -> return () -- XXX call the interpreter.
+      Nothing -> return ()
       Just (sourceName, _fileContents) -> do
-         compilePythonFilesToHaskell Set.empty [sourceName]
-         writeFile "Main.hs" (mkMainFunction $ mkHaskellModName sourceName)
-         -- XXX check exit codes
-         _ <- system "ghc --make -O2 Main.hs"
-         _ <- system "./Main"
-         return ()
+         let exeName = pyBaseName sourceName
+         exeExists <- doesFileExist exeName
+         recompile <- compilePythonFilesToHaskell False Set.empty [sourceName]
+         -- recompile if any of the source files was translated into Haskell
+         -- or if the exe does not exist.
+         when (recompile || not exeExists) $ do
+            writeFile "Main.hs" (mkMainFunction $ mkHaskellModName sourceName)
+            compileStatus <- system $ "ghc --make -O2 Main.hs -o " ++ exeName
+            case compileStatus of
+               ExitFailure _code -> exitWith compileStatus
+               ExitSuccess -> return ()
+         runStatus <- system $ "./" ++ exeName
+         exitWith runStatus
 
-compilePythonFilesToHaskell :: Set.Set String -> [FilePath] -> IO ()
-compilePythonFilesToHaskell _previous [] = return ()
-compilePythonFilesToHaskell previous (f:fs)
+-- return True if anything was recompiled
+compilePythonFilesToHaskell :: Bool -> Set.Set String -> [FilePath] -> IO Bool
+compilePythonFilesToHaskell recomp _previous [] = return recomp
+compilePythonFilesToHaskell oldRecomp previous (f:fs)
    | f `Set.notMember` previous = do
-      (_haskellFile, imports) <- compilePythonToHaskell f
+      (newRecomp, imports) <- compilePythonToHaskell f
       let pyImports = map (++ ".py") imports
-      compilePythonFilesToHaskell (Set.insert f previous) (fs ++ pyImports)
-   | otherwise = compilePythonFilesToHaskell previous fs
+      compilePythonFilesToHaskell (oldRecomp || newRecomp)
+         (Set.insert f previous) (fs ++ pyImports)
+   | otherwise = compilePythonFilesToHaskell oldRecomp previous fs
 
 getInputDetails :: Args ArgIndex -> IO (Maybe (FilePath, String))
 getInputDetails argMap =
@@ -63,8 +73,11 @@ getInputDetails argMap =
          cs <- readFile inputFileName
          return $ Just (inputFileName, cs)
 
+pyBaseName :: String -> String
+pyBaseName pyFileName = takeBaseName pyFileName
+
 mkHaskellModName :: String -> String
-mkHaskellModName pyFileName = "Berp_" ++ takeBaseName pyFileName
+mkHaskellModName pyFileName = "Berp_" ++ pyBaseName pyFileName
 
 mkMainFunction :: String -> String
 mkMainFunction modName = unlines
