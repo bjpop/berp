@@ -267,6 +267,22 @@ instance Compilable StatementSpan where
    compile (Break {}) = returnStmt Prim.break
    compile (Continue {}) = returnStmt Prim.continue
    compile (Import { import_items = items }) = concat <$> mapM compile items
+   compile stmt@(FromImport { from_module = mod, from_items = items }) = do
+      case import_relative_module mod of
+         Nothing -> unsupported $ prettyText stmt
+         Just dottedName ->
+            case dottedName of
+               [ident] -> do
+                  let identStr = ident_string ident
+                      berpIdentStr = mkBerpModuleName identStr
+                      importExp = appFun Prim.importModule
+                                     [strE identStr, qvar (ModuleName berpIdentStr) (name initName)]
+                  (binderStmts, binderExp) <- stmtBinder importExp
+                  itemsStmts <- compileFromItems binderExp items
+                  addImport identStr
+                  return (binderStmts ++ itemsStmts)
+               _other -> unsupported $ prettyText stmt
+
    compile other = unsupported $ prettyText other
 
 compileRead :: ToIdentString a => a -> Compile Exp
@@ -282,6 +298,19 @@ compileWrite ident exp = do
    global <- isGlobal ident
    let writer = if global then Prim.writeGlobal else Prim.writeLocal
    return $ appFun writer [compiledIdent, exp]
+
+compileFromItems :: Exp -> FromItemsSpan -> Compile [Hask.Stmt]
+compileFromItems exp this@(ImportEverything {}) = unsupported $ prettyText this
+compileFromItems exp this@(FromItems { from_items_items = items }) =
+   concat <$> mapM (compileFromItem exp) items
+
+compileFromItem :: Exp -> FromItemSpan -> Compile [Hask.Stmt]
+compileFromItem exp this@(FromItem { from_item_name = item, from_as_name = maybeAsName }) = do
+   let objectName = maybe item id maybeAsName
+   compiledItem <- compile item
+   (projectStmts, obj)  <- stmtBinder (infixApp exp (Prim.primOp ".") compiledItem)
+   writeStmt <- qualStmt <$> compileWrite objectName obj
+   return (projectStmts ++ [writeStmt])
 
 instance Compilable ImportItemSpan where
    type CompileResult ImportItemSpan = [Hask.Stmt]
