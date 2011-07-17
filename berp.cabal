@@ -112,6 +112,7 @@ Library
       Berp.Base.StdTypes.String
       Berp.Base.StdTypes.Tuple
       Berp.Base.StdTypes.Type
+      Berp.Base.TopLevel
       Berp.Base.Truth
       Berp.Base.Unique
       Berp.Version

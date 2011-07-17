@@ -16,7 +16,6 @@
 module Berp.Base.Hash (Hash (..), Hashed, hashedStr) where
 
 import Berp.Base.Mangle (mangle)
--- import Language.Haskell.TH
 import Data.HashTable as HT (hashString)
 
 type Hashed a = (Int, a)
@@ -28,16 +27,7 @@ instance Hash String where
    hash = fromIntegral . HT.hashString
 
 instance Hash Integer where
-   -- hash i = I# (hashInteger i)
    hash = hashInteger
-
-{-
-hashedStr :: String -> Q Exp
-hashedStr str = [| (n, mangle str) |]
-   where
-   n :: Int
-   n = hash str
--}
 
 hashedStr :: String -> Hashed String
 hashedStr str = (hash str, mangle str)

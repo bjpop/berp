@@ -300,12 +300,16 @@ compileWrite ident exp = do
    return $ appFun writer [compiledIdent, exp]
 
 compileFromItems :: Exp -> FromItemsSpan -> Compile [Hask.Stmt]
-compileFromItems exp this@(ImportEverything {}) = unsupported $ prettyText this
-compileFromItems exp this@(FromItems { from_items_items = items }) =
+compileFromItems exp (ImportEverything {}) = do
+   topLevel <- isTopLevel
+   if topLevel
+      then returnStmt $ app Prim.importAll exp
+      else fail "Syntax Error: import * only allowed at module level"
+compileFromItems exp (FromItems { from_items_items = items }) =
    concat <$> mapM (compileFromItem exp) items
 
 compileFromItem :: Exp -> FromItemSpan -> Compile [Hask.Stmt]
-compileFromItem exp this@(FromItem { from_item_name = item, from_as_name = maybeAsName }) = do
+compileFromItem exp (FromItem { from_item_name = item, from_as_name = maybeAsName }) = do
    let objectName = maybe item id maybeAsName
    compiledItem <- compile item
    (projectStmts, obj)  <- stmtBinder (infixApp exp (Prim.primOp ".") compiledItem)
@@ -326,7 +330,7 @@ instance Compilable ImportItemSpan where
             writeStmt <- qualStmt <$> compileWrite objectName binderExp
             addImport identStr
             return (binderStmts ++ [writeStmt])
-         _other -> error ("import of " ++ show dottedName ++ " not supported")
+         _other -> unsupported ("import of " ++ show dottedName)
 
 mkBerpModuleName :: String -> String
 mkBerpModuleName = ("Berp_" ++)
@@ -483,21 +487,6 @@ comprehensInit SetComprehension var = var `assign` set []
 comprehensInit DictComprehension var = var `assign` dict []
 comprehensInit GenComprehension _var = error $ "comprehensInit called on generator comprehension"
 
-{-
-desugarComprehens :: StatementSpan -> ComprehensionSpan ExprSpan -> Compile StatementSpan
-desugarComprehens resultStmt comprehension =
-   desugarComprehensFor resultStmt $ comprehension_for comprehension
--}
-
-{-
-desugarComprehens :: ComprehensType -> ExprSpan -> ComprehensionSpan ExprSpan -> Compile (ExprSpan, [StatementSpan])
-desugarComprehens ty newVar comprehension = do
-   let initStmt = comprehensInit ty newVar
-       resultStmt = comprehensUpdater ty newVar $ comprehension_expr comprehension
-   desugarStmt <- desugarComprehensFor resultStmt $ comprehension_for comprehension
-   return (newVar, initStmt : [desugarStmt])
--}
-
 comprehensUpdater :: ComprehensType -> ExprSpan -> ExprSpan -> StatementSpan
 comprehensUpdater ListComprehension lhs rhs =
    stmtExpr $ call (binOp dot lhs $ Py.var $ ident "append") [rhs]
@@ -535,8 +524,7 @@ desugarComprehensIf result (CompIf { comp_if = ifPart, comp_if_iter = iter }) = 
 compileTailCall :: ExprSpan -> Compile ([Stmt], Exp)
 compileTailCall (Call { call_fun = fun, call_args = args }) = do
       (funStmts, compiledFun) <- compileExprObject fun
-      (argsStmtss, compiledArgs) <- mapAndUnzipM compile args 
-      -- let newExp = infixApp compiledFun Prim.apply (listE compiledArgs)
+      (argsStmtss, compiledArgs) <- mapAndUnzipM compile args
       let newExp = appFun Prim.tailCall [compiledFun, listE compiledArgs]
       return (funStmts ++ concat argsStmtss, newExp)
 compileTailCall other = error $ "compileTailCall on non call expression: " ++ show other
@@ -595,7 +583,6 @@ compileExprObject exp
 compileHandlers :: Exp -> [HandlerSpan] -> Compile Exp
 compileHandlers asName handlers = do
    validate handlers
-   -- foldrM (compileHandler asName) Prim.pass handlers
    foldrM (compileHandler asName) (parens $ app Prim.raise asName) handlers
 
 compileHandler :: Exp -> HandlerSpan -> Exp -> Compile Exp
@@ -641,7 +628,7 @@ compileAssign (Py.Subscript { subscriptee = objExpr, subscript_expr = sub }) rhs
    return (stmtsObj ++ stmtsSub ++ [newStmt])
 compileAssign (Py.Var { var_ident = ident}) rhs =
    (:[]) <$> qualStmt <$> compileWrite ident rhs
-compileAssign lhs _rhs = error $ "Assignment to " ++ prettyText lhs
+compileAssign lhs _rhs = unsupported ("Assignment to " ++ prettyText lhs)
 
 compileUnpack :: [Py.ExprSpan] -> Hask.Exp -> Compile [Stmt]
 compileUnpack exps rhs = do
@@ -656,9 +643,9 @@ compileUnpack exps rhs = do
    unpackComponent :: Py.ExprSpan ->  Hask.Exp
    unpackComponent (Py.Var { var_ident = ident }) =
       App (Con $ UnQual $ name "V") (identToMangledVar ident)
-   unpackComponent (Py.List { list_exprs = elements }) = mkUnpackPat elements 
+   unpackComponent (Py.List { list_exprs = elements }) = mkUnpackPat elements
    unpackComponent (Py.Tuple { tuple_exprs = elements }) = mkUnpackPat elements
-   unpackComponent (Py.Paren { paren_expr = exp }) = unpackComponent exp 
+   unpackComponent (Py.Paren { paren_expr = exp }) = unpackComponent exp
    unpackComponent other = error $ "unpack assignment to " ++ prettyText other
 
 compileUnaryOp :: Py.OpSpan -> Hask.Exp
@@ -666,7 +653,7 @@ compileUnaryOp (Plus {}) = Prim.unaryPlus
 compileUnaryOp (Minus {}) = Prim.unaryMinus
 compileUnaryOp (Invert {}) = Prim.invert
 compileUnaryOp (Not {}) = Prim.not
-compileUnaryOp other = error $ "Syntax Error: not a valid unary operator: " ++ show other
+compileUnaryOp other = error ("Syntax Error: not a valid unary operator: " ++ show other)
 
 stmtBinder :: Exp -> Compile ([Stmt], Exp)
 stmtBinder exp = do
@@ -723,8 +710,6 @@ compileGuard :: Hask.Exp -> (ExprSpan, SuiteSpan) -> Compile Hask.Exp
 compileGuard elseExp (guard, body) =
    Hask.conditional <$> compileExprBlock guard <*> compileSuiteDo body <*> pure elseExp
 
-
-
 identToMangledName :: ToIdentString a => a -> Hask.Name
 identToMangledName = name . mangle . identString
 
@@ -739,7 +724,7 @@ class Validate t where
    validate :: t -> Compile ()
 
 instance Validate [HandlerSpan] where
-   validate [] = fail "Syntax Error: Syntax Error: try statement must have one or more handlers"
+   validate [] = fail "Syntax Error: try statement must have one or more handlers"
    validate [_] = return ()
    validate (h:hs)
        | Nothing <- except_clause $ handler_clause h

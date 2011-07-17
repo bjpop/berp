@@ -26,6 +26,9 @@ preludeModuleName = ModuleName "Prelude"
 prim :: String -> Exp
 prim = var . name
 
+importAll :: Exp
+importAll = prim "importAll"
+
 setItem :: Exp
 setItem = prim "setitem"
 

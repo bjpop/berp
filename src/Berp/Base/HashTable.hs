@@ -24,6 +24,7 @@ module Berp.Base.HashTable
    , mappings
    , keys
    , sizeIO
+   , printHashTable
    ) where
 
 import Control.Monad.Trans (liftIO)
@@ -34,11 +35,20 @@ import Data.List (genericLength)
 import Control.Monad (foldM)
 import Berp.Base.SemanticTypes (Object (..), ObjectRef, Eval, HashTable)
 import Berp.Base.Object (objectEquality)
-import Berp.Base.Prims (callMethod)
+import Berp.Base.Prims (callMethod, printObject)
 import Berp.Base.Hash (hash, Hashed)
-import Berp.Base.LiftedIO (MonadIO, readIORef, writeIORef, newIORef)
+import Berp.Base.LiftedIO as LIO (putStrLn, putStr, MonadIO, readIORef, writeIORef, newIORef)
 import Berp.Base.StdNames (specialHashName)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
+
+printHashTable :: HashTable -> Eval ()
+printHashTable hashTable = do
+   LIO.putStrLn "------ Begin HashTable ------"
+   printItems =<< mappings hashTable
+   LIO.putStrLn "------ End HashTable ------"
+   where
+   printItems :: [(Object, Object)] -> Eval ()
+   printItems = mapM_ (\(k,v) -> do { printObject k; LIO.putStr " "; printObject v; LIO.putStr "\n" })
 
 mappings :: HashTable -> Eval [(Object, Object)]
 mappings hashTable = do
@@ -101,8 +111,11 @@ stringTableFromList pairs = do
       let strObj = string strKey 
       return (hashValue, [(strObj, valRef)])
 
-stringLookup :: MonadIO m => Hashed String -> HashTable -> m (Maybe Object)
+-- stringLookup :: MonadIO m => Hashed String -> HashTable -> m (Maybe Object)
+stringLookup :: Hashed String -> HashTable -> Eval (Maybe Object)
 stringLookup (hashValue, str) hashTable = do
+   LIO.putStrLn $ "Looking for " ++ show (hashValue, str)
+   printHashTable hashTable
    table <- readIORef hashTable
    case IntMap.lookup hashValue table of
       Nothing -> return Nothing
@@ -112,9 +125,12 @@ stringLookup (hashValue, str) hashTable = do
    linearSearchString _ [] = return Nothing
    linearSearchString str ((key, valRef) : rest)
       | objectEqualityString str key = do
+           LIO.putStrLn "found: "
            val <- readIORef valRef
            return $ Just val
-      | otherwise = linearSearchString str rest
+      | otherwise = do
+           LIO.putStrLn "skipped :"
+           linearSearchString str rest
 
 objectEqualityString :: String -> Object -> Bool
 objectEqualityString str1 (String { object_string = str2 }) = str1 == str2
@@ -163,14 +179,14 @@ insert key value hashTable = do
 insert :: Object -> Object -> HashTable -> Eval ()
 insert key value hashTable = do
    table <- readIORef hashTable
-   hashValue <- hashObject key 
+   hashValue <- hashObject key
    case IntMap.lookup hashValue table of
       Nothing -> do
          valRef <- newIORef value
-         let newTable = IntMap.insert hashValue [(key, valRef)] table 
-         writeIORef hashTable newTable 
+         let newTable = IntMap.insert hashValue [(key, valRef)] table
+         writeIORef hashTable newTable
       Just matches -> do
-         updated <- linearInsert key matches value 
+         updated <- linearInsert key matches value
          if updated
             then return ()
             else do
@@ -179,29 +195,29 @@ insert key value hashTable = do
                    newTable = IntMap.insert hashValue newMatches table
                writeIORef hashTable newTable
    where
-   linearInsert :: Object -> [(Object, ObjectRef)] -> Object -> Eval Bool 
-   linearInsert _ [] _ = return False 
+   linearInsert :: Object -> [(Object, ObjectRef)] -> Object -> Eval Bool
+   linearInsert _ [] _ = return False
    linearInsert probe ((key, valRef) : rest) obj = do
       areEqual <- objectEquality probe key
-      if areEqual 
+      if areEqual
          then do
             writeIORef valRef obj
-            return True 
+            return True
          else linearInsert probe rest obj
 
 lookup :: Object -> HashTable -> Eval (Maybe Object)
 lookup key hashTable = do
    table <- readIORef hashTable
-   hashValue <- hashObject key 
+   hashValue <- hashObject key
    case IntMap.lookup hashValue table of
       Nothing -> return Nothing
-      Just matches -> linearSearch key matches 
+      Just matches -> linearSearch key matches
    where
    linearSearch :: Object -> [(Object, ObjectRef)] -> Eval (Maybe Object)
    linearSearch _ [] = return Nothing
    linearSearch object ((key,valRef):rest) = do
       areEqual <- objectEquality object key
-      if areEqual 
+      if areEqual
          then do
             val <- readIORef valRef
             return $ Just val

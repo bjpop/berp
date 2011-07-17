@@ -27,7 +27,7 @@ module Berp.Base.Prims
    , def, lambda, returnGenerator, printObject, topVar, Applicative.pure
    , pureObject, showObject, returningProcedure, pyCallCC, unpack
    , next, setitem, Pat (G, V), getIterator, mapIterator
-   , importModule, readGlobal, writeGlobal, readLocal
+   , readGlobal, writeGlobal, readLocal
    , writeLocal, getGlobalScopeHashTable ) where
 
 import Prelude hiding (break, read, putStr)
@@ -54,7 +54,7 @@ import Berp.Base.ControlStack
 import Berp.Base.StdNames (specialDocName, specialStrName, specialSetItemName, specialGetItemName, specialNextName, specialIterName)
 import Berp.Base.Exception (RuntimeError (..), throw)
 import Berp.Base.Ident (Ident)
-import {-# SOURCE #-} Berp.Base.HashTable as Hash (stringInsert, insert, stringLookup)
+import {-# SOURCE #-} Berp.Base.HashTable as Hash (printHashTable, mappings, empty, stringInsert, insert, stringLookup)
 import {-# SOURCE #-} Berp.Base.StdTypes.Function (function)
 import {-# SOURCE #-} Berp.Base.StdTypes.List (updateListElement)
 import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
@@ -104,10 +104,12 @@ readGlobal var = do
    -- bindings <- readIORef $ global_scope_bindings scope
    -- let bindings = global_scope_bindings scope
    globalScope <- getGlobalScopeHashTable
+   -- items <- mappings globalScope
+   -- printHashTable globalScope
    maybeObj <- stringLookup var globalScope
    case maybeObj of
       -- Nothing -> raise nameError
-      Nothing -> error (snd var)
+      Nothing -> error $ snd var
       Just obj -> return obj
 
 writeGlobal :: Hashed String -> Object -> Eval Object
@@ -558,16 +560,6 @@ mapIterator f obj = do
       mapNext = do
          f =<< next iterObj
          pass
-
-importModule :: FilePath -> Eval Object -> Eval Object
-importModule path comp = do
-   maybeImported <- lookupModuleCache path
-   case maybeImported of
-      Just obj -> return obj
-      Nothing -> do
-         obj <- comp
-         updateModuleCache path obj
-         return obj
 
 pushGlobalScope :: Maybe HashTable -> Eval ()
 -- we don't have a real hashtable to push (ie for prims) so we duplicate the top
