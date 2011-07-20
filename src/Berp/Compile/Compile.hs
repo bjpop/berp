@@ -79,17 +79,18 @@ instance Compilable ModuleSpan where
    type CompileResult ModuleSpan = String -> (Hask.Module, [String])
    compile (Py.Module suite) = do
       stmts <- nestedScope topBindings $ compile $ Block suite
-      let allStmts = stmts ++ [qualStmt Prim.mkModule]
+      -- let allStmts = stmts ++ [qualStmt Prim.mkModule]
       importedModules <- Set.toList <$> getImports
       return $ \modName ->
-                   let init = initDecl $ doBlock allStmts in
+                   let init = initDecl $ doBlock stmts in
                    (Hask.Module bogusSrcLoc
                       (ModuleName modName) pragmas warnings exports
                       (imports importedModules) [init],
                     importedModules)
       where
       initDecl :: Hask.Exp -> Hask.Decl
-      initDecl = patBind bogusSrcLoc $ pvar $ name initName
+      -- initDecl = patBind bogusSrcLoc $ pvar $ name initName
+      initDecl = simpleFun bogusSrcLoc (name initName) (name Prim.globalsName)
       pragmas = []
       warnings = Nothing
       exports = Just [EVar $ UnQual $ name initName]
@@ -289,21 +290,33 @@ compileRead :: ToIdentString a => a -> Compile Exp
 compileRead ident = do
    compiledIdent <- compile $ toIdentString ident
    global <- isGlobal ident
+{-
    let reader = if global then Prim.readGlobal else Prim.readLocal
-   return $ app reader compiledIdent
+   return $ appFun reader [Prim.globals, compiledIdent]
+-}
+   return $
+      if global
+         then appFun Prim.readGlobal [Prim.globals, compiledIdent]
+         else appFun Prim.readLocal [compiledIdent]
 
 compileWrite :: ToIdentString a => a -> Exp -> Compile Exp
 compileWrite ident exp = do
    compiledIdent <- compile $ toIdentString ident
    global <- isGlobal ident
+{-
    let writer = if global then Prim.writeGlobal else Prim.writeLocal
-   return $ appFun writer [compiledIdent, exp]
+   return $ appFun writer [Prim.globals, compiledIdent, exp]
+-}
+   return $
+      if global
+         then appFun Prim.writeGlobal [Prim.globals, compiledIdent, exp]
+         else appFun Prim.writeLocal [compiledIdent, exp]
 
 compileFromItems :: Exp -> FromItemsSpan -> Compile [Hask.Stmt]
 compileFromItems exp (ImportEverything {}) = do
    topLevel <- isTopLevel
    if topLevel
-      then returnStmt $ app Prim.importAll exp
+      then returnStmt $ appFun Prim.importAll [Prim.globals, exp]
       else fail "Syntax Error: import * only allowed at module level"
 compileFromItems exp (FromItems { from_items_items = items }) =
    concat <$> mapM (compileFromItem exp) items
@@ -363,7 +376,8 @@ instance Compilable IdentString where
           then do
              let str = identString $ toIdentString ident
                  mangled = mangle str
-                 hashedVal = intE $ fromIntegral $ hash str
+                 -- hashedVal = intE $ fromIntegral $ hash str
+                 hashedVal = intE $ fromIntegral $ hash mangled
              return $ Hask.tuple [hashedVal, strE mangled]
           else
              return $ identToMangledVar ident

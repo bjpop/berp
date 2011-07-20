@@ -74,7 +74,7 @@ constantEval comp = constantIO $ runContT (evalStateT comp constantState) return
 constantState :: EvalState
 constantState =
    EvalState
-   { control_stack = EmptyStack
-   , state_global_scope = error "global scope not defined for constant state"
+   { state_control_stack = EmptyStack
+   , state_builtins = error "builtins not defined for constant state"
    , state_moduleCache = error "module cache not defined for constant state"
    }

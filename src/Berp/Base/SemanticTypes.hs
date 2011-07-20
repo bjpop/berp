@@ -17,7 +17,7 @@
 
 module Berp.Base.SemanticTypes
    ( Procedure, ControlStack (..), EvalState (..), Object (..), Eval, ObjectRef
-   , HashTable, HashSet, ListArray, Arity, ModuleCache, GlobalScope (..)
+   , HashTable, HashSet, ListArray, Arity, ModuleCache {- , GlobalScope (..) -}
    , initState )  where
 
 import Control.Monad.State.Strict (StateT)
@@ -29,6 +29,7 @@ import Data.Complex (Complex)
 import Data.Array.IO (IOArray)
 import Berp.Base.Identity (Identity)
 
+{-
 data GlobalScope
    = TopGlobalScope { global_scope_bindings :: !HashTable }
    | NestedGlobalScope
@@ -39,6 +40,7 @@ data GlobalScope
 instance Show GlobalScope where
    show (TopGlobalScope {}) = "TopGlobalScope"
    show (NestedGlobalScope {}) = "NestedGlobalScope"
+-}
 
 data ControlStack
    = EmptyStack
@@ -71,32 +73,18 @@ instance Show ControlStack where
 
 data EvalState =
    EvalState
-   { control_stack :: !ControlStack
-   , state_global_scope :: !GlobalScope
+   { state_control_stack :: !ControlStack
+   , state_builtins :: !HashTable
    , state_moduleCache :: !ModuleCache
    }
 
 initState :: HashTable -> EvalState
-initState globalScope =
+initState builtins =
    EvalState
-   { control_stack = EmptyStack
-   , state_global_scope = TopGlobalScope globalScope
+   { state_control_stack = EmptyStack
+   , state_builtins = builtins
    , state_moduleCache = Map.empty
    }
-
-{-
-initState :: Handle -> Handle -> Handle -> HashTable -> EvalState
-initState stdin stdout stderr globalScope =
-   EvalState
-   { control_stack = EmptyStack
-   , state_global_scope = TopGlobalScope globalScope
-   , state_stdin = stdin
-   , state_stdout = stdout
-   , state_stderr = stderr
-   , state_moduleCache = Map.empty
-   , state_moduleUnique = 0
-   }
--}
 
 type ModuleCache = Map String Object
 
@@ -183,7 +171,6 @@ data Object
      , object_procedure :: !Procedure
      , object_arity :: !Arity
      , object_dict :: !Object -- dictionary
-     , object_global_scope :: !(Maybe HashTable) -- primitives don't have a global scope
      }
    | String
      { object_identity :: !Identity

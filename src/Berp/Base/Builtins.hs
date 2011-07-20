@@ -15,7 +15,7 @@ module Berp.Base.Builtins
    ( module Exceptions, module Functions, module Constants, initBuiltins )
    where
 
-import Berp.Base.SemanticTypes (Eval, Object)
+import Berp.Base.SemanticTypes (Eval, Object, HashTable)
 import Berp.Base.Hash (hashedStr)
 import Berp.Base.Prims (writeGlobal)
 import Berp.Base.Builtins.Constants as Constants
@@ -35,16 +35,16 @@ import Berp.Base.Builtins.Exceptions as Exceptions
    , notImplementedError, _s_NotImplementedError
    )
 
-initBuiltins :: Eval ()
-initBuiltins = do
+initBuiltins :: HashTable -> Eval ()
+initBuiltins globalScope = do
    defineBuiltin "print" Functions.print
    defineBuiltin "callCC" Functions.callCC
    defineBuiltin "object" Constants.object
    defineBuiltin "dir" Functions.dir
    defineBuiltin "id" Functions.id
    defineBuiltin "input" Functions.input
-
-defineBuiltin :: String -> Object -> Eval ()
-defineBuiltin name obj = do
-   _ <- writeGlobal (hashedStr name) obj
-   return ()
+   where
+   defineBuiltin :: String -> Object -> Eval ()
+   defineBuiltin name obj = do
+      _ <- writeGlobal globalScope (hashedStr name) obj
+      return ()

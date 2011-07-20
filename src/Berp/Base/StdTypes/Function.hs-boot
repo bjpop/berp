@@ -2,5 +2,5 @@ module Berp.Base.StdTypes.Function (function, functionClass) where
 
 import Berp.Base.SemanticTypes (HashTable, Object (..), Procedure)
 
-function :: Int -> Procedure -> Maybe HashTable -> Object
+function :: Int -> Procedure -> Object
 functionClass :: Object

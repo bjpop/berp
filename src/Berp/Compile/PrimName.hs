@@ -140,11 +140,24 @@ setAttr = prim "setattr"
 while :: Exp
 while = prim "while"
 
+{-
 global :: Exp
 global = prim "global"
+-}
 
+{-
 globalRef :: Exp
 globalRef = prim "globalRef"
+-}
+
+globalsName :: String
+globalsName = "globals"
+
+globalsPat :: Pat
+globalsPat = pvar $ name globalsName
+
+globals :: Exp
+globals = prim globalsName
 
 topVar :: Exp
 topVar = prim "topVar"
@@ -152,8 +165,10 @@ topVar = prim "topVar"
 variable :: Exp
 variable = prim "var"
 
+{-
 globalVariable :: Exp
 globalVariable = prim "globalVar"
+-}
 
 tuple :: Exp
 tuple = prim "tuple"

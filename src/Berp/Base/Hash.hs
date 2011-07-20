@@ -30,7 +30,9 @@ instance Hash Integer where
    hash = hashInteger
 
 hashedStr :: String -> Hashed String
-hashedStr str = (hash str, mangle str)
+hashedStr str = (hash mangled, mangled)
+   where
+   mangled = mangle str
 
 -- XXX May need to reconsider this. We'll want something which is fast.
 hashInteger :: Integer -> Int

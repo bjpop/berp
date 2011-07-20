@@ -28,7 +28,7 @@ module Berp.Base.Prims
    , pureObject, showObject, returningProcedure, pyCallCC, unpack
    , next, setitem, Pat (G, V), getIterator, mapIterator
    , readGlobal, writeGlobal, readLocal
-   , writeLocal, getGlobalScopeHashTable ) where
+   , writeLocal {- getGlobalScopeHashTable -} ) where
 
 import Prelude hiding (break, read, putStr)
 -- import System.Plugins (load_, LoadStatus (..))
@@ -45,11 +45,11 @@ import qualified Control.Applicative as Applicative (pure)
 import Control.Applicative ((<$>))
 import Berp.Base.Monad ( updateModuleCache, lookupModuleCache)
 import Berp.Base.SemanticTypes
-   ( HashTable, Object (..), ObjectRef, Procedure, Eval, EvalState(..), ControlStack(..), Arity, GlobalScope (..) )
+   ( HashTable, Object (..), ObjectRef, Procedure, Eval, EvalState(..), ControlStack(..), Arity {- , GlobalScope (..) -} )
 import Berp.Base.Truth (truth)
 import {-# SOURCE #-} Berp.Base.Object
    ( typeOf, dictOf, lookupAttribute, lookupSpecialAttribute, objectEquality, isIterator )
-import Berp.Base.Hash (Hashed)
+import Berp.Base.Hash (hash, Hashed)
 import Berp.Base.ControlStack
 import Berp.Base.StdNames (specialDocName, specialStrName, specialSetItemName, specialGetItemName, specialNextName, specialIterName)
 import Berp.Base.Exception (RuntimeError (..), throw)
@@ -60,7 +60,7 @@ import {-# SOURCE #-} Berp.Base.StdTypes.List (updateListElement)
 import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
 import {-# SOURCE #-} Berp.Base.StdTypes.Bool (true, false)
 import {-# SOURCE #-} Berp.Base.StdTypes.Generator (generator)
-import {-# SOURCE #-} Berp.Base.Builtins.Exceptions (stopIteration, typeError, valueError)
+import {-# SOURCE #-} Berp.Base.Builtins.Exceptions (nameError, stopIteration, typeError, valueError)
 
 data Pat = G Int [Pat] | V ObjectRef
 
@@ -69,11 +69,13 @@ data Pat = G Int [Pat] | V ObjectRef
 pureObject :: Object -> Eval Object
 pureObject = Applicative.pure
 
+{-
 getGlobalScopeHashTable :: Eval HashTable
 getGlobalScopeHashTable = global_scope_bindings <$> gets state_global_scope
+-}
 
 primitive :: Arity -> Procedure -> Object
-primitive arity proc = function arity (returningProcedure proc) Nothing
+primitive arity proc = function arity (returningProcedure proc) {- Nothing -}
 
 returningProcedure :: Procedure -> Procedure
 returningProcedure proc args = do
@@ -98,23 +100,21 @@ readLocal = readIORef
 writeLocal :: ObjectRef -> Object -> Eval Object
 writeLocal var obj = writeIORef var obj >> return none
 
-readGlobal :: Hashed String -> Eval Object
-readGlobal var = do
-   -- scope <- gets state_global_scope
-   -- bindings <- readIORef $ global_scope_bindings scope
-   -- let bindings = global_scope_bindings scope
-   globalScope <- getGlobalScopeHashTable
-   -- items <- mappings globalScope
-   -- printHashTable globalScope
+readGlobal :: HashTable -> Hashed String -> Eval Object
+readGlobal globalScope var = do
    maybeObj <- stringLookup var globalScope
    case maybeObj of
-      -- Nothing -> raise nameError
-      Nothing -> error $ snd var
+      Nothing -> do
+         builtins <- gets state_builtins
+         maybeBuiltin <- stringLookup var builtins
+         case maybeBuiltin of
+            Nothing -> raise nameError
+            -- Nothing -> error (show (hash (snd var), var))
+            Just obj -> return obj
       Just obj -> return obj
 
-writeGlobal :: Hashed String -> Object -> Eval Object
-writeGlobal var obj = do
-   globalScope <- getGlobalScopeHashTable
+writeGlobal :: HashTable -> Hashed String -> Object -> Eval Object
+writeGlobal globalScope var obj = do
    stringInsert var obj globalScope
    return none
 
@@ -128,12 +128,12 @@ pass = return none
 
 break :: Eval Object
 break = do
-   stack <- unwindPastWhileLoop 
+   stack <- unwindPastWhileLoop
    loop_end stack
 
 continue :: Eval Object
-continue = do 
-   stack <- unwindUpToWhileLoop 
+continue = do
+   stack <- unwindUpToWhileLoop
    loop_start stack
 
 -- We return None because that works well in the interpreter. None values
@@ -149,15 +149,11 @@ obj @@ args = do
     case obj of
         Function { object_procedure = proc
                  , object_arity = arity
-                 , object_global_scope = globals }
-           | arity == -1 || arity == length args -> do
-                pushGlobalScope globals
-                result <- callProcedure proc args
-                popGlobalScope
-                return result
+                 }
+           | arity == -1 || arity == length args ->
+                callProcedure proc args
            -- XXX should be raise of arity, typeError exception
            | otherwise -> raise typeError
-        -- XXX not sure if this needs global scope push/pop
         Type { object_constructor = proc } -> callProcedure proc args
         -- XXX should try to find "__call__" attribute on object
         _other -> raise typeError
@@ -168,19 +164,15 @@ callProcedure proc args =
       push $ ProcedureCall ret
       proc args
 
--- need to hanfle global scope properly. Can't push/pop, that would invalidate
--- the tail call. Instead need to modify in place the top global scope.
 tailCall :: Object -> [Object] -> Eval Object
 tailCall obj args = do
     case obj of
         Function { object_procedure = proc
                  , object_arity = arity
-                 , object_global_scope = globals }
-           | arity == -1 || arity == length args -> do
-                modifyGlobalScope globals
+                 }
+           | arity == -1 || arity == length args ->
                 proc args
            | otherwise -> raise typeError
-        -- XXX not sure if we have to handle global scope here
         Type { object_constructor = proc } -> proc args
         -- XXX should try to find "__call__" attribute on object
         _other -> raise typeError
@@ -224,16 +216,14 @@ forElse :: Object -> (Object -> Eval Object) -> Eval Object -> Eval Object
 forElse expObj suite1 suite2 = do
    iterObj <- callMethod expObj specialIterName [] -- this could be specialised
    cond <- newIORef true
-   let tryBlock = do -- nextObj <- callMethod iterObj specialNextName [] -- this could be specialised
-                     nextObj <- next iterObj
-                     -- writeIORef var nextObj
+   let tryBlock = do nextObj <- next iterObj
                      suite1 nextObj
    let handler e = except e stopIteration ((writeIORef cond false) >> pass) (raise e)
    let whileBlock = try tryBlock handler
    whileElse (readIORef cond) whileBlock suite2
 
-while :: Eval Object -> Eval Object -> Eval Object 
-while cond loopBlock = whileElse cond loopBlock pass 
+while :: Eval Object -> Eval Object -> Eval Object
+while cond loopBlock = whileElse cond loopBlock pass
 
 whileElse :: Eval Object -> Eval Object -> Eval Object -> Eval Object
 whileElse cond loopBlock elseBlock = do
@@ -368,10 +358,10 @@ raise obj = do
    BELCH("Raising: " ++ show obj)
    IF_DEBUG(dumpStack)
    exceptionObj <- case obj of
-      Type { object_constructor = cons } -> 
+      Type { object_constructor = cons } ->
          callProcedure cons []
       other -> return other
-   stack <- gets control_stack
+   stack <- gets state_control_stack
    handleFrame exceptionObj stack
    where
    handleFrame :: Object -> ControlStack -> Eval Object
@@ -443,8 +433,7 @@ generatorNext [] = error "Generator applied to no arguments"
 
 def :: Arity -> Object -> ([ObjectRef] -> Eval Object) -> Eval Object
 def arity docString fun = do
-   globalScope <- getGlobalScopeHashTable
-   let procedureObj = function arity closure (Just globalScope)
+   let procedureObj = function arity closure
    _ <- setattr procedureObj specialDocName docString
    return procedureObj
    where
@@ -455,8 +444,7 @@ def arity docString fun = do
 
 lambda :: Arity -> ([ObjectRef] -> Eval Object) -> Eval Object
 lambda arity fun = do
-   globalScope <- getGlobalScopeHashTable
-   return $ function arity closure (Just globalScope)
+   return $ function arity closure
    where
    closure :: Procedure
    closure params = do
@@ -482,7 +470,7 @@ pyCallCC :: Object -> Eval Object
 pyCallCC fun =
    callCC $ \ret -> do
       context <- getControlStack
-      let cont = function 1 (contFun ret context) Nothing
+      let cont = function 1 (contFun ret context)
       -- XXX can this be a tail call?
       fun @@ [cont]
    where
@@ -560,34 +548,3 @@ mapIterator f obj = do
       mapNext = do
          f =<< next iterObj
          pass
-
-pushGlobalScope :: Maybe HashTable -> Eval ()
--- we don't have a real hashtable to push (ie for prims) so we duplicate the top
--- of the stack, to make sure we have something to pop later
-pushGlobalScope Nothing = do
-   scope <- gets state_global_scope
-   let hashTable = global_scope_bindings scope
-   let newScope = NestedGlobalScope hashTable scope
-   modify $ \state -> state { state_global_scope = newScope }
-pushGlobalScope (Just hashTable) = do
-   scope <- gets state_global_scope
-   let newScope = NestedGlobalScope hashTable scope
-   modify $ \state -> state { state_global_scope = newScope }
-
-popGlobalScope :: Eval ()
-popGlobalScope = do
-   scope <- gets state_global_scope
-   case scope of
-      NestedGlobalScope {} ->
-         modify $ \state -> state { state_global_scope = global_scope_tail scope }
-      -- XXX this should be an exception
-      TopGlobalScope {} -> error "tried to pop the top global scope"
-
-modifyGlobalScope :: Maybe HashTable -> Eval ()
--- we don't have a real hashtable, so leave the global scope alone
--- eg we are doing a tail call on a primitive.
-modifyGlobalScope Nothing = return ()
-modifyGlobalScope (Just hashTable) = do
-   oldHashTable <- getGlobalScopeHashTable
-   newTable <- readIORef hashTable
-   writeIORef oldHashTable newTable

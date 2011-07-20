@@ -24,8 +24,8 @@ import Berp.Base.StdTypes.String (string)
 
 -- XXX should avoid constantIO
 {-# NOINLINE function #-}
-function :: Int -> Procedure -> Maybe HashTable -> Object
-function arity proc hashTable = constantIO $ do
+function :: Int -> Procedure -> {- Maybe HashTable -> -} Object
+function arity proc {- hashTable -} = constantIO $ do
    identity <- newIdentity
    dict <- emptyDictionary
    return $
@@ -34,7 +34,7 @@ function arity proc hashTable = constantIO $ do
       , object_dict = dict
       , object_procedure = proc
       , object_arity = arity
-      , object_global_scope = hashTable
+      -- , object_global_scope = hashTable
       }
 
 {-# NOINLINE functionClass #-}

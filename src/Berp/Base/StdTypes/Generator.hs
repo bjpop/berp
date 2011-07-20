@@ -62,4 +62,4 @@ iter = primitive 1 fun
    fun _other = error "iter method on generator applied to the wrong number of arguments"
 
 next :: Object
-next = function 1 generatorNext Nothing
+next = function 1 generatorNext {- Nothing -}

@@ -48,7 +48,15 @@ printHashTable hashTable = do
    LIO.putStrLn "------ End HashTable ------"
    where
    printItems :: [(Object, Object)] -> Eval ()
-   printItems = mapM_ (\(k,v) -> do { printObject k; LIO.putStr " "; printObject v; LIO.putStr "\n" })
+   printItems = mapM_ printer
+   printer (k,v) = do
+      printObject k
+      LIO.putStr " "
+      hashVal <- hashObject k
+      LIO.putStr (show hashVal)
+      LIO.putStr " "
+      printObject v
+      LIO.putStr "\n"
 
 mappings :: HashTable -> Eval [(Object, Object)]
 mappings hashTable = do
@@ -111,11 +119,10 @@ stringTableFromList pairs = do
       let strObj = string strKey 
       return (hashValue, [(strObj, valRef)])
 
--- stringLookup :: MonadIO m => Hashed String -> HashTable -> m (Maybe Object)
-stringLookup :: Hashed String -> HashTable -> Eval (Maybe Object)
+stringLookup :: MonadIO m => Hashed String -> HashTable -> m (Maybe Object)
 stringLookup (hashValue, str) hashTable = do
-   LIO.putStrLn $ "Looking for " ++ show (hashValue, str)
-   printHashTable hashTable
+   -- LIO.putStrLn $ "Looking for " ++ show (hashValue, str)
+   -- printHashTable hashTable
    table <- readIORef hashTable
    case IntMap.lookup hashValue table of
       Nothing -> return Nothing
@@ -125,11 +132,11 @@ stringLookup (hashValue, str) hashTable = do
    linearSearchString _ [] = return Nothing
    linearSearchString str ((key, valRef) : rest)
       | objectEqualityString str key = do
-           LIO.putStrLn "found: "
+           -- LIO.putStrLn "found: "
            val <- readIORef valRef
            return $ Just val
       | otherwise = do
-           LIO.putStrLn "skipped :"
+           -- LIO.putStrLn "skipped :"
            linearSearchString str rest
 
 objectEqualityString :: String -> Object -> Bool
@@ -143,7 +150,7 @@ stringInsert (hashValue, str) value hashTable = do
       Nothing -> do
          let stringObject = string str
          valRef <- newIORef value
-         let newTable = IntMap.insert hashValue [(stringObject, valRef)] table 
+         let newTable = IntMap.insert hashValue [(stringObject, valRef)] table
          writeIORef hashTable newTable
       Just matches -> do
          updated <- linearInsertString str matches value

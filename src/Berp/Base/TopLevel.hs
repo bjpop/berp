@@ -18,51 +18,55 @@ import Control.Monad (foldM_)
 import Control.Monad.State (get, put)
 import Berp.Base.SemanticTypes (HashTable, Eval, Object (..), initState, EvalState (..))
 import Berp.Base.Monad (lookupModuleCache, updateModuleCache, runEval)
-import Berp.Base.HashTable as HashTable (empty, mappings, insert)
+import Berp.Base.HashTable as HashTable (printHashTable, empty, mappings, insert)
 import Berp.Base.Builtins (initBuiltins)
 import Berp.Base.StdTypes.None (none)
-import Berp.Base.Prims (printObject, getGlobalScopeHashTable)
+import Berp.Base.Prims (printObject {- , getGlobalScopeHashTable -} )
 import Berp.Base.LiftedIO as LIO (putStr, putStrLn)
+import Berp.Base.StdTypes.Module (mkModule)
 
-importModule :: FilePath -> Eval Object -> Eval Object
+importModule :: FilePath -> (HashTable -> Eval Object) -> Eval Object
 importModule path comp = do
    maybeImported <- lookupModuleCache path
    case maybeImported of
       Just obj -> return obj
       Nothing -> do
-         beforeModuleState <- get
-         emptyTable <- HashTable.empty
-         let newState = initState emptyTable
-         put $ newState { state_moduleCache = state_moduleCache beforeModuleState }
-         obj <- initBuiltins >> comp
-         afterModuleState <- get
-         put $ beforeModuleState { state_moduleCache = state_moduleCache afterModuleState }
-         updateModuleCache path obj
-         return obj
+         -- XXX fixme
+         -- beforeModuleState <- get
+         moduleScope <- HashTable.empty
+         -- let newState = initState
+         -- put $ newState { state_moduleCache = state_moduleCache beforeModuleState }
+         -- obj <- initBuiltins emptyTable >> comp
+         _ <- comp moduleScope
+         -- afterModuleState <- get
+         -- put $ beforeModuleState { state_moduleCache = state_moduleCache afterModuleState }
+         moduleObj <- mkModule moduleScope
+         updateModuleCache path moduleObj
+         return moduleObj
 
-run :: Eval Object -> Prelude.IO ()
+run :: (HashTable -> Eval Object) -> Prelude.IO ()
 run comp = do
-   table <- HashTable.empty
-   _ <- runEval (initState table) (initBuiltins >> comp)
+   globalScope <- HashTable.empty
+   builtins <- HashTable.empty
+   _ <- runEval (initState builtins) (initBuiltins builtins >> comp globalScope)
    return ()
 
-importAll :: Object -> Eval Object
-importAll obj =
+importAll :: HashTable -> Object -> Eval ()
+importAll globalScope obj =
     case obj of
        Module { object_dict = dict } ->
           case dict of
              Dictionary { object_hashTable = hashTable } -> do
-                globalScopeHashTable <- getGlobalScopeHashTable
+                -- globalScopeHashTable <- getGlobalScopeHashTable
                 items <- HashTable.mappings hashTable
-                foldM_ updateTable globalScopeHashTable items
-                globalScopeHashTable <- getGlobalScopeHashTable
-                items <- HashTable.mappings globalScopeHashTable
+                foldM_ updateTable globalScope items
+                -- globalScopeHashTable <- getGlobalScopeHashTable
+                -- items <- HashTable.mappings globalScopeHashTable
                 -- LIO.putStrLn "In importAll"
-                -- printItems items
-                return none
-             _other -> return none
+                return ()
+             _other -> return ()
        -- XXX maybe this should be an error
-       _other -> return none
+       _other -> return ()
    where
    updateTable :: HashTable -> (Object, Object) -> Eval HashTable
    updateTable ht (key, val) = do

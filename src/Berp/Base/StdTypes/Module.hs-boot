@@ -1,5 +1,6 @@
-module Berp.Base.StdTypes.Module (moduleClass) where
+module Berp.Base.StdTypes.Module (mkModule, moduleClass) where
 
-import Berp.Base.SemanticTypes (Object)
+import Berp.Base.SemanticTypes (HashTable, Eval, Object)
 
 moduleClass :: Object
+mkModule :: HashTable -> Eval Object

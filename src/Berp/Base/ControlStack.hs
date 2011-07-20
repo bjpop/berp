@@ -54,7 +54,7 @@ isGeneratorCall _ = False
 -}
 unwind :: (ControlStack -> Bool) -> Eval ControlStack 
 unwind pred = do
-   stack <- gets control_stack
+   stack <- gets state_control_stack
    unwindFrame stack
    where
    unwindFrame :: ControlStack -> Eval ControlStack 
@@ -72,7 +72,7 @@ unwind pred = do
 
 unwindYieldContext :: Eval Object -> Eval (Object -> Eval Object) 
 unwindYieldContext continuation = do
-   stack <- gets control_stack
+   stack <- gets state_control_stack
    let (generatorYield, generatorObj, newStack, context) = unwindYieldWorker stack
    LIO.writeIORef (object_continuation generatorObj) continuation 
    LIO.writeIORef (object_stack_context generatorObj) context
@@ -101,7 +101,7 @@ unwindPastWhileLoop = do
 
 unwindUpToWhileLoop :: Eval ControlStack
 unwindUpToWhileLoop = do
-   stack <- gets control_stack
+   stack <- gets state_control_stack
    unwindFrame stack
    where
    unwindFrame :: ControlStack -> Eval ControlStack 
@@ -118,7 +118,7 @@ unwindUpToWhileLoop = do
 
 pop :: Eval ()
 pop = do
-   stack <- gets control_stack
+   stack <- gets state_control_stack
    case stack of
       -- should be an exception
       EmptyStack -> error "pop: empty stack" 
@@ -126,20 +126,20 @@ pop = do
 
 push :: (ControlStack -> ControlStack) -> Eval ()
 push frame = do
-   stack <- gets control_stack
+   stack <- gets state_control_stack
    setControlStack (frame stack) 
 
 setControlStack :: ControlStack -> Eval ()
-setControlStack stack = modify $ \state -> state { control_stack = stack }
+setControlStack stack = modify $ \state -> state { state_control_stack = stack }
 
 getControlStack :: Eval ControlStack
-getControlStack = gets control_stack
+getControlStack = gets state_control_stack
 
 -- assumes top of stack is an exception handler
 nullifyTopHandler :: Eval ()
 nullifyTopHandler = do
    IF_DEBUG(dumpStack)
-   stack <- gets control_stack
+   stack <- gets state_control_stack
    case stack of
      ExceptionHandler {} -> 
         setControlStack $ stack { exception_handler = Nothing } 
@@ -148,7 +148,7 @@ nullifyTopHandler = do
 dumpStack :: Eval ()
 dumpStack = do
    LIO.putStrLn "--- Bottom of stack ---"
-   stack <- gets control_stack
+   stack <- gets state_control_stack
    mapStackM printer stack
    LIO.putStrLn "--- Top of stack ---"
    where
