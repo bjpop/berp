@@ -14,13 +14,15 @@
 
 module Main where
 
-import Control.Monad (when)
+import System.FilePath (dropExtension, (<.>))
+import System.IO (hPutStrLn, stderr)
+import Control.Monad (when, unless)
 import System.Console.ParseArgs
-   (Argtype (..), argDataOptional, argDataDefaulted, Arg (..)
+   (Argtype (..), argDataOptional, argDataRequired, Arg (..)
    , gotArg, getArg, parseArgsIO, ArgsComplete (..), Args(..))
-import System.Exit (ExitCode (..), exitWith)
+import System.Exit (ExitCode (..), exitWith, exitFailure)
 import System.FilePath (takeBaseName)
-import System.Directory (doesFileExist)
+import System.Directory (removeFile, doesFileExist)
 import Berp.Version (versionString)
 import qualified Data.Set as Set (Set, empty, insert, notMember)
 import Berp.Compile (compilePythonToHaskell)
@@ -28,7 +30,7 @@ import System.Cmd (system)
 
 main :: IO ()
 main = do
-   let args = [withGHC, version, help, clobber, clean, showHaskell, compile, inputFile]
+   let args = [withGHC, version, help, clobber, clean, compile, inputFile]
    argMap <- parseArgsIO ArgsComplete args
    when (gotArg argMap Help) $ do
       putStrLn $ argsUsage argMap
@@ -42,28 +44,63 @@ main = do
       Just (sourceName, _fileContents) -> do
          let exeName = pyBaseName sourceName
          exeExists <- doesFileExist exeName
-         recompile <- compilePythonFilesToHaskell False Set.empty [sourceName]
+         genHaskellFiles <- compilePythonFilesToHaskell Set.empty [] [sourceName]
          -- recompile if any of the source files was translated into Haskell
          -- or if the exe does not exist.
-         when (recompile || not exeExists) $ do
-            writeFile "Main.hs" (mkMainFunction $ mkHaskellModName sourceName)
-            compileStatus <- system $ "ghc --make -O2 Main.hs -o " ++ exeName
+         when (not (null genHaskellFiles) || not exeExists) $ do
+            writeFile "Main.hs" $ mkMainFunction $ mkHaskellModName sourceName
+            ghc <- getGHC argMap
+            compileStatus <- system $ ghc ++ " --make -O2 Main.hs -o " ++ exeName
             case compileStatus of
                ExitFailure _code -> exitWith compileStatus
                ExitSuccess -> return ()
-         runStatus <- system $ "./" ++ exeName
-         exitWith runStatus
+         let intermediates = intermediateFiles ("Main.hs":genHaskellFiles)
+         when (gotArg argMap Clean || gotArg argMap Clobber) $
+            removeFiles intermediates
+         unless (gotArg argMap Compile) $ do
+            runStatus <- system $ "./" ++ exeName
+            -- we only make it possible to remove the exe if the --compile flag was not given
+            -- it makes no sense to compile to exe (without running it) and then remove the exe.
+            when (gotArg argMap Clobber) $
+               removeFiles [exeName]
+            exitWith runStatus
 
--- return True if anything was recompiled
-compilePythonFilesToHaskell :: Bool -> Set.Set String -> [FilePath] -> IO Bool
-compilePythonFilesToHaskell recomp _previous [] = return recomp
-compilePythonFilesToHaskell oldRecomp previous (f:fs)
-   | f `Set.notMember` previous = do
-      (newRecomp, imports) <- compilePythonToHaskell f
+intermediateFiles :: [FilePath] -> [FilePath]
+intermediateFiles = concatMap mkIntermediates
+   where
+   mkIntermediates :: FilePath -> [FilePath]
+   mkIntermediates hsFile =
+      [hsFile, hiFile, objFile]
+      where
+      base = dropExtension hsFile
+      hiFile = base <.> "hi"
+      objFile = base <.> "o"
+
+removeFiles :: [FilePath] -> IO ()
+removeFiles = mapM_ removeFile
+
+getGHC :: Args ArgIndex -> IO FilePath
+getGHC argMap =
+   case getArg argMap WithGHC of
+      Nothing -> return "ghc"
+      Just pathName -> do
+         ghcExists <- doesFileExist pathName
+         if ghcExists
+            then return pathName
+            else do
+               hPutStrLn stderr $ "berp: requested version of GHC does not exist: " ++ pathName
+               exitFailure
+
+-- return the list of generated Haskell files.
+compilePythonFilesToHaskell :: Set.Set String -> [FilePath] -> [FilePath] -> IO [FilePath]
+compilePythonFilesToHaskell _compiledPython genHaskellFiles [] = return genHaskellFiles
+compilePythonFilesToHaskell compiledPython prevGenHaskellFiles (f:fs)
+   | f `Set.notMember` compiledPython = do
+      (imports, nextGenHaskellFiles) <- compilePythonToHaskell f
       let pyImports = map (++ ".py") imports
-      compilePythonFilesToHaskell (oldRecomp || newRecomp)
-         (Set.insert f previous) (fs ++ pyImports)
-   | otherwise = compilePythonFilesToHaskell oldRecomp previous fs
+          genHaskellFiles = nextGenHaskellFiles ++ prevGenHaskellFiles
+      compilePythonFilesToHaskell (Set.insert f compiledPython) genHaskellFiles (fs ++ pyImports)
+   | otherwise = compilePythonFilesToHaskell compiledPython prevGenHaskellFiles fs
 
 getInputDetails :: Args ArgIndex -> IO (Maybe (FilePath, String))
 getInputDetails argMap =
@@ -89,7 +126,6 @@ mkMainFunction modName = unlines
 
 data ArgIndex
    = Help
-   | ShowHaskell
    | InputFile
    | Compile
    | Clobber
@@ -106,16 +142,6 @@ help =
    , argName = Just "help"
    , argData = Nothing
    , argDesc = "Display a help message."
-   }
-
-showHaskell :: Arg ArgIndex
-showHaskell =
-   Arg
-   { argIndex = ShowHaskell
-   , argAbbr = Just 't'
-   , argName = Just "showhaskell"
-   , argData = Nothing
-   , argDesc = "Output translated Haskell code on standard output and exit."
    }
 
 inputFile :: Arg ArgIndex
@@ -164,7 +190,7 @@ withGHC =
    { argIndex = WithGHC
    , argAbbr = Nothing
    , argName = Just "with-ghc"
-   , argData = argDataDefaulted "filepath to ghc" ArgtypeString "ghc"
+   , argData = argDataOptional "filepath to ghc" ArgtypeString
    , argDesc = "Specify the filepath of ghc."
    }
 

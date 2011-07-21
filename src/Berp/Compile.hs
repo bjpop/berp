@@ -25,7 +25,7 @@ import Berp.Compile.Compile (compiler)
 
 -- XXX we need a way to find modules in a search path
 -- return True if the Haskell file was re-generated.
-compilePythonToHaskell :: FilePath -> IO (Bool, [String])
+compilePythonToHaskell :: FilePath -> IO ([String], [FilePath])
 compilePythonToHaskell path = do
    fileExists <- doesFileExist path
    if not fileExists
@@ -36,15 +36,17 @@ compilePythonToHaskell path = do
              haskellFilename = mangledName <.> "hs"
          fileContents <- readFile path
          pyModule <- parseAndCheckErrors fileContents path
+         -- we compile regardless to collect the imports
          moduleMaker <- compiler pyModule
          let (haskellMod, imports) = moduleMaker mangledName
              haskellSrc = prettyPrint haskellMod
+         -- we only save the compiled Haskell if the original was out of date
          outOfDate <- isFileOutOfDate haskellFilename path
          if outOfDate
             then do
                writeFile haskellFilename (haskellSrc ++ "\n")
-               return (True, imports)
-            else return (False, imports)
+               return (imports, [haskellFilename])
+            else return (imports, [])
 
 -- check if the new file is older/younger than the old file
 -- Return True if the new file does not exist, or the new file is older than
