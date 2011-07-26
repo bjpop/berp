@@ -50,7 +50,7 @@ main = do
          when (not (null genHaskellFiles) || not exeExists) $ do
             writeFile "Main.hs" $ mkMainFunction $ mkHaskellModName sourceName
             ghc <- getGHC argMap
-            compileStatus <- system $ ghc ++ " --make -O2 Main.hs -o " ++ exeName
+            compileStatus <- system $ ghc ++ " --make -O2 -v0 Main.hs -o " ++ exeName
             case compileStatus of
                ExitFailure _code -> exitWith compileStatus
                ExitSuccess -> return ()

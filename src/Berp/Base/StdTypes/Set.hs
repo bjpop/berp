@@ -67,7 +67,6 @@ setClass = constantIO $ do
          }
    mkSet _other = raise typeError
 
-
 attributes :: IO Object
 attributes = mkAttributesList
    [ (specialEqName, primitive 2 eq)

@@ -1,4 +1,4 @@
-berp mult.py > foobar
+berp mult.py
 <<<
 >>>
 22212
@@ -7,6 +7,5 @@ berp mult.py > foobar
 0
 0.0
 0.0
-7.986
 >>>2
 >>>=0

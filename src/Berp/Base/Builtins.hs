@@ -19,7 +19,8 @@ import Berp.Base.SemanticTypes (Eval, Object, HashTable)
 import Berp.Base.Hash (hashedStr)
 import Berp.Base.Prims (writeGlobal)
 import Berp.Base.Builtins.Constants as Constants
-   (object, _s_object, _s_type, _s_bool, _s_set)
+   -- (object, _s_object, _s_type, _s_bool, _s_set)
+   (object)
 import Berp.Base.Builtins.Functions as Functions
    (print, dir, input, id, callCC)
 import Berp.Base.Builtins.Exceptions as Exceptions
@@ -34,6 +35,8 @@ import Berp.Base.Builtins.Exceptions as Exceptions
    , runtimeError, _s_RuntimeError
    , notImplementedError, _s_NotImplementedError
    )
+import {-# SOURCE #-} qualified Berp.Base.StdTypes.Bool as Bool (boolClass)
+import {-# SOURCE #-} qualified Berp.Base.StdTypes.Set as Set (setClass)
 
 initBuiltins :: HashTable -> Eval ()
 initBuiltins globalScope = do
@@ -43,6 +46,8 @@ initBuiltins globalScope = do
    defineBuiltin "dir" Functions.dir
    defineBuiltin "id" Functions.id
    defineBuiltin "input" Functions.input
+   defineBuiltin "set" Set.setClass
+   defineBuiltin "bool" Bool.boolClass
    where
    defineBuiltin :: String -> Object -> Eval ()
    defineBuiltin name obj = do

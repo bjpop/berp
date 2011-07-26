@@ -1,0 +1,7 @@
+# We check the most significant digits in the output only due to differences in the
+# printed output between haskell and python in the least significant digits
+berp mult_float_precision.py
+<<<
+>>> /7.986/
+>>>2
+>>>=0

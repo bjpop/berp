@@ -27,6 +27,7 @@ import Berp.Base.Unique (uniqueInteger)
 import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
 import {-# SOURCE #-} Berp.Base.StdTypes.Integer (int)
+import {-# SOURCE #-} qualified Berp.Base.StdTypes.Set as Set (set)
 
 input :: Object
 input = do

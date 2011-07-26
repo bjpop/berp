@@ -35,35 +35,35 @@ typeClass :: Object
 typeClass = constantIO $ do 
    identity <- newIdentity
    dict <- attributes
-   return $ 
-      Type 
-      { object_identity = identity 
+   return $
+      Type
+      { object_identity = identity
       , object_type = typeClass  -- yes it is recursive!
       , object_dict = dict
-      , object_bases = objectBase 
+      , object_bases = objectBase
       , object_constructor = returningProcedure (\args -> liftIO $ newType args)
       , object_type_name = string "type"
       , object_mro = tuple [typeClass, object]
       }
 
-newType :: [Object] -> IO Object 
+newType :: [Object] -> IO Object
 newType args
-   | [obj] <- args = return $ typeOf obj 
+   | [obj] <- args = return $ typeOf obj
    | [name, bases, dict] <- args = do
         identity <- newIdentity
         let theType =
-             Type 
+             Type
              { object_identity = identity
              , object_type = typeClass
              , object_dict = dict
              , object_bases = bases
-             , object_constructor = returningProcedure $ instantiate theType 
-             , object_type_name = name 
+             , object_constructor = returningProcedure $ instantiate theType
+             , object_type_name = name
 
              -- XXX we should force the eval of the mro here to catch any errors up front.
-             , object_mro = tuple $ mro theType $ getTupleElements bases 
-             }  
-        return theType 
+             , object_mro = tuple $ mro theType $ getTupleElements bases
+             }
+        return theType
    | otherwise = fail "type() takes 1 or 3 arguments"
 
 getTupleElements :: Object -> [Object] 
