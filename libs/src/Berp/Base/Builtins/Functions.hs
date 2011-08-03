@@ -43,7 +43,7 @@ input = do
    printer :: Object -> Eval ()
    printer obj@(String {}) = do
       LIO.putStr $ object_string obj
-   printer other = Prims.printObject other
+   printer other = Prims.printObject other >> return ()
 
 print :: Object
 print =
@@ -56,7 +56,7 @@ print =
       return none
    printer :: Object -> Eval ()
    printer obj@(String {}) = LIO.putStr $ object_string obj
-   printer other = Prims.printObject other
+   printer other = Prims.printObject other >> return ()
 
 dir :: Object
 dir = do

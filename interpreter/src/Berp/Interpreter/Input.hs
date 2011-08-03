@@ -31,7 +31,7 @@ import Language.Python.Common.ParserMonad
    (runParser, ParseState (..))
 import Language.Python.Common.PrettyParseError ()
 
-lexState :: String -> ParseState 
+lexState :: String -> ParseState
 lexState input = initLexState input "<stdin>"
 
 getInputLines :: Repl (Maybe String)
@@ -53,7 +53,7 @@ getInputLines = do
          | otherwise -> return $ Just line
          where
          lexResult = runParser lexer $ lexState line
-         noComments = filter (not . isComment) 
+         noComments = filter (not . isComment)
 
 isComment :: Token -> Bool
 isComment (CommentToken {}) = True
@@ -82,17 +82,15 @@ getIndentContinueLines state acc = do
               getIndentContinueLines newState (line:acc)
          | Right (_tokens, newState) <- lexResult,
            length line > 0 -> do
-              -- liftIO $ print newState
-              -- liftIO $ print tokens 
               getIndentContinueLines newState (line:acc)
          | otherwise -> return $ reverse (line:acc)
          where
-         lexResult = runParser lexer $ stateWithLine 
+         lexResult = runParser lexer $ stateWithLine
          stateWithLine = state { input = '\n':line }
 
 getParenContinueLines :: ParseState -> [String] -> Repl [String]
 getParenContinueLines state acc = do
-   maybeInput <- prompt "... " 
+   maybeInput <- prompt "... "
    case maybeInput of
       Nothing -> return $ reverse acc
       Just line
@@ -101,7 +99,7 @@ getParenContinueLines state acc = do
               getParenContinueLines newState (line:acc)
          | otherwise -> return $ reverse (line:acc)
          where
-         lexResult = runParser lexer $ stateWithLine 
+         lexResult = runParser lexer $ stateWithLine
          stateWithLine = state { input = '\n':line }
 
 prompt :: String -> Repl (Maybe String)

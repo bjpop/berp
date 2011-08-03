@@ -44,6 +44,7 @@ main = do
       Just (sourceName, _fileContents) -> do
          let exeName = pyBaseName sourceName
          exeExists <- doesFileExist exeName
+         -- XXX should catch any exceptions here
          genHaskellFiles <- compilePythonFilesToHaskell Set.empty [] [sourceName]
          -- recompile if any of the source files was translated into Haskell
          -- or if the exe does not exist.

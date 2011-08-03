@@ -12,7 +12,7 @@
 -----------------------------------------------------------------------------
 
 module Berp.Base.TopLevel
-   ( importModule, importAll, run ) where
+   ( importModule, importAll, run, runWithGlobals ) where
 
 import Control.Monad (foldM_)
 import Control.Monad.State (get, put)
@@ -46,10 +46,21 @@ importModule path comp = do
 
 run :: (HashTable -> Eval Object) -> Prelude.IO ()
 run comp = do
-   globalScope <- HashTable.empty
+   globals <- HashTable.empty
+   runWithGlobals globals comp
+
+{-
    builtins <- HashTable.empty
    _ <- runEval (initState builtins) (initBuiltins builtins >> comp globalScope)
    return ()
+-}
+
+runWithGlobals :: HashTable -> (HashTable -> Eval Object) -> Prelude.IO ()
+runWithGlobals globals comp = do
+   builtins <- HashTable.empty
+   _ <- runEval (initState builtins) (initBuiltins builtins >> comp globals)
+   return ()
+
 
 importAll :: HashTable -> Object -> Eval ()
 importAll globalScope obj =

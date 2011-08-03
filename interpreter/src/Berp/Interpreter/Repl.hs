@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      : Berp.Interpreter.Repl
@@ -13,50 +14,40 @@
 
 module Berp.Interpreter.Repl (repl) where
 
-import MonadUtils ()
-import HscTypes (liftGhcT)
-import Control.Monad.Trans (lift)
-import GHC
-   ( defaultErrorHandler, getSessionDynFlags, setSessionDynFlags
-   , findModule, mkModuleName, setContext, SingleStep (RunToCompletion)
-   , runStmt, gcatch, RunResult (..)
-   )
+import Data.Typeable (Typeable (..), mkTyConApp, mkTyCon)
+import Control.Monad.Trans (lift, liftIO)
 import Control.Monad (when)
-import Control.Exception.Extensible (SomeException (..))
-import GHC.Paths (libdir)
-import DynFlags (defaultDynFlags)
 import System.IO (hSetBuffering, stdout, BufferMode (..))
 import Language.Python.Version3.Parser (parseStmt)
--- import Language.Python.Common.PrettyParseError
 import Language.Python.Common.Pretty (prettyText)
 import Language.Python.Common.AST (StatementSpan)
 import Language.Haskell.Exts.Pretty
    ( prettyPrintStyleMode, defaultMode, style, Style (..), PPHsMode (..)
    , Mode (..), PPLayout (PPSemiColon))
 import Language.Haskell.Exts.Build (app, qualStmt)
-import Language.Haskell.Exts.Syntax (Stmt)
+import Language.Haskell.Exts.Syntax (Exp)
+import Language.Haskell.Interpreter (setImportsQ, as, interpret)
 import Berp.Version (versionString)
 import Berp.Compile.Compile (compile)
-import Berp.Compile.PrimName as Prim (interpretStmt, init)
+import Berp.Compile.PrimName as Prim (init)
 import Berp.Compile.PySyntaxUtils (InterpreterStmt (..))
-import Berp.Interpreter.Monad (Repl, runRepl)
+import Berp.Interpreter.Monad (Repl, runRepl, getGlobalScope)
 import Berp.Interpreter.Input (getInputLines)
-import Berp.Base.LiftedIO (liftIO)
- 
+import Berp.Base.SemanticTypes (Eval, Object (None), HashTable)
+import Berp.Base (runWithGlobals)
+import Berp.Base.Prims (printObject)
+
 repl :: IO ()
 repl = do
     hSetBuffering stdout NoBuffering
     greeting
-    defaultErrorHandler defaultDynFlags $ do
-      runRepl (Just libdir) $ do
-         dflags <- getSessionDynFlags
-         _ <- setSessionDynFlags dflags
-         berp_base_mod <- findModule (mkModuleName "Berp.Base") Nothing
-         setContext [] [berp_base_mod]
-         -- kludge to get ghc to link depencies at the start, rather
-         -- than when the user types the first command.
-         evalInput "None"
-         replLoop
+    runRepl $ do
+       setImportsQ [ ("Data.IntMap", Nothing)
+                   , ("Data.IORef", Nothing)
+                   , ("Berp.Base", Nothing)
+                   , ("Berp.Base.SemanticTypes", Nothing)
+                   ]
+       replLoop
 
 greeting :: IO ()
 greeting = putStrLn $ "Berp version " ++ versionString ++ ", type control-d to exit."
@@ -73,24 +64,20 @@ evalInput input =
    when (not $ null input) $ do
       pyStmts <- liftIO $ parseAndCheckErrors (input ++ "\n")
       when (not $ null pyStmts) $ do
-         stmts <- liftGhcT $ lift $ compile $ InterpreterStmt pyStmts
-         let finalStmt = qualStmt (app Prim.interpretStmt Prim.init)
-         let stmtStrs = map oneLinePrinter (stmts ++ [finalStmt])
-         -- liftIO $ mapM_ putStrLn stmtStrs
-         mapM_ runAndCatch stmtStrs
+         exp <- lift $ lift $ compile $ InterpreterStmt pyStmts
+         let expStr = oneLinePrinter exp
+         comp <- interpret expStr (as :: HashTable -> Eval Object)
+         globals <- getGlobalScope
+         liftIO $ runWithGlobals globals $ runAndPrint comp
 
-runAndCatch :: String -> Repl ()
-runAndCatch stmt = do
-   gcatch (runStmt stmt RunToCompletion >>= printRunResult) catcher
-   where
-   catcher :: SomeException -> Repl ()
-   catcher e = liftIO $ print e
+runAndPrint :: (HashTable -> Eval Object) -> HashTable -> Eval Object
+runAndPrint comp globals = do
+   -- XXX should catch exceptions here?
+   result <- comp globals
+   printObjectNotNone result
+   return result
 
-printRunResult :: RunResult -> Repl ()
-printRunResult (RunException e) = liftIO $ putStrLn ("Exception " ++ show e)
-printRunResult _other = return ()
-
-oneLinePrinter :: Stmt -> String
+oneLinePrinter :: Exp -> String
 oneLinePrinter =
    prettyPrintStyleMode newStyle newMode
    where
@@ -102,3 +89,14 @@ parseAndCheckErrors fileContents =
    case parseStmt fileContents "<stdin>" of
       Left e -> (putStrLn $ prettyText e) >> return []
       Right (pyStmt, _comments) -> return pyStmt
+
+printObjectNotNone :: Object -> Eval ()
+printObjectNotNone obj@None = return ()
+printObjectNotNone object = printObject object >> liftIO (putStr "\n")
+
+-- these Typeable instances are needed by the Hint interpret function.
+instance Typeable Object where
+   typeOf _ = mkTyConApp (mkTyCon "Object") []
+
+instance Typeable (Eval Object) where
+   typeOf _ = mkTyConApp (mkTyCon "Eval") [typeOf (undefined :: Object)]

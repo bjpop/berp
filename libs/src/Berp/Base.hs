@@ -21,12 +21,12 @@ module Berp.Base
    , subs, try, tryElse, tryFinally, tryElseFinally, except, exceptDefault, raise, reRaise, raiseFrom
    , pure, pureObject, yield, generator, returnGenerator, unaryMinus, unaryPlus, invert, runEval
    , interpretStmt, topVar, unpack, setitem, Pat (..), complex, set
-   , importModule, readGlobal, writeGlobal, readLocal, writeLocal, run, importAll )
+   , importModule, readGlobal, writeGlobal, readLocal, writeLocal, run, runWithGlobals, importAll )
    where
 
 import Prelude ()
 import Data.Complex as Complex (Complex (..))
-import Berp.Base.TopLevel (importModule, importAll, run)
+import Berp.Base.TopLevel (importModule, importAll, run, runWithGlobals)
 import Berp.Base.Prims
    ( (=:), stmt, ifThenElse, ret, pass, break, continue, while, whileElse, for, forElse, ifThen,
      (@@), tailCall, read, var, setattr, subs, try, tryElse, tryFinally, tryElseFinally, except,

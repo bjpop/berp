@@ -17,9 +17,10 @@
 
 module Berp.Base.SemanticTypes
    ( Procedure, ControlStack (..), EvalState (..), Object (..), Eval, ObjectRef
-   , HashTable, HashSet, ListArray, Arity, ModuleCache {- , GlobalScope (..) -}
+   , HashTable, HashSet, ListArray, Arity, ModuleCache
    , initState )  where
 
+import Data.Typeable (Typeable)
 import Control.Monad.State.Strict (StateT)
 import Control.Monad.Cont (ContT)
 import Data.IntMap (IntMap)
@@ -28,19 +29,6 @@ import Data.IORef (IORef)
 import Data.Complex (Complex)
 import Data.Array.IO (IOArray)
 import Berp.Base.Identity (Identity)
-
-{-
-data GlobalScope
-   = TopGlobalScope { global_scope_bindings :: !HashTable }
-   | NestedGlobalScope
-     { global_scope_bindings :: !HashTable
-     , global_scope_tail :: GlobalScope
-     }
-
-instance Show GlobalScope where
-   show (TopGlobalScope {}) = "TopGlobalScope"
-   show (NestedGlobalScope {}) = "NestedGlobalScope"
--}
 
 data ControlStack
    = EmptyStack

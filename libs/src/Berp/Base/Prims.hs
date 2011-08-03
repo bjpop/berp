@@ -456,10 +456,11 @@ returnGenerator cont = do
    generatorObj <- generator cont
    ret generatorObj
 
-printObject :: Object -> Eval ()
+printObject :: Object -> Eval Object
 printObject obj = do
    str <- showObject obj
    LIO.putStr str
+   pass
 
 showObject :: Object -> Eval String
 -- XXX this should really choose the right quotes based on the content of the string.

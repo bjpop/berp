@@ -53,27 +53,14 @@ instance Compilable a => Compilable (Maybe a) where
    type CompileResult (Maybe a) = Maybe (CompileResult a)
    compile = mapM compile
 
--- XXX this is all bogus and needs to change
 instance Compilable InterpreterStmt where
-   type CompileResult InterpreterStmt = [Hask.Stmt]
+   type CompileResult InterpreterStmt = Hask.Exp
    compile (InterpreterStmt suite) = do
-      -- suiteBindings <- checkEither $ topBindings suite
-      let suiteBindings = topBindings
-      oldScope <- getScope
-      let oldLocals = localVars oldScope
-      let suiteLocals = localVars suiteBindings
-          newLocals = suiteLocals \\ oldLocals
-          nestedBindings = suiteBindings { localVars = newLocals }
-      (vars, stmts) <- nestedScope nestedBindings $ compile $ TopBlock suite
-      let init = initStmt $ doBlock stmts
-      let accumLocals = oldLocals `Set.union` newLocals
-      setScope $ oldScope { localVars = accumLocals }
-      return (vars ++ [init])
+      stmts <- nestedScope topBindings $ compile $ Block suite
+      return $ mkLambda stmts
       where
-      initStmt :: Hask.Exp -> Hask.Stmt
-      initStmt exp = letStmt [initDecl exp]
-      initDecl :: Hask.Exp -> Hask.Decl
-      initDecl = patBind bogusSrcLoc $ pvar Prim.initName
+      mkLambda :: [Hask.Stmt] -> Hask.Exp
+      mkLambda stmts = lamE bogusSrcLoc [Prim.globalsPat] $ doBlock stmts
 
 instance Compilable ModuleSpan where
    type CompileResult ModuleSpan = String -> (Hask.Module, [String])
