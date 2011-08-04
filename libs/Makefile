@@ -20,7 +20,3 @@ configure:
 .PHONY : install
 install:
 	cabal install --disable-library-profiling --disable-executable-profiling --disable-documentation
-
-.PHONY : test
-test:
-	shelltest --color --execdir --with='berp --clobber' test/regression -- -j1
