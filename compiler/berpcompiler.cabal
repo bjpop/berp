@@ -1,0 +1,40 @@
+name:                berpcompiler
+version:             0.0.3
+cabal-version:       >= 1.6
+synopsis:            An implementation of Python 3.
+description:         Berp is an implementation of Python 3, written in Haskell.
+                     It provides a compiler and an interpreter. In both cases
+                     the input Python program is translated into Haskell code.
+                     The compiler turns the Haskell code into machine code.
+                     The interpreter runs the Haskell code immediately via
+                     the GHCi interpreter. The user interface of the interpreter
+                     imitates the one provided by CPython.
+category:            Language
+license:             BSD3
+license-file:        ../LICENSE
+copyright:           (c) 2010 Bernard James Pope
+author:              Bernard James Pope (Bernie Pope)
+maintainer:          florbitous@gmail.com
+homepage:            http://wiki.github.com/bjpop/berp/
+build-type:          Simple
+stability:           experimental
+tested-with:         GHC==7.0.3
+
+Executable berp
+  ghc-options: -Wall -fno-warn-name-shadowing -fno-warn-orphans
+  main-is:
+      Main.hs
+  hs-source-dirs:
+      src,
+      src/Berp/
+  build-depends:
+      base == 4.*,
+      mtl == 2.*,
+      containers,
+      language-python,
+      haskell-src-exts,
+      filepath,
+      process == 1.0.*,
+      parseargs,
+      directory,
+      berplibs == 0.0.3

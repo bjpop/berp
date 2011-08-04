@@ -1,0 +1,45 @@
+name:                berpinterpreter
+version:             0.0.3
+cabal-version:       >= 1.6
+synopsis:            An interactive interpreter for Python 3.
+description:         Berpi is an implementation of Python 3, written in Haskell.
+                     The input Python program is translated into Haskell code,
+                     which runs the Haskell code immediately via
+                     the GHCi interpreter. The user interface of the interpreter
+                     imitates the one provided by CPython.
+category:            Language
+license:             BSD3
+license-file:        ../LICENSE
+copyright:           (c) 2011 Bernard James Pope
+author:              Bernard James Pope (Bernie Pope)
+maintainer:          florbitous@gmail.com
+homepage:            http://wiki.github.com/bjpop/berp/
+build-type:          Simple
+stability:           experimental
+tested-with:         GHC==7.0.3
+
+Executable berpi
+  ghc-options: -Wall -fno-warn-name-shadowing -fno-warn-orphans
+  main-is:
+      Main.hs
+  hs-source-dirs:
+      src,
+      src/Berp/
+  build-depends:
+      base == 4.*,
+      mtl == 2.*,
+      containers,
+      language-python,
+      haskell-src-exts,
+      filepath,
+      process == 1.0.*,
+      parseargs,
+      directory,
+      berplibs == 0.0.3,
+      hint == 0.3.3.*,
+      MonadCatchIO-mtl == 0.3.0.*,
+      haskeline == 0.6.4.*
+  other-modules:
+      Berp.Interpreter.Input
+      Berp.Interpreter.Monad
+      Berp.Interpreter.Repl

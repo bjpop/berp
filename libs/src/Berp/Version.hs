@@ -13,7 +13,7 @@
 
 module Berp.Version (version, versionString) where
 
-import Paths_berp (version)
+import Paths_berplibs (version)
 import Data.Version (showVersion)
 
 versionString :: String

@@ -1,0 +1,96 @@
+name:                berplibs
+version:             0.0.3
+cabal-version:       >= 1.6
+synopsis:            An implementation of Python 3.
+description:         Berp is an implementation of Python 3, written in Haskell.
+                     It provides a compiler and an interpreter. In both cases
+                     the input Python program is translated into Haskell code.
+                     The compiler turns the Haskell code into machine code.
+                     The interpreter runs the Haskell code immediately via
+                     the GHCi interpreter. The user interface of the interpreter
+                     imitates the one provided by CPython.
+category:            Language
+license:             BSD3
+license-file:        ../LICENSE
+copyright:           (c) 2010 Bernard James Pope
+author:              Bernard James Pope (Bernie Pope)
+maintainer:          florbitous@gmail.com
+homepage:            http://wiki.github.com/bjpop/berp/
+build-type:          Simple
+stability:           experimental
+tested-with:         GHC==7.0.3
+extra-source-files:  src/include/BerpDebug.h
+
+Library
+   ghc-options: -Wall -fno-warn-name-shadowing -fno-warn-orphans
+   include-dirs:
+      src/include
+   hs-source-dirs:
+      src
+   build-depends:
+      base == 4.*,
+      mtl == 2.*,
+      containers,
+      array < 0.4,
+      extensible-exceptions == 0.1.*,
+      filepath,
+      MonadCatchIO-mtl == 0.3.0.*,
+      haskell-src-exts == 1.11.*,
+      language-python == 0.3.*,
+      directory == 1.1.0.*
+   exposed-modules:
+      Berp.Base
+      Berp.Base.HashTable
+      Berp.Base.Prims
+      Berp.Base.SemanticTypes
+      Berp.Compile
+      Berp.Compile.Monad
+      Berp.Compile.Compile
+      Berp.Compile.PySyntaxUtils
+      Berp.Compile.PrimName
+      Berp.Version
+   other-modules:
+      Paths_berplibs
+      Berp.Base.Attributes
+      Berp.Base.Builtins
+      Berp.Base.Builtins.Constants
+      Berp.Base.Builtins.Exceptions
+      Berp.Base.Builtins.Functions
+      Berp.Base.Builtins.Utils
+      Berp.Base.Class
+      Berp.Base.ControlStack
+      Berp.Base.Exception
+      Berp.Base.ExitCodes
+      Berp.Base.Hash
+      Berp.Base.HashSet
+      Berp.Base.Ident
+      Berp.Base.Identity
+      Berp.Base.LiftedIO
+      Berp.Base.Mangle
+      Berp.Base.Monad
+      Berp.Base.Object
+      Berp.Base.Operators
+      Berp.Base.StdNames
+      Berp.Base.StdTypes.Bool
+      Berp.Base.StdTypes.Complex
+      Berp.Base.StdTypes.Dictionary
+      Berp.Base.StdTypes.Float
+      Berp.Base.StdTypes.Function
+      Berp.Base.StdTypes.Generator
+      Berp.Base.StdTypes.Integer
+      Berp.Base.StdTypes.List
+      Berp.Base.StdTypes.Module
+      Berp.Base.StdTypes.None
+      Berp.Base.StdTypes.Object
+      Berp.Base.StdTypes.ObjectBase
+      Berp.Base.StdTypes.Set
+      Berp.Base.StdTypes.String
+      Berp.Base.StdTypes.Tuple
+      Berp.Base.StdTypes.Type
+      Berp.Base.TopLevel
+      Berp.Base.Truth
+      Berp.Base.Unique
+      Berp.Compile.HsSyntaxUtils
+      Berp.Compile.IdentString
+      Berp.Compile.Scope
+      Berp.Compile.Utils
