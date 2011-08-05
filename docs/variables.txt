@@ -84,14 +84,6 @@ by using IORefs, but for the global scope we will have to use a dictionary
 passed around in (the state part of) the Eval monad. This means when we compile
 the program we need to distinguish between local and global variables.
 
-It also
-means that functions definitions will have to be "closed" over their global scope
-at the point of definition, and carry that global scope with them. When a function
-is called it will have to push its global scope onto some kind of stack and pop it
-off when the function returns. It is useful to separate the global stack from the
-control stack. We would not want to have to search the top of the control stack for
-every global variable reference.
-
 Incidentally
 CPython includes a __globals__ attribute on functions for this very purpsoe.
 CPython also has a __closure__ although it is not clear that we can (or want to)
@@ -100,7 +92,7 @@ which is hopefully reasonably efficient. It would seem to be rather unfortunate
 if we had to implement local scopes as dictionaries. Imagine an inner loop which
 reads repeatedly from a variable. It would entail a lot of dictionary lookups.
 
-I think that the different handling of the global scope will also sort out the
+The different handling of the global scope will also sort out the
 problem of "global" declarations mentioned above.
 
 We will need two ways of working with variables: local and global. Eg:
@@ -109,14 +101,6 @@ We will need two ways of working with variables: local and global. Eg:
 
 Local variables need to be declared (because they are IORefs) but globals will
 not. The first use of a global will cause it to be added to the state.
-
-Also we need to make sure other variable binding things are treated correctly
-depending on scope, eg def, class. Might need
-
-   defLocal, defGlobal, classLocal, classGlobal
-
-or can we get away with just def and klass, but use writeLocal, writeGlobal
-to get the scope correct? The latter approach sounds best.
 
 It would be cute if we could handle variable scope in the same pass as compiling the
 code rather than having to make two passes. Unfortunately Python allows "global"
@@ -141,6 +125,6 @@ Python gives this error, when f is called:
 
    UnboundLocalError: local variable 'x' referenced before assignment
 
-From this we can infer that the fact that x is assigned in the local scope means that 
+From this we can infer that the fact that x is assigned in the local scope means that
 it is treated as local. Curiously it makes no difference if x is defined in an enclosing
 scope. It is still treated as local.
