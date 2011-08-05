@@ -25,8 +25,7 @@ Executable berp
   main-is:
       Main.hs
   hs-source-dirs:
-      src,
-      src/Berp/
+      src
   build-depends:
       base == 4.*,
       mtl == 2.*,

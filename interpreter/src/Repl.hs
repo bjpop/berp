@@ -12,7 +12,7 @@
 --
 -----------------------------------------------------------------------------
 
-module Berp.Interpreter.Repl (repl) where
+module Repl (repl) where
 
 import Data.Typeable (Typeable (..), mkTyConApp, mkTyCon)
 import Control.Monad.Trans (lift, liftIO)
@@ -31,11 +31,11 @@ import Berp.Version (versionString)
 import Berp.Compile.Compile (compile)
 import Berp.Compile.PrimName as Prim (init)
 import Berp.Compile.PySyntaxUtils (InterpreterStmt (..))
-import Berp.Interpreter.Monad (Repl, runRepl, getGlobalScope)
-import Berp.Interpreter.Input (getInputLines)
 import Berp.Base.SemanticTypes (Eval, Object (None), HashTable)
 import Berp.Base (runWithGlobals)
 import Berp.Base.Prims (printObject)
+import Monad (Repl, runRepl, getGlobalScope)
+import Input (getInputLines)
 
 repl :: IO ()
 repl = do

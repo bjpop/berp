@@ -19,17 +19,17 @@
 --
 -----------------------------------------------------------------------------
 
-module Berp.Interpreter.Input (getInputLines) where
+module Input (getInputLines) where
 
 import System.Console.Haskeline as Haskeline (getInputLine)
 import System.Console.Haskeline.IO (queryInput)
-import Berp.Interpreter.Monad (Repl, withInputState)
 import Control.Monad.Trans (liftIO)
 import Language.Python.Version3.Lexer (lexer, initLexState)
 import Language.Python.Common.Token (Token (..))
 import Language.Python.Common.ParserMonad
    (runParser, ParseState (..))
 import Language.Python.Common.PrettyParseError ()
+import Monad (Repl, withInputState)
 
 lexState :: String -> ParseState
 lexState input = initLexState input "<stdin>"

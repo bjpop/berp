@@ -20,7 +20,7 @@ import System.Console.ParseArgs
    , gotArg, getArg, parseArgsIO, ArgsComplete (..), Args(..))
 import System.Exit (ExitCode (..), exitWith, exitFailure)
 import Berp.Version (versionString)
-import Berp.Interpreter.Repl (repl)
+import Repl (repl)
 
 main :: IO ()
 main = do

@@ -11,7 +11,7 @@
 --
 -----------------------------------------------------------------------------
 
-module Berp.Interpreter.Monad (Repl, runRepl, withInputState, getGlobalScope) where
+module Monad (Repl, runRepl, withInputState, getGlobalScope) where
 
 import Control.Monad.Trans as Trans (lift, liftIO)
 import Control.Monad.State.Strict as State (StateT (..), evalStateT, gets)
