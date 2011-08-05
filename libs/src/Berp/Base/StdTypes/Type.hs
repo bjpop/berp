@@ -32,7 +32,7 @@ import Berp.Base.StdTypes.Tuple (tuple)
 
 {-# NOINLINE typeClass #-}
 typeClass :: Object
-typeClass = constantIO $ do 
+typeClass = constantIO $ do
    identity <- newIdentity
    dict <- attributes
    return $
@@ -66,7 +66,7 @@ newType args
         return theType
    | otherwise = fail "type() takes 1 or 3 arguments"
 
-getTupleElements :: Object -> [Object] 
+getTupleElements :: Object -> [Object]
 getTupleElements (Tuple { object_tuple = objs }) = objs
 getTupleElements _other = error "bases of object is not a tuple"
 

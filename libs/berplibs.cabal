@@ -53,7 +53,7 @@ Library
       Paths_berplibs
       Berp.Base.Attributes
       Berp.Base.Builtins
-      Berp.Base.Builtins.Constants
+      -- Berp.Base.Builtins.Constants
       Berp.Base.Builtins.Exceptions
       Berp.Base.Builtins.Functions
       Berp.Base.Builtins.Utils
