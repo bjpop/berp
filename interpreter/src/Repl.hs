@@ -40,17 +40,28 @@ import Input (getInputLines)
 repl :: IO ()
 repl = do
     hSetBuffering stdout NoBuffering
-    greeting
     runRepl $ do
        setImportsQ [ ("Data.IntMap", Nothing)
                    , ("Data.IORef", Nothing)
                    , ("Berp.Base", Nothing)
                    , ("Berp.Base.SemanticTypes", Nothing)
                    ]
+       greeting
        replLoop
 
-greeting :: IO ()
-greeting = putStrLn $ "Berp version " ++ versionString ++ ", type control-d to exit."
+{- This is a bit of a hack. We could, of course, just use putStrLn, to
+   print the greeint. Instead we compile and run some Python code. This
+   forces the GHCi to load and link all the needed modules. There is a short
+   delay in the linking. We'd rather pay for the delay at the printing of
+   the prompt instead of the first time the user types in an expression
+   to evaluate. It seems like a small deal, but it turns out to be very
+   annoying if the first expression to evaluate has a slight pause. And
+   it gives users the wrong impression that the interpreter is slow, when
+   in fact it is quite fast to respond.
+-}
+greeting :: Repl ()
+greeting = evalInput $ "print(\"Berp version " ++ versionString ++ ", type control-d to exit.\")"
+-- greeting = return ()
 
 replLoop :: Repl ()
 replLoop = do

@@ -29,6 +29,13 @@ type Identity = Unique
 newIdentity :: MonadIO m => m Unique
 newIdentity = liftIO newUnique
 
+{-
+newIdentity :: MonadIO m => m Unique
+newIdentity = do
+   liftIO $ putStrLn "calling newIdentity"
+   liftIO newUnique
+-}
+
 instance Hash Identity where
    hash = hashUnique
 

@@ -18,8 +18,6 @@ module Berp.Base.Builtins
 import Berp.Base.SemanticTypes (Eval, Object, HashTable)
 import Berp.Base.Hash (hashedStr)
 import Berp.Base.Prims (writeGlobal)
--- import Berp.Base.Builtins.Constants as Constants
---    (object)
 import Berp.Base.Builtins.Functions as Functions
    (print, dir, input, id, callCC)
 import Berp.Base.Builtins.Exceptions as Exceptions

@@ -69,23 +69,27 @@ import GHC.Num
 -- compared for equality and ordering and hashed into 'Int'.
 newtype Unique = Unique { uniqueInteger :: Integer } deriving (Eq,Ord)
 
--- not safe, but needed for printing purposes. 
+-- not safe, but needed for printing purposes.
 instance Show Unique where
    show (Unique i) = show i
 
 {-# NOINLINE uniqSource #-}
 uniqSource :: MVar Integer
 uniqSource = unsafePerformIO (newMVar 0)
+-- uniqSource = unsafePerformIO (do { putStrLn "uniqueSource"; (newMVar 0) })
 
 -- | Creates a new object of type 'Unique'.  The value returned will
 -- not compare equal to any other value of type 'Unique' returned by
 -- previous calls to 'newUnique'.  There is no limit on the number of
 -- times 'newUnique' may be called.
+{-# NOINLINE newUnique #-}
 newUnique :: IO Unique
 newUnique = do
    val <- takeMVar uniqSource
+   -- putStrLn $ "old u = " ++ show val
    let next = val+1
    putMVar uniqSource next
+   -- putStrLn $ "new u = " ++ show next
    return (Unique next)
 
 -- | Hashes a 'Unique' into an 'Int'.  Two 'Unique's may hash to the
