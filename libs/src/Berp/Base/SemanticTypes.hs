@@ -111,6 +111,17 @@ instance ObjectLike Object where
    ...
 -}
 
+data Identity
+   = IntegerID Integer
+   | FloatID Double
+   | NoneID
+   | TrueID
+   | FalseID
+   | StringID String
+   | ComplexID (Complex Double)
+   | ObjectID Integer
+   deriving (Eq, Show)
+
 -- XXX probably need Bound Methods.
 data Object
    = Object
@@ -127,6 +138,7 @@ data Object
      , object_type_name :: !Object -- string
      , object_mro :: !Object -- tuple. Method Resolution Order.
      }
+{-
    | Integer
      { object_identity :: !Identity
      , object_integer :: !Integer
@@ -143,6 +155,7 @@ data Object
      { object_identity :: !Identity
      , object_bool :: !Bool
      }
+-}
    | Tuple
      { object_identity :: !Identity
      , object_tuple :: ![Object]
@@ -160,10 +173,12 @@ data Object
      , object_arity :: !Arity
      , object_dict :: !Object -- dictionary
      }
+{-
    | String
      { object_identity :: !Identity
      , object_string :: !String
      }
+-}
    | Dictionary
      { object_identity :: !Identity
      , object_hashTable :: !HashTable
@@ -182,30 +197,42 @@ data Object
      { object_identity :: !Identity
      , object_dict :: !Object -- dictionary
      }
+   | Integer { object_integer :: !Integer }
+   | Float { object_float :: !Double }
+   | Complex { object_complex :: !(Complex Double) }
+   | String { object_string :: !String }
+   | TrueObject
+   | FalseObject
    | None
 
 -- For debugging only
 instance Show Object where
    show obj@(Object {}) = "object of (" ++ show (object_type obj) ++ ")"
    show obj@(Type {}) = "type(" ++ show (object_type_name obj) ++ ")"
-   show obj@(Integer {}) = "integer(" ++ show (object_integer obj) ++ ")"
-   show obj@(Float {}) = "float(" ++ show (object_float obj) ++ ")"
-   show obj@(Bool {}) = "bool(" ++ show (object_bool obj) ++ ")"
+   -- show obj@(Bool {}) = "bool(" ++ show (object_bool obj) ++ ")"
    show (Tuple {}) = "tuple"
    show (List {}) = "list"
    show (Function {}) = "function"
-   show obj@(String {}) = "string(" ++ show (object_string obj) ++ ")"
    show (Dictionary {}) = "dictionary"
    show (Set {}) = "set"
    show (Generator {}) = "generator"
-   show obj@(Complex {}) = "complex(" ++ show (object_complex obj) ++ ")"
    show (Module {}) = "module"
+   show obj@(Integer {}) = "integer(" ++ show (object_integer obj) ++ ")"
+   show obj@(Float {}) = "float(" ++ show (object_float obj) ++ ")"
+   show TrueObject = "True"
+   show FalseObject = "False"
+   show obj@(String {}) = "string(" ++ show (object_string obj) ++ ")"
+   show obj@(Complex {}) = "complex(" ++ show (object_complex obj) ++ ")"
    show (None {}) = "None"
 
 -- equality instance for objects
 -- NOTE: use with care. This does not call the user defined equality
 -- on the object. It only uses identity equality.
 
+{-
 instance Eq Object where
    None {} == None {} = True
+   TrueObject {} == TrueObject {} = True
+   FalseObject {} == FalseObject {} = True
    obj1 == obj2 = object_identity obj1 == object_identity obj2
+-}

@@ -28,7 +28,7 @@ import Data.List (nub)
 import Control.Monad (zipWithM)
 import Control.Applicative ((<$>))
 import Data.Maybe (isJust, catMaybes)
-import Berp.Base.SemanticTypes (Object (..), Eval)
+import Berp.Base.SemanticTypes (Object (..), Eval, Indentity (..))
 import Berp.Base.Mangle (deMangle)
 import Berp.Base.Identity (Identity)
 import Berp.Base.Hash (Hashed)
@@ -86,8 +86,19 @@ typeOf (Set {}) = setClass
 typeOf (Module {}) = moduleClass
 
 -- The identity of an object should never change so this can be a pure function.
+{-
 identityOf :: Object -> Identity
 identityOf None = noneIdentity
+identityOf object = object_identity object
+-}
+identityOf :: Object -> Identity
+identityOf (Integer { object_integer = i }) = IntegerID i
+identityOf (Float { object_float = f }) = FloatID f
+identityOf (Complex { object_complex = c }) = ComplexID c
+identityOf (String { object_string = s }) = StringID s
+identityOf TrueObject = TrueID
+identityOf FalseObject = FalseID
+identityOf None = NoneID
 identityOf object = object_identity object
 
 dictOf :: Object -> Maybe Object
