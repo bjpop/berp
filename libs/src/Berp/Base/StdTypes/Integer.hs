@@ -13,12 +13,10 @@
 
 module Berp.Base.StdTypes.Integer (int, intClass) where
 
-import Berp.Base.Monad (constantIO)
-import Berp.Base.Prims (primitive, raise)
+import Berp.Base.Prims (primitive, raiseException)
 import Berp.Base.SemanticTypes (Object (..), Eval)
-import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributesList)
-import Berp.Base.Builtins (notImplementedError)
+-- import Berp.Base.Builtins (notImplementedError)
 import Berp.Base.StdNames
 import Berp.Base.Operators
    ( addIntIntInt, subIntIntInt, modIntIntInt, mulIntIntInt, ltIntIntBool
@@ -27,19 +25,16 @@ import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.ObjectBase (objectBase)
 import Berp.Base.StdTypes.String (string)
 
-{-# NOINLINE int #-}
 int :: Integer -> Object
-int i = constantIO $ do
-   identity <- newIdentity
-   return $ Integer { object_identity = identity, object_integer = i }
+int i = Integer { object_integer = i }
 
-{-# NOINLINE intClass #-}
-intClass :: Object
-intClass = constantIO $ do
+intClass :: Eval Object
+intClass = do
    dict <- attributes
-   newType [string "int", objectBase, dict]
+   base <- objectBase
+   newType [string "int", base, dict]
 
-attributes :: IO Object
+attributes :: Eval Object
 attributes = mkAttributesList
    [ (specialAddName, add)
    , (specialSubName, sub)
@@ -54,46 +49,46 @@ attributes = mkAttributesList
    , (specialModName, modulus)
    ]
 
-mkOp :: (Object -> Object -> Eval Object) -> Object
+mkOp :: (Object -> Object -> Eval Object) -> Eval Object
 mkOp op = primitive 2 fun
    where
    fun (x:y:_) =
       case y of
          Integer {} -> op x y
-         _other -> raise notImplementedError
+         _other -> raiseException "notImplementedError"
    fun _other = error "operator on Int applied to wrong number of arguments"
 
-add :: Object
+add :: Eval Object
 add = mkOp addIntIntInt
 
-sub :: Object
+sub :: Eval Object
 sub = mkOp subIntIntInt
 
-mul :: Object
+mul :: Eval Object
 mul = mkOp mulIntIntInt
 
-divide :: Object
+divide :: Eval Object
 divide = mkOp divIntIntInt
 
-lt :: Object
+lt :: Eval Object
 lt = mkOp ltIntIntBool
 
-le :: Object
+le :: Eval Object
 le = mkOp leIntIntBool
 
-gt :: Object
+gt :: Eval Object
 gt = mkOp gtIntIntBool
 
-ge :: Object
+ge :: Eval Object
 ge = mkOp geIntIntBool
 
-eq :: Object
+eq :: Eval Object
 eq = mkOp eqIntIntBool
 
-modulus :: Object
+modulus :: Eval Object
 modulus = mkOp modIntIntInt
 
-str :: Object
+str :: Eval Object
 str = primitive 1 fun
    where
    fun (x:_) = return $ string $ show $ object_integer x

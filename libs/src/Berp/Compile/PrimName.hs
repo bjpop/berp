@@ -224,8 +224,11 @@ readLocal = prim "readLocal"
 readGlobal :: Exp
 readGlobal = prim "readGlobal"
 
-integer :: Integer -> Exp
-integer i = app (prim "integer") (intE i)
+int :: Integer -> Exp
+int i = app (prim "int") (intE i)
+
+float :: Double -> Exp
+float d = app (prim "float") (Lit $ Frac $ toRational d)
 
 bool :: Bool -> Exp
 bool b = if b then true else false 

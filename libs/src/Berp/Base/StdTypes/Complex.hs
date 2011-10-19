@@ -14,13 +14,10 @@
 module Berp.Base.StdTypes.Complex (complex, complexClass) where
 
 import Data.Complex (Complex (..), realPart, imagPart)
-import Berp.Base.Monad (constantIO)
-import Berp.Base.Prims (primitive, raise)
+import Berp.Base.Prims (primitive, raiseException)
 import Berp.Base.SemanticTypes (Object (..), Eval)
-import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributesList)
 import Berp.Base.StdNames
-import Berp.Base.Builtins (notImplementedError)
 import Berp.Base.Operators
    ( addComplexComplexComplex
    , addComplexIntComplex
@@ -41,19 +38,16 @@ import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.ObjectBase (objectBase)
 import Berp.Base.StdTypes.String (string)
 
-{-# NOINLINE complex #-}
 complex :: Complex Double -> Object
-complex c = constantIO $ do
-   identity <- newIdentity
-   return $ Complex { object_identity = identity, object_complex = c }
+complex c = Complex { object_complex = c }
 
-{-# NOINLINE complexClass #-}
-complexClass :: Object
-complexClass = constantIO $ do
+complexClass :: Eval Object
+complexClass = do
    dict <- attributes
-   newType [string "complex", objectBase, dict]
+   base <- objectBase
+   newType [string "complex", base, dict]
 
-attributes :: IO Object
+attributes :: Eval Object
 attributes = mkAttributesList
    [ (specialAddName, add)
    , (specialSubName, sub)
@@ -66,7 +60,7 @@ attributes = mkAttributesList
 mkOp :: (Object -> Object -> Eval Object) ->
         (Object -> Object -> Eval Object) ->
         (Object -> Object -> Eval Object) ->
-        Object
+        Eval Object
 mkOp opComplex opFloat opInt = primitive 2 fun
    where
    fun (x:y:_) =
@@ -74,25 +68,25 @@ mkOp opComplex opFloat opInt = primitive 2 fun
          Complex {} -> opComplex x y
          Float {} -> opFloat x y
          Integer {} -> opInt x y
-         _other -> raise notImplementedError
+         _other -> raiseException "notImplementedError"
    fun _other = error "operator on Complex applied to wrong number of arguments"
 
-add :: Object
+add :: Eval Object
 add = mkOp addComplexComplexComplex addComplexFloatComplex addComplexIntComplex
 
-sub :: Object
+sub :: Eval Object
 sub = mkOp subComplexComplexComplex subComplexFloatComplex subComplexIntComplex
 
-mul :: Object
+mul :: Eval Object
 mul = mkOp mulComplexComplexComplex mulComplexFloatComplex mulComplexIntComplex
 
-divide :: Object
+divide :: Eval Object
 divide = mkOp divComplexComplexComplex divComplexFloatComplex divComplexIntComplex
 
-eq :: Object
+eq :: Eval Object
 eq = mkOp eqComplexComplexBool eqComplexFloatBool eqComplexIntBool
 
-str :: Object
+str :: Eval Object
 str = primitive 1 fun
    where
    fun (x:_) = return $ string $ showComplex x

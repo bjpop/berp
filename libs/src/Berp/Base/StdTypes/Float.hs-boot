@@ -1,6 +1,6 @@
 module Berp.Base.StdTypes.Float (float, floatClass) where
 
-import Berp.Base.SemanticTypes (Object)
+import Berp.Base.SemanticTypes (Object, Eval)
 
 float :: Double -> Object
-floatClass :: Object
+floatClass :: Eval Object

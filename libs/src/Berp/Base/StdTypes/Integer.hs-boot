@@ -1,6 +1,6 @@
 module Berp.Base.StdTypes.Integer (int, intClass) where
 
-import Berp.Base.SemanticTypes (Object)
+import Berp.Base.SemanticTypes (Object, Eval)
 
-int :: Integer -> Object 
-intClass :: Object
+int :: Integer -> Object
+intClass :: Eval Object

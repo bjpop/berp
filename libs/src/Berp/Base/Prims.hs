@@ -28,39 +28,38 @@ module Berp.Base.Prims
    , pureObject, showObject, returningProcedure, pyCallCC, unpack
    , next, setitem, Pat (G, V), getIterator, mapIterator
    , readGlobal, writeGlobal, readLocal
-   , writeLocal {- getGlobalScopeHashTable -} ) where
+   , writeLocal, lookupBuiltin, raiseException {- getGlobalScopeHashTable -} ) where
 
 import Prelude hiding (break, read, putStr)
 -- import System.Plugins (load_, LoadStatus (..))
 import Control.Monad (zipWithM)
-import Control.Monad.State (gets, modify)
+import Control.Monad.State (gets)
 import Control.Monad.Cont (callCC)
 import Data.Array.IO (getElems)
 -- import Berp.Compile (compilePythonToObjectFile)
-import Berp.Base.LiftedIO as LIO (readIORef, writeIORef, newIORef, liftIO, putStr)
+import Berp.Base.LiftedIO as LIO (readIORef, writeIORef, newIORef, liftIO, putStr, putStrLn)
 #ifdef DEBUG
 import Berp.Base.LiftedIO as LIO (putStrLn)
 #endif
 import qualified Control.Applicative as Applicative (pure)
 import Control.Applicative ((<$>))
-import Berp.Base.Monad ( updateModuleCache, lookupModuleCache)
 import Berp.Base.SemanticTypes
    ( HashTable, Object (..), ObjectRef, Procedure, Eval, EvalState(..), ControlStack(..), Arity {- , GlobalScope (..) -} )
 import Berp.Base.Truth (truth)
 import {-# SOURCE #-} Berp.Base.Object
    ( typeOf, dictOf, lookupAttribute, lookupSpecialAttribute, objectEquality, isIterator )
-import Berp.Base.Hash (hash, Hashed)
+import Berp.Base.Hash (Hashed, hashedStr)
 import Berp.Base.ControlStack
 import Berp.Base.StdNames (specialDocName, specialStrName, specialSetItemName, specialGetItemName, specialNextName, specialIterName)
 import Berp.Base.Exception (RuntimeError (..), throw)
 import Berp.Base.Ident (Ident)
-import {-# SOURCE #-} Berp.Base.HashTable as Hash (printHashTable, mappings, empty, stringInsert, insert, stringLookup)
+import {-# SOURCE #-} Berp.Base.HashTable as Hash (stringInsert, insert, stringLookup)
 import {-# SOURCE #-} Berp.Base.StdTypes.Function (function)
 import {-# SOURCE #-} Berp.Base.StdTypes.List (updateListElement)
 import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
 import {-# SOURCE #-} Berp.Base.StdTypes.Bool (true, false)
 import {-# SOURCE #-} Berp.Base.StdTypes.Generator (generator)
-import {-# SOURCE #-} Berp.Base.Builtins.Exceptions (nameError, stopIteration, typeError, valueError)
+-- import {-# SOURCE #-} Berp.Base.Builtins.Exceptions (nameError, stopIteration, typeError, valueError)
 
 data Pat = G Int [Pat] | V ObjectRef
 
@@ -74,7 +73,7 @@ getGlobalScopeHashTable :: Eval HashTable
 getGlobalScopeHashTable = global_scope_bindings <$> gets state_global_scope
 -}
 
-primitive :: Arity -> Procedure -> Object
+primitive :: Arity -> Procedure -> Eval Object
 primitive arity proc = function arity (returningProcedure proc) {- Nothing -}
 
 returningProcedure :: Procedure -> Procedure
@@ -104,19 +103,32 @@ readGlobal :: HashTable -> Hashed String -> Eval Object
 readGlobal globalScope var = do
    maybeObj <- stringLookup var globalScope
    case maybeObj of
-      Nothing -> do
-         builtins <- gets state_builtins
-         maybeBuiltin <- stringLookup var builtins
-         case maybeBuiltin of
-            Nothing -> raise nameError
-            -- Nothing -> error (show (hash (snd var), var))
-            Just obj -> return obj
+      Nothing -> lookupBuiltinHashed var
       Just obj -> return obj
 
 writeGlobal :: HashTable -> Hashed String -> Object -> Eval Object
 writeGlobal globalScope var obj = do
    stringInsert var obj globalScope
    return none
+
+lookupBuiltin :: String -> Eval Object
+lookupBuiltin = lookupBuiltinHashed . hashedStr
+
+lookupBuiltinHashed :: Hashed String -> Eval Object
+lookupBuiltinHashed var = do
+    LIO.putStrLn "lookupBuiltinHashed 0"
+    builtins <- gets state_builtins
+    LIO.putStrLn "lookupBuiltinHashed 1"
+    maybeBuiltin <- stringLookup var builtins
+    LIO.putStrLn "lookupBuiltinHashed 2"
+    case maybeBuiltin of
+       -- Nothing -> raiseException "nameError"
+       Nothing -> error ("nameError " ++ snd var)
+       Just obj -> return obj
+
+raiseException :: String -> Eval Object
+raiseException name =
+    raise =<< lookupBuiltin name
 
 ret :: Object -> Eval Object
 ret obj = do
@@ -153,10 +165,10 @@ obj @@ args = do
            | arity == -1 || arity == length args ->
                 callProcedure proc args
            -- XXX should be raise of arity, typeError exception
-           | otherwise -> raise typeError
+           | otherwise -> raiseException "typeError"
         Type { object_constructor = proc } -> callProcedure proc args
         -- XXX should try to find "__call__" attribute on object
-        _other -> raise typeError
+        _other -> raiseException "typeError"
 
 callProcedure :: Procedure -> [Object] -> Eval Object
 callProcedure proc args =
@@ -172,20 +184,22 @@ tailCall obj args = do
                  }
            | arity == -1 || arity == length args ->
                 proc args
-           | otherwise -> raise typeError
+           | otherwise -> raiseException "typeError"
         Type { object_constructor = proc } -> proc args
         -- XXX should try to find "__call__" attribute on object
-        _other -> raise typeError
+        _other -> raiseException "typeError"
 
 ifThenElse :: Eval Object -> Eval Object -> Eval Object -> Eval Object
 ifThenElse condComp trueComp falseComp = do
     cond <- condComp
-    if truth cond then trueComp else falseComp
+    isTrue <- truth cond
+    if isTrue then trueComp else falseComp
 
 ifThen :: Eval Object -> Eval Object -> Eval Object
 ifThen condComp trueComp = do
    cond <- condComp
-   if truth cond then trueComp else pass
+   isTrue <- truth cond
+   if isTrue then trueComp else pass
 
 {-
 Compile for loops by desugaring into while loops.
@@ -218,6 +232,7 @@ forElse expObj suite1 suite2 = do
    cond <- newIORef true
    let tryBlock = do nextObj <- next iterObj
                      suite1 nextObj
+   stopIteration <- lookupBuiltin "stopIteration"
    let handler e = except e stopIteration ((writeIORef cond false) >> pass) (raise e)
    let whileBlock = try tryBlock handler
    whileElse (readIORef cond) whileBlock suite2
@@ -230,7 +245,8 @@ whileElse cond loopBlock elseBlock = do
    callCC $ \end -> do
       let afterLoop = end none
           loop = do condVal <- cond
-                    if truth condVal
+                    isTrue <- truth condVal
+                    if isTrue
                        then do
                           _ <- loopBlock
                           loop
@@ -338,7 +354,7 @@ except exceptionObj baseObj match noMatch = do
 -- XXX fixme, this is not correct, should also check if the exception is a subclass of the baseObj
 compatibleException :: Object -> Object -> Eval Bool
 compatibleException exceptionObj baseObj = do
-   let typeOfException = typeOf exceptionObj
+   typeOfException <- typeOf exceptionObj
    objectEquality typeOfException baseObj
 
 exceptDefault :: Eval Object -> Eval Object -> Eval Object
@@ -388,7 +404,8 @@ raise obj = do
    -- if we walk past a GeneratorCall then we need to smash the continuation to always raise an
    -- exception
    handleFrame exceptionObj (GeneratorCall { generator_object = genObj }) = do
-      writeIORef (object_continuation genObj) (raise stopIteration)
+      -- XXX probably don't want to do this lookup all the time.
+      writeIORef (object_continuation genObj) (raiseException "stopIteration")
       pop >> raise exceptionObj
    handleFrame exceptionObj _other = do
       -- BELCH("other frame")
@@ -426,14 +443,14 @@ generatorNext (obj:_) = do
             action <- readIORef $ object_continuation obj
             _ <- action
             BELCH("raising exception")
-            raise stopIteration
+            raiseException "stopIteration"
          _other -> error "next applied to object which is not a generator"
    ret result
 generatorNext [] = error "Generator applied to no arguments"
 
 def :: Arity -> Object -> ([ObjectRef] -> Eval Object) -> Eval Object
 def arity docString fun = do
-   let procedureObj = function arity closure
+   procedureObj <- function arity closure
    _ <- setattr procedureObj specialDocName docString
    return procedureObj
    where
@@ -444,7 +461,7 @@ def arity docString fun = do
 
 lambda :: Arity -> ([ObjectRef] -> Eval Object) -> Eval Object
 lambda arity fun = do
-   return $ function arity closure
+   function arity closure
    where
    closure :: Procedure
    closure params = do
@@ -471,7 +488,7 @@ pyCallCC :: Object -> Eval Object
 pyCallCC fun =
    callCC $ \ret -> do
       context <- getControlStack
-      let cont = function 1 (contFun ret context)
+      cont <- function 1 (contFun ret context)
       -- XXX can this be a tail call?
       fun @@ [cont]
    where
@@ -488,7 +505,7 @@ unpack :: Pat -> Object -> Eval Object
 unpack (V var) obj = writeIORef var obj >> return none
 unpack (G n pats) (Tuple { object_tuple = elements, object_length = size })
    | n == size = zipWithM unpack pats elements >> return none
-   | otherwise = raise valueError
+   | otherwise = raiseException "valueError"
 unpack (G n pats) (List { object_list_elements = elementsRef, object_list_num_elements = sizeRef }) = do
    size <- readIORef sizeRef
    if fromIntegral n == size
@@ -497,7 +514,7 @@ unpack (G n pats) (List { object_list_elements = elementsRef, object_list_num_el
          objs <- liftIO $ getElems elementsArray
          _ <- zipWithM unpack pats objs
          return none
-      else raise valueError
+      else raiseException "valueError"
 -- XXX this has different semantics than Python because it will allow pattern variables
 -- to be assigned up-to the point an exception is raised. Python is all or nothing.
 unpack (G _n pats) obj = do
@@ -515,10 +532,13 @@ unpack (G _n pats) obj = do
    where
    unpackIterator :: [Pat] -> Object -> Eval Object
    -- check that the iterator was exhausted, by looking for a stopIteration
-   unpackIterator [] _obj =
-      tryElse (next obj) handler (raise valueError)
+   unpackIterator [] _obj = do
+      tryElse (next obj) handler (raiseException "valueError")
       where
-      handler e = except e stopIteration pass (raise e)
+      handler e = do
+         -- XXX probably want to avoid this lookup
+         stopIteration <- lookupBuiltin "stopIteration"
+         except e stopIteration pass (raise e)
    unpackIterator (pat:pats) obj = do
       _ <- try assignNext handler
       unpackIterator pats obj
@@ -526,14 +546,17 @@ unpack (G _n pats) obj = do
       assignNext :: Eval Object
       assignNext = unpack pat =<< next obj
       handler :: Object -> Eval Object
-      handler e = except e stopIteration (raise valueError) (raise e)
+      handler e = do
+         -- XXX probably want to avoid this lookup
+         stopIteration <- lookupBuiltin "stopIteration"
+         except e stopIteration (raiseException "valueError") (raise e)
 
 getIterator :: Object -> Eval Object
 getIterator obj = do
    iteratorTest <- isIterator obj
    if iteratorTest
       then callMethod obj specialIterName []
-      else raise valueError
+      else raiseException "valueError"
 
 mapIterator :: (Object -> Eval ()) -> Object -> Eval ()
 mapIterator f obj = do
@@ -545,7 +568,10 @@ mapIterator f obj = do
    mapWorker iterObj = do
       tryElse mapNext handler $ mapWorker iterObj
       where
-      handler e = except e stopIteration pass (raise e)
+      handler e = do
+         -- XXX probably want to avoid this lookup
+         stopIteration <- lookupBuiltin "stopIteration"
+         except e stopIteration pass (raise e)
       mapNext = do
          f =<< next iterObj
          pass

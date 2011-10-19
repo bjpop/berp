@@ -13,21 +13,20 @@
 
 module Berp.Base.StdTypes.Module (mkModule, moduleClass) where
 
-import Berp.Base.Monad (constantIO)
 import Berp.Base.SemanticTypes (HashTable, Object (..), Eval)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributes, mkAttributesList)
-import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
+import Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.ObjectBase (objectBase)
 import Berp.Base.StdTypes.String (string)
 
-{-# NOINLINE moduleClass #-}
-moduleClass :: Object
-moduleClass = constantIO $ do
+moduleClass :: Eval Object
+moduleClass = do
    dict <- attributes
-   newType [string "module", objectBase, dict]
+   base <- objectBase
+   newType [string "module", base, dict]
 
-attributes :: IO Object
+attributes :: Eval Object
 attributes = mkAttributesList []
 
 -- Maybe this belongs in Prims, but we end up with more cyclic dependencies.

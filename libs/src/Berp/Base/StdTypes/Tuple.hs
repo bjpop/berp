@@ -14,8 +14,7 @@
 module Berp.Base.StdTypes.Tuple (tuple, tupleClass, emptyTuple, getTupleElements) where
 
 import Data.List (intersperse)
-import Berp.Base.Monad (constantIO)
-import Berp.Base.SemanticTypes (Object (..))
+import Berp.Base.SemanticTypes (Object (..), Eval)
 import Berp.Base.Prims (primitive, showObject)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributesList)
@@ -24,40 +23,39 @@ import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.ObjectBase (objectBase)
 import Berp.Base.StdTypes.String (string)
 
-emptyTuple :: Object
+emptyTuple :: Eval Object
 emptyTuple = tuple []
 
-{-# NOINLINE tuple #-}
-tuple :: [Object] -> Object
-tuple elements = constantIO $ do 
+tuple :: [Object] -> Eval Object
+tuple elements = do
    identity <- newIdentity
-   return $ 
+   return $
       Tuple
       { object_identity = identity
       , object_tuple = elements
       , object_length = length elements
       }
 
-{-# NOINLINE tupleClass #-}
-tupleClass :: Object
-tupleClass = constantIO $ do 
+tupleClass :: Eval Object
+tupleClass = do
    dict <- attributes
-   newType [string "tuple", objectBase, dict]
+   base <- objectBase
+   newType [string "tuple", base, dict]
 
 getTupleElements :: Object -> [Object]
 getTupleElements (Tuple { object_tuple = objs }) = objs
 getTupleElements _other = error "bases of object is not a tuple"
 
-attributes :: IO Object
+attributes :: Eval Object
 attributes = mkAttributesList
    [ (specialEqName, eq)
    , (specialStrName, str)
    ]
 
-eq :: Object
+eq :: Eval Object
 eq = error "== on tuple not defined"
 
-str :: Object
+str :: Eval Object
 str = primitive 1 fun
    where
    fun (x:_) = do

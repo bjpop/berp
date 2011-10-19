@@ -13,32 +13,32 @@
 
 module Berp.Base.Truth (truth) where
 
-import {-# SOURCE #-} Berp.Base.HashTable as HashTable (sizeIO)
-import {-# SOURCE #-} Berp.Base.HashSet as HashSet (sizeIO)
-import Berp.Base.SemanticTypes (Object (..))
+import {-# SOURCE #-} Berp.Base.HashTable as HashTable (size)
+import {-# SOURCE #-} Berp.Base.HashSet as HashSet (size)
+import Berp.Base.SemanticTypes (Object (..), Eval)
 import Data.Complex (Complex (..))
-import System.IO.Unsafe (unsafePerformIO)
-import Data.IORef (readIORef)
+import Berp.Base.LiftedIO (readIORef)
 
--- XXX incomplete
-truth :: Object -> Bool
-truth (Bool { object_bool = b }) = b
-truth (Integer { object_integer = i }) = i /= 0
-truth (Float { object_float = f }) = f /= 0
-truth (Complex { object_complex = c }) = c /= (0 :+ 0)
-truth None = False
-truth obj@(Tuple {}) = object_length obj /= 0
-truth obj@(String {}) = object_string obj /= []
-truth obj@(List {}) = unsafePerformIO $ do
+truth :: Object -> Eval Bool
+-- truth (Bool { object_bool = b }) = b
+truth TrueObject = return True
+truth FalseObject = return False
+truth (Integer { object_integer = i }) = return (i /= 0)
+truth (Float { object_float = f }) = return (f /= 0)
+truth (Complex { object_complex = c }) = return (c /= (0 :+ 0))
+truth None = return False
+truth obj@(Tuple {}) = return (object_length obj /= 0)
+truth obj@(String {}) = return (object_string obj /= [])
+truth obj@(List {}) = do
    numElems <- readIORef $ object_list_num_elements obj
    return (numElems /= 0)
-truth obj@(Dictionary {}) = unsafePerformIO $ do
-   numElems <- HashTable.sizeIO $ object_hashTable obj
+truth obj@(Dictionary {}) = do
+   numElems <- HashTable.size $ object_hashTable obj
    return (numElems /= 0)
-truth obj@(Set {}) = unsafePerformIO $ do
-   numElems <- HashSet.sizeIO $ object_hashSet obj
+truth obj@(Set {}) = do
+   numElems <- HashSet.size $ object_hashSet obj
    return (numElems /= 0)
-truth _other = True
+truth _other = return True
 
 {-
    Python Language Reference, section 5.10 "Boolean operations":

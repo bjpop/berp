@@ -3,5 +3,5 @@ module Berp.Base.StdTypes.Dictionary (emptyDictionary, dictionary, dictionaryCla
 import Berp.Base.SemanticTypes (Object, Eval)
 
 dictionary :: [(Object, Object)] -> Eval Object
-dictionaryClass :: Object
-emptyDictionary :: IO Object
+dictionaryClass :: Eval Object
+emptyDictionary :: Eval Object

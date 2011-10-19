@@ -15,12 +15,12 @@
 
 module Berp.Base
    ( module Complex
-   , int, none, string, true, false, def, lambda, (=:), stmt, ifThenElse, ret, pass, break
+   , int, float, none, string, true, false, def, lambda, (=:), stmt, ifThenElse, ret, pass, break
    , continue, while, whileElse, for, forElse, ifThen, (@@), tailCall, tuple, read, var
    , (%), (+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), and, or, not, klass, setattr, list, dictionary
    , subs, try, tryElse, tryFinally, tryElseFinally, except, exceptDefault, raise, reRaise, raiseFrom
    , pure, pureObject, yield, generator, returnGenerator, unaryMinus, unaryPlus, invert, runEval
-   , interpretStmt, topVar, unpack, setitem, Pat (..), complex, set
+   , topVar, unpack, setitem, Pat (..), complex, set
    , importModule, readGlobal, writeGlobal, readLocal, writeLocal, run, runWithGlobals, importAll )
    where
 
@@ -35,9 +35,10 @@ import Berp.Base.Prims
      readLocal, writeLocal )
 import Berp.Base.Operators
    ((%), (+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), and, or, unaryMinus, unaryPlus, invert, not)
-import Berp.Base.Monad (runEval, interpretStmt)
+import Berp.Base.Monad (runEval)
 import Berp.Base.Class (klass)
 import Berp.Base.StdTypes.Integer (int)
+import Berp.Base.StdTypes.Float (float)
 import Berp.Base.StdTypes.Tuple (tuple)
 import Berp.Base.StdTypes.Bool (true, false)
 import Berp.Base.StdTypes.String (string)

@@ -14,16 +14,15 @@
 module Berp.Base.TopLevel
    ( importModule, importAll, run, runWithGlobals ) where
 
+import Control.Concurrent.MVar (newMVar)
 import Control.Monad (foldM_)
-import Control.Monad.State (get, put)
-import Berp.Base.SemanticTypes (HashTable, Eval, Object (..), initState, EvalState (..))
+import Berp.Base.SemanticTypes (HashTable, Eval, Object (..), initState)
 import Berp.Base.Monad (lookupModuleCache, updateModuleCache, runEval)
-import Berp.Base.HashTable as HashTable (printHashTable, empty, mappings, insert)
+import Berp.Base.HashTable as HashTable (empty, mappings, insert)
 import Berp.Base.Builtins (initBuiltins)
-import Berp.Base.StdTypes.None (none)
-import Berp.Base.Prims (printObject {- , getGlobalScopeHashTable -} )
-import Berp.Base.LiftedIO as LIO (putStr, putStrLn)
+import Berp.Base.LiftedIO as LIO (putStrLn)
 import Berp.Base.StdTypes.Module (mkModule)
+import Berp.Base.Unique (zero)
 
 importModule :: FilePath -> (HashTable -> Eval Object) -> Eval Object
 importModule path comp = do
@@ -58,7 +57,17 @@ run comp = do
 runWithGlobals :: HashTable -> (HashTable -> Eval Object) -> Prelude.IO ()
 runWithGlobals globals comp = do
    builtins <- HashTable.empty
-   _ <- runEval (initState builtins) (initBuiltins builtins >> comp globals)
+   LIO.putStrLn "before unique"
+   initUnique <- newMVar zero
+   LIO.putStrLn "after unique"
+   _ <- runEval (initState initUnique builtins) $ do
+           LIO.putStrLn "before initBuiltins"
+           initBuiltins builtins
+           LIO.putStrLn "after initBuiltins"
+           x <- comp globals
+           LIO.putStrLn "after comp"
+           return x
+   LIO.putStrLn "after eval"
    return ()
 
 
@@ -83,6 +92,3 @@ importAll globalScope obj =
    updateTable ht (key, val) = do
       HashTable.insert key val ht
       return ht
-
-printItems :: [(Object, Object)] -> Eval ()
-printItems = mapM_ (\(k,v) -> do { printObject k; LIO.putStr " "; printObject v; LIO.putStr "\n" })

@@ -13,7 +13,6 @@
 
 module Berp.Base.StdTypes.Generator (generator, generatorClass) where
 
-import Berp.Base.Monad (constantIO)
 import Berp.Base.SemanticTypes (Object (..), Eval)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributesList)
@@ -37,14 +36,14 @@ generator continuation = do
       , object_stack_context = stackRef
       }
 
-{-# NOINLINE generatorClass #-}
-generatorClass :: Object
-generatorClass = constantIO $ do
+generatorClass :: Eval Object
+generatorClass = do
    dict <- attributes
-   newType [string "generator", objectBase, dict]
+   base <- objectBase
+   newType [string "generator", base, dict]
 
 -- XXX update my attributes
-attributes :: IO Object
+attributes :: Eval Object
 attributes = mkAttributesList
    [ (specialIterName, iter)
    , (specialStrName, str)
@@ -52,14 +51,14 @@ attributes = mkAttributesList
    ]
 
 -- XXX fixme
-str :: Object
+str :: Eval Object
 str = primitive 1 $ \_ -> return $ string $ "Generator"
 
-iter :: Object
+iter :: Eval Object
 iter = primitive 1 fun
    where
    fun (x:_) = return x
    fun _other = error "iter method on generator applied to the wrong number of arguments"
 
-next :: Object
+next :: Eval Object
 next = function 1 generatorNext {- Nothing -}

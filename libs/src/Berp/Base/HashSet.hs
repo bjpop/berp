@@ -18,7 +18,7 @@ module Berp.Base.HashSet
    , delete
    , fromList
    , elements
-   , sizeIO
+   , size
    ) where
 
 import Control.Monad.Trans (liftIO)
@@ -38,8 +38,8 @@ elementsIO hashSet = concat <$> IntMap.elems <$> readIORef hashSet
 elements :: HashSet -> Eval [Object]
 elements = liftIO . elementsIO
 
-sizeIO :: HashSet -> IO Integer
-sizeIO hashSet = genericLength <$> elementsIO hashSet
+size :: HashSet -> Eval Integer
+size hashSet = genericLength <$> elements hashSet
 
 empty :: MonadIO m => m HashSet
 empty = newIORef IntMap.empty

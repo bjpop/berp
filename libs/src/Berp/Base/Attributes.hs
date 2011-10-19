@@ -15,16 +15,15 @@
 
 module Berp.Base.Attributes (mkAttributes, mkAttributesList) where
 
-import Berp.Base.SemanticTypes (HashTable, Object (..))
+import Berp.Base.SemanticTypes (HashTable, Object (..), Eval)
 import Berp.Base.HashTable (stringTableFromList)
 import Berp.Base.Hash (Hashed)
 import Berp.Base.Identity (newIdentity)
-import Berp.Base.LiftedIO (MonadIO)
 
-mkAttributesList :: MonadIO m => [(Hashed String, Object)] -> m Object
-mkAttributesList list =
-   -- hashTable <- stringTableFromList list
-   mkAttributes =<< stringTableFromList list
+mkAttributesList :: [(Hashed String, Eval Object)] -> Eval Object
+mkAttributesList list = do
+   strsObjs <- mapM (\(str, comp) -> do { obj <- comp; return (str, obj) }) list
+   mkAttributes =<< stringTableFromList strsObjs
 {-
    identity <- newIdentity
    return $
@@ -34,7 +33,7 @@ mkAttributesList list =
       }
 -}
 
-mkAttributes :: MonadIO m => HashTable -> m Object
+mkAttributes :: HashTable -> Eval Object
 mkAttributes hashTable = do
    identity <- newIdentity
    return $

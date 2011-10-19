@@ -14,19 +14,17 @@
 module Berp.Base.StdTypes.Dictionary (emptyDictionary, dictionary, dictionaryClass) where
 
 import Data.List (intersperse)
-import Berp.Base.Prims (primitive, showObject, raise)
-import Berp.Base.Monad (constantIO)
+import Berp.Base.Prims (primitive, showObject, raiseException)
 import Berp.Base.SemanticTypes (Procedure, Object (..), Eval)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.HashTable as Hash (fromList, empty, mappings, lookup)
 import Berp.Base.Attributes (mkAttributesList)
-import {-# SOURCE #-} Berp.Base.Builtins.Exceptions (keyError)
 import Berp.Base.StdNames
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.ObjectBase (objectBase)
 import Berp.Base.StdTypes.String (string)
 
-emptyDictionary :: IO Object
+emptyDictionary :: Eval Object
 emptyDictionary = do
    identity <- newIdentity
    hashTable <- Hash.empty
@@ -46,23 +44,23 @@ dictionary elements = do
       , object_hashTable = hashTable
       }
 
-{-# NOINLINE dictionaryClass #-}
-dictionaryClass :: Object
-dictionaryClass = constantIO $ do
+dictionaryClass :: Eval Object
+dictionaryClass = do
    dict <- attributes
-   newType [string "dict", objectBase, dict]
+   base <- objectBase
+   newType [string "dict", base, dict]
 
-attributes :: IO Object 
-attributes = mkAttributesList 
+attributes :: Eval Object
+attributes = mkAttributesList
    [ (specialEqName, primitive 2 eq)
    , (specialStrName, primitive 1 str)
    , (specialGetItemName, primitive 2 getItem)
    ]
 
-eq :: Procedure 
+eq :: Procedure
 eq = error "== on dict not defined"
 
-str :: Procedure 
+str :: Procedure
 str (obj:_) = do
    ms <- mappings $ object_hashTable obj
    strs <- mapM dictEntryString ms
@@ -79,7 +77,7 @@ getItem :: Procedure
 getItem (obj:index:_) = do
    let ht = object_hashTable obj
    maybeVal <- Hash.lookup index ht
-   case maybeVal of 
-      Nothing -> raise keyError
-      Just val -> return val  
+   case maybeVal of
+      Nothing -> raiseException "keyError"
+      Just val -> return val
 getItem _other = error "getItem on dictionary applied to wrong number of arguments"

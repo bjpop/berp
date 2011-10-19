@@ -1,7 +1,7 @@
 module Berp.Base.StdTypes.Bool (boolClass, bool, true, false) where
 
-import Berp.Base.SemanticTypes (Object)
+import Berp.Base.SemanticTypes (Eval, Object)
 
 bool :: Bool -> Object
 true,false :: Object
-boolClass :: Object
+boolClass :: Eval Object

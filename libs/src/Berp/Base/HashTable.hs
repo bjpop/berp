@@ -23,20 +23,19 @@ module Berp.Base.HashTable
    , stringInsert
    , mappings
    , keys
-   , sizeIO
+   , size
    , printHashTable
    ) where
 
-import Control.Monad.Trans (liftIO)
 import Prelude hiding (lookup)
 import Control.Applicative ((<$>))
 import qualified Data.IntMap as IntMap
 import Data.List (genericLength)
 import Control.Monad (foldM)
-import Berp.Base.SemanticTypes (Object (..), ObjectRef, Eval, HashTable)
+import Berp.Base.SemanticTypes (Object (..), ObjectRef, Eval, HashTable, Identity (..))
 import Berp.Base.Object (objectEquality)
 import Berp.Base.Prims (callMethod, printObject)
-import Berp.Base.Hash (hash, Hashed)
+import Berp.Base.Hash (Hash (..), Hashed)
 import Berp.Base.LiftedIO as LIO (putStrLn, putStr, MonadIO, readIORef, writeIORef, newIORef)
 import Berp.Base.StdNames (specialHashName)
 import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
@@ -50,12 +49,12 @@ printHashTable hashTable = do
    printItems :: [(Object, Object)] -> Eval ()
    printItems = mapM_ printer
    printer (k,v) = do
-      printObject k
+      _ <- printObject k
       LIO.putStr " "
       hashVal <- hashObject k
       LIO.putStr (show hashVal)
       LIO.putStr " "
-      printObject v
+      _ <- printObject v
       LIO.putStr "\n"
 
 mappings :: HashTable -> Eval [(Object, Object)]
@@ -69,23 +68,35 @@ readValRef (key, valRef) = do
    val <- readIORef valRef
    return (key, val)
 
-keysIO :: HashTable -> IO [Object]
-keysIO hashTable = do
+keys :: HashTable -> Eval [Object]
+keys hashTable = do
    intMap <- readIORef hashTable
    let keysVals = concat $ IntMap.elems intMap
    return $ map fst keysVals
 
-keys :: HashTable -> Eval [Object]
-keys = liftIO . keysIO
+size :: HashTable -> Eval Integer
+size hashTable = genericLength <$> keys hashTable
 
-sizeIO :: HashTable -> IO Integer
-sizeIO hashTable = genericLength <$> keysIO hashTable
+-- XXX need to fix the hashing of Double and Complex
+instance Hash Identity where
+   hash (IntegerID i) = hash i
+   hash (FloatID _d) = error "hash on a Float"
+   hash NoneID = 0
+   hash TrueID = 1
+   hash FalseID = 2
+   hash (StringID s) = hash s
+   hash (ComplexID _c) = error "hash on a Complex"
+   -- XXX maybe we should hash (f i), for some non-trivial f
+   hash (ObjectID i) = hash i
+   hash other@(IdentityID {}) = error $ "hash on object" ++ show other
 
 -- XXX This really belongs in another module, for example Hash.
 hashObject :: Object -> Eval Int
 hashObject obj@(String {}) = return $ hash $ object_string obj
 hashObject obj@(Integer {}) = return $ hash $ object_integer obj
-hashObject obj@(Bool {}) = if object_bool obj then return 1 else return 0
+-- hashObject obj@(Bool {}) = if object_bool obj then return 1 else return 0
+hashObject (TrueObject {}) = return 1
+hashObject (FalseObject {}) = return 0
 hashObject obj@(None {}) = return $ hash $ object_identity obj -- copying what Python3.0 seems to do
 hashObject obj@(Function {}) = return $ hash $ object_identity obj
 hashObject object = do

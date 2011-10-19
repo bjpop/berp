@@ -25,7 +25,6 @@ import Language.Haskell.Exts.Syntax as Hask
 import Language.Haskell.Exts.Build as Hask
 import Control.Applicative
 import qualified Data.Set as Set
-import Data.Set ((\\))
 import Control.Monad hiding (mapM, sequence)
 import qualified Berp.Compile.PrimName as Prim
 import Berp.Compile.Monad
@@ -375,8 +374,9 @@ instance Compilable ExprSpan where
    compile (Py.Strings { strings_strings = ss }) =
       returnExp $ Prim.string $ concat $ map trimString ss
    compile (Py.Bool { bool_value = b}) = returnExp $ Prim.bool b
-   compile (Py.Int { int_value = i}) = returnExp $ intE i
-   compile (Py.Float { float_value = f}) = returnExp $ Lit $ Frac $ toRational f
+   compile (Py.Int { int_value = i}) = returnExp $ Prim.int i
+   -- compile (Py.Float { float_value = f}) = returnExp $ Lit $ Frac $ toRational f
+   compile (Py.Float { float_value = f}) = returnExp $ Prim.float f
    compile (Py.Imaginary { imaginary_value = i}) =
       returnExp $ app Prim.complex $ paren c
       where

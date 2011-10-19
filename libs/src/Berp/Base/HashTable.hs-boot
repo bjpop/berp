@@ -9,7 +9,7 @@ module Berp.Base.HashTable
    , stringLookup
    , stringInsert
    , keys
-   , sizeIO
+   , size
    , mappings
    , printHashTable
    ) where
@@ -20,7 +20,7 @@ import Berp.Base.SemanticTypes (Object, Eval, HashTable)
 import Berp.Base.LiftedIO (MonadIO)
 
 hashObject :: Object -> Eval Int
-empty :: MonadIO m => m HashTable 
+empty :: MonadIO m => m HashTable
 fromList :: [(Object, Object)] -> Eval HashTable
 insert :: Object -> Object -> HashTable -> Eval ()
 lookup :: Object -> HashTable -> Eval (Maybe Object)
@@ -29,6 +29,6 @@ stringTableFromList :: MonadIO m => [(Hashed String, Object)] -> m HashTable
 stringLookup :: MonadIO m => Hashed String -> HashTable -> m (Maybe Object)
 stringInsert :: Hashed String -> Object -> HashTable -> Eval ()
 keys :: HashTable -> Eval [Object]
-sizeIO :: HashTable -> IO Integer
+size :: HashTable -> Eval Integer
 mappings :: HashTable -> Eval [(Object, Object)]
 printHashTable :: HashTable -> Eval ()

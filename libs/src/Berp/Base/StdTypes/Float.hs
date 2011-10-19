@@ -13,13 +13,10 @@
 
 module Berp.Base.StdTypes.Float (float, floatClass) where
 
-import Berp.Base.Monad (constantIO)
-import Berp.Base.Prims (primitive, raise)
+import Berp.Base.Prims (primitive, raiseException)
 import Berp.Base.SemanticTypes (Object (..), Eval)
-import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributesList)
 import Berp.Base.StdNames
-import Berp.Base.Builtins (notImplementedError)
 import Berp.Base.Operators
    ( addFloatFloatFloat, addFloatIntFloat, subFloatFloatFloat, subFloatIntFloat,
      mulFloatFloatFloat, mulFloatIntFloat, ltFloatFloatBool, ltFloatIntBool,
@@ -30,19 +27,16 @@ import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
 import Berp.Base.StdTypes.ObjectBase (objectBase)
 import Berp.Base.StdTypes.String (string)
 
-{-# NOINLINE float #-}
 float :: Double -> Object
-float f = constantIO $ do
-   identity <- newIdentity
-   return $ Float { object_identity = identity, object_float = f }
+float f = Float { object_float = f }
 
-{-# NOINLINE floatClass #-}
-floatClass :: Object
-floatClass = constantIO $ do
+floatClass :: Eval Object
+floatClass = do
    dict <- attributes
-   newType [string "float", objectBase, dict]
+   base <- objectBase
+   newType [string "float", base, dict]
 
-attributes :: IO Object
+attributes :: Eval Object
 attributes = mkAttributesList
    [ (specialAddName, add)
    , (specialSubName, sub)
@@ -56,44 +50,44 @@ attributes = mkAttributesList
    , (specialStrName, str)
    ]
 
-mkOp :: (Object -> Object -> Eval Object) -> (Object -> Object -> Eval Object) -> Object
+mkOp :: (Object -> Object -> Eval Object) -> (Object -> Object -> Eval Object) -> Eval Object
 mkOp opFloat opInt = primitive 2 fun
    where
    fun (x:y:_) =
       case y of
          Float {} -> opFloat x y
          Integer {} -> opInt x y
-         _other -> raise notImplementedError
+         _other -> raiseException "notImplementedError"
    fun _other = error "operator on Float applied to wrong number of arguments"
 
-add :: Object
+add :: Eval Object
 add = mkOp addFloatFloatFloat addFloatIntFloat
 
-sub :: Object
+sub :: Eval Object
 sub = mkOp subFloatFloatFloat subFloatIntFloat
 
-mul :: Object
+mul :: Eval Object
 mul = mkOp mulFloatFloatFloat mulFloatIntFloat
 
-divide :: Object
+divide :: Eval Object
 divide = mkOp divFloatFloatFloat divFloatIntFloat
 
-lt :: Object
+lt :: Eval Object
 lt = mkOp ltFloatFloatBool ltFloatIntBool
 
-le :: Object
+le :: Eval Object
 le = mkOp leFloatFloatBool leFloatIntBool
 
-gt :: Object
+gt :: Eval Object
 gt = mkOp gtFloatFloatBool gtFloatIntBool
 
-ge :: Object
+ge :: Eval Object
 ge = mkOp geFloatFloatBool geFloatIntBool
 
-eq :: Object
+eq :: Eval Object
 eq = mkOp eqFloatFloatBool eqFloatIntBool
 
-str :: Object
+str :: Eval Object
 str = primitive 1 fun
    where
    fun (x:_) = return $ string $ show $ object_float x

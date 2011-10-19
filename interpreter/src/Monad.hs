@@ -11,11 +11,10 @@
 --
 -----------------------------------------------------------------------------
 
-module Monad (Repl, runRepl, withInputState, getGlobalScope) where
+module Monad (Repl, runRepl, withInputState, getGlobalScope, withGlobalScope) where
 
 import Control.Monad.Trans as Trans (lift, liftIO)
 import Control.Monad.State.Strict as State (StateT (..), evalStateT, gets)
-import Control.Monad.CatchIO as CatchIO (MonadCatchIO (..))
 import Language.Haskell.Interpreter (InterpreterT, runInterpreter)
 import System.Console.Haskeline as Haskeline (defaultSettings)
 import System.Console.Haskeline.IO (initializeInput, InputState)

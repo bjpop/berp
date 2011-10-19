@@ -15,56 +15,57 @@
 
 module Berp.Base.StdTypes.Type (typeClass, newType) where
 
-import Data.List (delete)
-import Control.Monad.Trans (liftIO)
-import Berp.Base.SemanticTypes (Object (..), Procedure)
-import Berp.Base.Monad (constantIO)
+import Berp.Base.SemanticTypes (Object (..), Procedure, Eval)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributesList)
-import Berp.Base.Object (typeOf)
+import Berp.Base.Object (typeOf, identityOf)
 import Berp.Base.Prims (primitive, callMethod, returningProcedure)
 import Berp.Base.StdNames
-import Berp.Base.StdTypes.Object (object)
 import Berp.Base.StdTypes.Dictionary (emptyDictionary)
 import Berp.Base.StdTypes.ObjectBase (objectBase)
 import Berp.Base.StdTypes.String (string)
 import Berp.Base.StdTypes.Tuple (tuple)
+import Berp.Base.LiftedIO as LIO (putStrLn)
 
-{-# NOINLINE typeClass #-}
-typeClass :: Object
-typeClass = constantIO $ do
+typeClass :: Eval Object
+typeClass = do
    identity <- newIdentity
    dict <- attributes
+   base <- objectBase
+   let thisClass = undefined -- typeClass, XXX recursive
+       objectClass = undefined -- object
+   mro <- tuple [thisClass, objectClass]
    return $
       Type
       { object_identity = identity
-      , object_type = typeClass  -- yes it is recursive!
+      , object_type = undefined -- XXX fixme! yes it is recursive!
       , object_dict = dict
-      , object_bases = objectBase
-      , object_constructor = returningProcedure (\args -> liftIO $ newType args)
+      , object_bases = base
+      , object_constructor = returningProcedure newType
       , object_type_name = string "type"
-      , object_mro = tuple [typeClass, object]
+      , object_mro = mro
       }
 
-newType :: [Object] -> IO Object
-newType args
-   | [obj] <- args = return $ typeOf obj
-   | [name, bases, dict] <- args = do
+newType :: [Object] -> Eval Object
+newType [obj] = typeOf obj
+newType [name, bases, dict] = do
         identity <- newIdentity
+        -- XXX we should force the eval of the mro here to catch any errors up front.
+        -- mro_tuple <- tuple $ mro theType $ getTupleElements bases
+        -- mro_tuple <- undefined -- XXX fixme
+        mro_tuple <- error "mro_tuple" -- XXX fixme
         let theType =
              Type
              { object_identity = identity
-             , object_type = typeClass
+             , object_type = undefined -- typeClass XXX fixme
              , object_dict = dict
              , object_bases = bases
              , object_constructor = returningProcedure $ instantiate theType
              , object_type_name = name
-
-             -- XXX we should force the eval of the mro here to catch any errors up front.
-             , object_mro = tuple $ mro theType $ getTupleElements bases
+             , object_mro = mro_tuple
              }
         return theType
-   | otherwise = fail "type() takes 1 or 3 arguments"
+newType _other = fail "type() takes 1 or 3 arguments"
 
 getTupleElements :: Object -> [Object]
 getTupleElements (Tuple { object_tuple = objs }) = objs
@@ -72,8 +73,8 @@ getTupleElements _other = error "bases of object is not a tuple"
 
 instantiate :: Object -> Procedure
 instantiate objectType args = do
-   identity <- liftIO $ newIdentity
-   dict <- liftIO $ emptyDictionary
+   identity <- newIdentity
+   dict <- emptyDictionary
    let object =
          Object
          { object_identity = identity
@@ -85,7 +86,7 @@ instantiate objectType args = do
    _ <- callMethod object specialInitName args
    return object
 
-attributes :: IO Object
+attributes :: Eval Object
 attributes =
    mkAttributesList [ (mroName, primitive 1 mroMethod) ]
 
@@ -105,7 +106,7 @@ From the Python Pep "The Python 2.3 Method Resolution Order":
 -}
 
 mro :: Object -> [Object] -> [Object]
-mro klass bases 
+mro klass bases
    = klass : merge (map getMro bases ++ [bases])
    where
    getMro :: Object -> [Object]
@@ -124,37 +125,53 @@ From the Python Pep "The Python 2.3 Method Resolution Order":
   impossible to construct the merge, Python 2.3 will refuse to create the class 
   C and will raise an exception.
 
-  NOTE: relies on an Eq instance for Object, which uses only identity equality.
-
   The code assumes that a given class appears at most once in any sequence.
   XXX need to check this precondition. Can we check statically?
 -}
 
+
 merge :: [[Object]] -> [Object]
-merge seqs = 
-   mergeWork [] $ nonEmptySeqs seqs 
+merge seqs =
+   mergeWork [] $ nonEmptySeqs seqs
    where
 
    -- Precondition: seqs does not contain any empty sequences.
 
-   mergeWork acc seqs 
+   mergeWork acc seqs
       | null seqs = reverse acc
       | candidate:_ <- findCandidate seqs
-           = mergeWork (candidate:acc) $ 
-                nonEmptySeqs $ removeCandidate candidate seqs 
+           = mergeWork (candidate:acc) $
+                nonEmptySeqs $ removeCandidate candidate seqs
       | otherwise
-           = error "Cannot create a consistent method resolution" -- XXX should we make this an exception? 
+           = error "Cannot create a consistent method resolution" -- XXX should we make this an exception?
 
    -- Precondition: seqs does not contain any empty sequences.
    -- Otherwise the "head" and "tail" are not safe.
 
    findCandidate :: [[Object]] -> [Object]
-   findCandidate seqs = 
+   findCandidate seqs =
       [ candidate | candidate <- map head seqs,
-        all (candidate `notElem`) (map tail seqs) ] 
+        all (not . (member candidate)) (map tail seqs) ]
 
    removeCandidate :: Object -> [[Object]] -> [[Object]]
-   removeCandidate candidate = map (delete candidate)
+   removeCandidate candidate = map (remove candidate)
 
    nonEmptySeqs :: [[Object]] -> [[Object]]
-   nonEmptySeqs = filter (not . null) 
+   nonEmptySeqs = filter (not . null)
+
+   sameIdentity :: Object -> Object -> Bool
+   sameIdentity obj1 obj2 = identityOf obj1 == identityOf obj2
+
+   member :: Object -> [Object] -> Bool
+   member obj = foldr test False
+      where
+      test :: Object -> Bool -> Bool
+      test next rest = obj `sameIdentity` next || rest
+
+   remove :: Object -> [Object] -> [Object]
+   remove obj = foldr test []
+      where
+      test :: Object -> [Object] -> [Object]
+      test next rest
+         | obj `sameIdentity` next = rest
+         | otherwise = next : rest

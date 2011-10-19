@@ -18,28 +18,23 @@
 --
 -----------------------------------------------------------------------------
 
-module Berp.Base.Identity (Identity, newIdentity) where
+module Berp.Base.Identity (newIdentity) where
 
-import Berp.Base.Unique
-import Berp.Base.Hash (Hash (..))
+import Control.Concurrent.MVar (takeMVar, putMVar)
+import Berp.Base.SemanticTypes (Identity (..), Eval)
+import Berp.Base.Unique (increment)
 import Berp.Base.LiftedIO (MonadIO, liftIO)
+import Berp.Base.Monad (getUnique)
 
-type Identity = Unique
-
-newIdentity :: MonadIO m => m Unique
-newIdentity = liftIO newUnique
+newIdentity :: Eval Identity
+newIdentity = do
+    mvar <- getUnique
+    unique <- liftIO $ takeMVar mvar
+    let newUnique = increment unique
+    liftIO $ putMVar mvar $! newUnique
+    return $ ObjectID unique
 
 {-
-newIdentity :: MonadIO m => m Unique
-newIdentity = do
-   liftIO $ putStrLn "calling newIdentity"
-   liftIO newUnique
--}
-
-instance Hash Identity where
-   hash = hashUnique
-
-{- 
 
 Some comments on this important module.
 

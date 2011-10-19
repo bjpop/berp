@@ -24,12 +24,10 @@ import Language.Python.Common.AST (StatementSpan)
 import Language.Haskell.Exts.Pretty
    ( prettyPrintStyleMode, defaultMode, style, Style (..), PPHsMode (..)
    , Mode (..), PPLayout (PPSemiColon))
-import Language.Haskell.Exts.Build (app, qualStmt)
 import Language.Haskell.Exts.Syntax (Exp)
 import Language.Haskell.Interpreter (setImportsQ, as, interpret)
 import Berp.Version (versionString)
 import Berp.Compile.Compile (compile)
-import Berp.Compile.PrimName as Prim (init)
 import Berp.Compile.PySyntaxUtils (InterpreterStmt (..))
 import Berp.Base.SemanticTypes (Eval, Object (None), HashTable)
 import Berp.Base (runWithGlobals)
@@ -102,7 +100,7 @@ parseAndCheckErrors fileContents =
       Right (pyStmt, _comments) -> return pyStmt
 
 printObjectNotNone :: Object -> Eval ()
-printObjectNotNone obj@None = return ()
+printObjectNotNone None = return ()
 printObjectNotNone object = printObject object >> liftIO (putStr "\n")
 
 -- these Typeable instances are needed by the Hint interpret function.

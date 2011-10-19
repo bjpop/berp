@@ -16,9 +16,15 @@
 
 module Berp.Base.StdTypes.ObjectBase (objectBase) where
 
-import Berp.Base.SemanticTypes (Object)
-import {-# SOURCE #-} Berp.Base.StdTypes.Object (object)
+import Berp.Base.SemanticTypes (Object, Eval)
+import Berp.Base.Prims (lookupBuiltin)
+-- import {-# SOURCE #-} Berp.Base.StdTypes.Object (object)
 import {-# SOURCE #-} Berp.Base.StdTypes.Tuple (tuple)
+import Berp.Base.LiftedIO as LIO (putStrLn)
 
-objectBase :: Object
-objectBase = tuple [object]
+objectBase :: Eval Object
+objectBase = do
+   LIO.putStrLn "objectBase 0"
+   object <- lookupBuiltin "object"
+   LIO.putStrLn "objectBase 1"
+   tuple [object]

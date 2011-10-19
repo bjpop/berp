@@ -1,8 +1,6 @@
-module Berp.Base.StdTypes.None (noneIdentity, none, noneClass) where
+module Berp.Base.StdTypes.None (none, noneClass) where
 
-import Berp.Base.SemanticTypes (Object)
-import Berp.Base.Identity (Identity)
+import Berp.Base.SemanticTypes (Eval, Object)
 
-none :: Object 
-noneClass :: Object
-noneIdentity :: Identity
+none :: Object
+noneClass :: Eval Object

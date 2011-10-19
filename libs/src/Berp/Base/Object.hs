@@ -1,4 +1,4 @@
--- {-# OPTIONS_GHC -cpp -DDEBUG #-} 
+-- {-# OPTIONS_GHC -cpp -DDEBUG #-}
 {-# OPTIONS_GHC -cpp #-}
 
 -----------------------------------------------------------------------------
@@ -16,74 +16,51 @@
 
 #include "BerpDebug.h"
 
-module Berp.Base.Object 
+module Berp.Base.Object
    ( lookupAttribute, lookupSpecialAttribute, lookupAttributeMaybe
    , typeOf, identityOf, objectEquality, dictOf, dir
    , isIterator
    ) where
 
 import Berp.Base.Truth (truth)
-import Berp.Base.Prims (callMethod, showObject)
+import Berp.Base.Prims (callMethod, showObject, lookupBuiltin)
 import Data.List (nub)
 import Control.Monad (zipWithM)
 import Control.Applicative ((<$>))
 import Data.Maybe (isJust, catMaybes)
-import Berp.Base.SemanticTypes (Object (..), Eval, Indentity (..))
+import Berp.Base.SemanticTypes (Object (..), Eval, Identity (..))
 import Berp.Base.Mangle (deMangle)
-import Berp.Base.Identity (Identity)
 import Berp.Base.Hash (Hashed)
 import Berp.Base.StdNames (specialEqName, specialCmpName, specialIterName)
-import Berp.Base.LiftedIO as LIO (MonadIO)
 #ifdef DEBUG
 import Berp.Base.LiftedIO as LIO (putStrLn)
 #endif
 import {-# SOURCE #-} Berp.Base.HashTable (stringLookup, keys)
-import {-# SOURCE #-} Berp.Base.StdTypes.Integer (intClass, int)
-import {-# SOURCE #-} Berp.Base.StdTypes.Float (floatClass, float)
-import {-# SOURCE #-} Berp.Base.StdTypes.Complex (complexClass)
-import {-# SOURCE #-} Berp.Base.StdTypes.Bool (boolClass)
-import {-# SOURCE #-} Berp.Base.StdTypes.Tuple (tupleClass, getTupleElements)
-import {-# SOURCE #-} Berp.Base.StdTypes.Function (functionClass)
-import {-# SOURCE #-} Berp.Base.StdTypes.String (stringClass, string)
-import {-# SOURCE #-} Berp.Base.StdTypes.None (noneClass, noneIdentity)
-import {-# SOURCE #-} Berp.Base.StdTypes.Dictionary (dictionaryClass)
-import {-# SOURCE #-} Berp.Base.StdTypes.List (listClass, list)
-import {-# SOURCE #-} Berp.Base.StdTypes.Generator (generatorClass)
-import {-# SOURCE #-} Berp.Base.StdTypes.Set (setClass)
-import {-# SOURCE #-} Berp.Base.StdTypes.Module (moduleClass)
-
--- needed for overloaded numeric literals (integers)
-instance Num Object where
-   fromInteger = int
-   (+) = undefined
-   (*) = undefined
-   abs = undefined
-   signum = undefined
-
--- needed for overloaded numeric literals (floating point)
-instance Fractional Object where
-   fromRational x = float (fromRational x)
-   (/) = undefined
-   recip = undefined
+import {-# SOURCE #-} Berp.Base.StdTypes.Tuple (getTupleElements)
+import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
+import {-# SOURCE #-} Berp.Base.StdTypes.List (list)
 
 -- Python allows the type of an object to change in a limited set of circumstances.
 -- But we will ignore that for the moment and make it a pure function.
-typeOf :: Object -> Object
-typeOf obj@(Object {}) = object_type obj
-typeOf obj@(Type {}) = object_type obj
-typeOf (Integer {}) = intClass
-typeOf (Float {}) = floatClass
-typeOf (Complex {}) = complexClass
-typeOf (Bool {}) = boolClass
-typeOf (Tuple {}) = tupleClass
-typeOf (List {}) = listClass
-typeOf (Function {}) = functionClass
-typeOf (String {}) = stringClass
-typeOf (None {}) = noneClass
-typeOf (Dictionary {}) = dictionaryClass
-typeOf (Generator {}) = generatorClass
-typeOf (Set {}) = setClass
-typeOf (Module {}) = moduleClass
+-- XXX should really hash the strings here, so that they get done once, not repeatedly
+typeOf :: Object -> Eval Object
+typeOf obj@(Object {}) = return $ object_type obj
+typeOf obj@(Type {}) = return $ object_type obj
+typeOf (Integer {}) = lookupBuiltin "int"
+typeOf (Float {}) = lookupBuiltin "float"
+typeOf (Complex {}) = lookupBuiltin "complexClass"
+typeOf (TrueObject {}) = lookupBuiltin "bool"
+typeOf (FalseObject {}) = lookupBuiltin "bool"
+typeOf (Tuple {}) = lookupBuiltin "tuple"
+typeOf (List {}) = lookupBuiltin "list"
+typeOf (Function {}) = lookupBuiltin "function"
+typeOf (String {}) = lookupBuiltin "str"
+typeOf (None {}) = lookupBuiltin "none"
+typeOf (Dictionary {}) = lookupBuiltin "dict"
+typeOf (Generator {}) = lookupBuiltin "generator"
+typeOf (Set {}) = lookupBuiltin "setClass"
+typeOf (Module {}) = lookupBuiltin "module"
+typeOf (IdentityObject {}) = lookupBuiltin "id"
 
 -- The identity of an object should never change so this can be a pure function.
 {-
@@ -139,12 +116,12 @@ checkLookup obj (_, identStr) lookupResult =
 --     object as the first argument. This is not ideal, but
 --     it will work until descriptors are supported
 
-lookupSpecialAttributeMaybe :: MonadIO m => Object -> Hashed String -> m (Maybe Object)
+lookupSpecialAttributeMaybe :: Object -> Hashed String -> Eval (Maybe Object)
 lookupSpecialAttributeMaybe object ident = do
    BELCH("Looking for special attribute: " ++ show ident ++ " in: " ++ show object)
    lookupAttributeType object ident
 
-lookupAttributeMaybe :: MonadIO m => Object -> Hashed String -> m (Maybe Object)
+lookupAttributeMaybe :: Object -> Hashed String -> Eval (Maybe Object)
 lookupAttributeMaybe object ident = do
    BELCH("Looking for: " ++ show ident ++ " in: " ++ show object)
    BELCH("Looking in dictionary of object")
@@ -167,15 +144,14 @@ lookupAttributeMaybe object ident = do
          BELCH("Object does not have a dictionary")
          lookupAttributeType object ident
 
-lookupAttributeType :: MonadIO m => Object -> Hashed String -> m (Maybe Object)
+lookupAttributeType :: Object -> Hashed String -> Eval (Maybe Object)
 lookupAttributeType object ident = do
+   objectType <- typeOf object
    BELCH("Looking in dict of the type: " ++ show objectType)
    let mroList = getTupleElements $ object_mro objectType
    searchMRO mroList
    where
-   objectType :: Object
-   objectType = typeOf object
-   searchMRO :: MonadIO m => [Object] -> m (Maybe Object)
+   searchMRO :: [Object] -> Eval (Maybe Object)
    searchMRO [] = do
       BELCH("Ident was not found in the mro of the type of the object")
       return Nothing
@@ -202,8 +178,18 @@ lookupAttributeType object ident = do
 objectEquality :: Object -> Object -> Eval Bool
 objectEquality obj1@(Integer {}) obj2@(Integer {})
    = return (object_integer obj1 == object_integer obj2)
-objectEquality obj1@(Bool {}) obj2@(Bool {})
-   = return (object_bool obj1 == object_bool obj2)
+objectEquality (TrueObject {}) (TrueObject {})
+   = return True
+objectEquality (TrueObject {}) _object
+   = return False
+objectEquality  _object (TrueObject {})
+   = return False
+objectEquality (FalseObject {}) (FalseObject {})
+   = return True
+objectEquality (FalseObject {}) _object
+   = return False
+objectEquality  _object (FalseObject {})
+   = return False
 objectEquality obj1@(Tuple {}) obj2@(Tuple {})
    | object_identity obj1 == object_identity obj2 = return True
    | object_length obj1 == object_length obj2 =
@@ -212,12 +198,14 @@ objectEquality obj1@(Tuple {}) obj2@(Tuple {})
 objectEquality obj1@(String {}) obj2@(String {})
    = return (object_string obj1 == object_string obj2)
 objectEquality None None = return True
-objectEquality obj1 obj2 
+objectEquality obj1 obj2
    | object_identity obj1 == object_identity obj2 = return True
    | otherwise = do
         canEq <- hasAttribute specialEqName obj1
         if canEq
-           then truth <$> callMethod obj1 specialEqName [obj2]
+           then do
+              truthObj <- callMethod obj1 specialEqName [obj2]
+              truth truthObj
            else do
               canCmp <- hasAttribute specialCmpName obj1
               if canCmp
@@ -231,14 +219,15 @@ objectEquality obj1 obj2
 dir :: Object -> Eval Object
 dir object = do
    let maybeObjDict = dictOf object
-   let objectBasesDicts = map dictOf $ getTupleElements $ object_mro $ typeOf object
+   objectType <- typeOf object
+   let objectBasesDicts = map dictOf $ getTupleElements $ object_mro $ objectType
    let allDicts = catMaybes (maybeObjDict : objectBasesDicts)
    let hashTables = map object_hashTable allDicts
    keyObjects <- concat <$> mapM keys hashTables
    let keyStrings = nub $ map (deMangle . object_string) keyObjects
    list $ map string keyStrings
 
-hasAttribute :: (Functor m, MonadIO m) => Hashed String -> Object -> m Bool
+hasAttribute :: Hashed String -> Object -> Eval Bool
 hasAttribute ident object = isJust <$> lookupAttributeMaybe object ident
 
 -- XXX not really correct. We should check that it has a method called "__iter__" rather

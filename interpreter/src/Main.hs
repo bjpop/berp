@@ -16,9 +16,8 @@ module Main where
 
 import Control.Monad (when)
 import System.Console.ParseArgs
-   (Argtype (..), argDataOptional, argDataRequired, Arg (..)
-   , gotArg, getArg, parseArgsIO, ArgsComplete (..), Args(..))
-import System.Exit (ExitCode (..), exitWith, exitFailure)
+   (Arg (..), gotArg, parseArgsIO, ArgsComplete (..), Args(..))
+import System.Exit (ExitCode (..), exitWith)
 import Berp.Version (versionString)
 import Repl (repl)
 

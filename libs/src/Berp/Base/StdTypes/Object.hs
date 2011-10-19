@@ -11,28 +11,33 @@
 --
 -----------------------------------------------------------------------------
 
-module Berp.Base.StdTypes.Object (object) where
+module Berp.Base.StdTypes.Object (objectClass) where
 
 import Prelude hiding (init)
-import Berp.Base.SemanticTypes (Procedure, Object (..))
-import Berp.Base.Monad (constantIO)
+import Berp.Base.SemanticTypes (Procedure, Object (..), Eval)
 import Berp.Base.Attributes (mkAttributesList)
 import Berp.Base.StdNames
 import Berp.Base.Prims (primitive)
 import Berp.Base.Object (identityOf)
-import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
-import {-# SOURCE #-} Berp.Base.StdTypes.Tuple (emptyTuple)
-import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
-import {-# SOURCE #-} Berp.Base.StdTypes.Bool (bool)
-import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
+import Berp.Base.StdTypes.Type (newType)
+import Berp.Base.StdTypes.Tuple (emptyTuple)
+import Berp.Base.StdTypes.String (string)
+import Berp.Base.StdTypes.Bool (bool)
+import Berp.Base.StdTypes.None (none)
+import Berp.Base.LiftedIO as LIO (putStrLn)
 
-{-# NOINLINE object #-}
-object :: Object
-object = constantIO $ do
+objectClass :: Eval Object
+objectClass = do
+   LIO.putStrLn "objectClass 0"
    dict <- attributes
-   newType [string "object", emptyTuple, dict]
+   LIO.putStrLn "objectClass 1"
+   base <- emptyTuple
+   LIO.putStrLn "objectClass 2"
+   x <- newType [string "object", base, dict]
+   LIO.putStrLn "objectClass 3"
+   return x
 
-attributes :: IO Object
+attributes :: Eval Object
 attributes = mkAttributesList
    [ (specialStrName, primitive 1 str)
    , (specialEqName, primitive 2 eq)

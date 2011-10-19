@@ -5,7 +5,7 @@ module Berp.Base.HashSet
    , delete
    , fromList
    , elements
-   , sizeIO
+   , size
    ) where
 
 import Prelude hiding (lookup)
@@ -17,5 +17,5 @@ fromList :: [Object] -> Eval HashSet
 insert :: Object -> HashSet -> Eval ()
 lookup :: Object -> HashSet -> Eval Bool
 delete :: Object -> HashSet -> Eval ()
-sizeIO :: HashSet -> IO Integer
+size :: HashSet -> Eval Integer
 elements :: HashSet -> Eval [Object]

@@ -11,13 +11,11 @@
 --
 -----------------------------------------------------------------------------
 
-module Berp.Base.StdTypes.None (none, noneIdentity, noneClass) where
+module Berp.Base.StdTypes.None (none, noneClass) where
 
 import Berp.Base.Prims (primitive)
-import Berp.Base.Monad (constantIO)
-import Berp.Base.SemanticTypes (Procedure, Object (..))
+import Berp.Base.SemanticTypes (Procedure, Object (..), Eval)
 import Berp.Base.StdTypes.Bool (true, false)
-import Berp.Base.Identity (newIdentity, Identity)
 import Berp.Base.Attributes (mkAttributesList)
 import Berp.Base.StdNames
 import {-# SOURCE #-} Berp.Base.StdTypes.Type (newType)
@@ -27,17 +25,13 @@ import Berp.Base.StdTypes.String (string)
 none :: Object
 none = None
 
-{-# NOINLINE noneIdentity #-}
-noneIdentity :: Identity
-noneIdentity = constantIO newIdentity
-
-{-# NOINLINE noneClass #-}
-noneClass :: Object
-noneClass = constantIO $ do
+noneClass :: Eval Object
+noneClass = do
    dict <- attributes
-   newType [string "NoneType", objectBase, dict]
+   base <- objectBase
+   newType [string "NoneType", base, dict]
 
-attributes :: IO Object
+attributes :: Eval Object
 attributes = mkAttributesList
    [ (specialEqName, primitive 2 eq)
    , (specialStrName, primitive 1 str)
@@ -48,4 +42,4 @@ eq [None, None] = return true
 eq _ = Prelude.return false
 
 str :: Procedure 
-str _ = Prelude.return $ string "None" 
+str _ = Prelude.return $ string "None"

@@ -77,6 +77,7 @@ Library
       Berp.Base.StdTypes.Float
       Berp.Base.StdTypes.Function
       Berp.Base.StdTypes.Generator
+      Berp.Base.StdTypes.Id
       Berp.Base.StdTypes.Integer
       Berp.Base.StdTypes.List
       Berp.Base.StdTypes.Module

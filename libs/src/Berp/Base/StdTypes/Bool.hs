@@ -14,12 +14,9 @@
 module Berp.Base.StdTypes.Bool (bool, true, false, boolClass) where
 
 import Prelude hiding (and, or)
-import Berp.Base.Monad (constantIO)
-import Berp.Base.Prims (primitive, raise)
+import Berp.Base.Prims (primitive, raiseException, ret)
 import Berp.Base.SemanticTypes (Object (..), Eval)
-import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributesList)
-import Berp.Base.Builtins (typeError, notImplementedError)
 import Berp.Base.StdNames
 import Berp.Base.Truth (truth)
 import qualified Berp.Base.Operators as Op ( and, or )
@@ -31,57 +28,50 @@ bool :: Bool -> Object
 bool True = true
 bool False = false
 
-{-# NOINLINE true #-}
-{-# NOINLINE false #-}
 true, false :: Object
-true =
-   constantIO $ do
-      identity <- newIdentity
-      return $ Bool { object_identity = identity, object_bool = True }
-false =
-   constantIO $ do
-      identity <- newIdentity
-      return $ Bool { object_identity = identity, object_bool = False }
+true = TrueObject
+false = FalseObject
 
-{-# NOINLINE boolClass #-}
-boolClass :: Object
-boolClass = constantIO $ do
+boolClass :: Eval Object
+boolClass = do
    dict <- attributes
-   theType <- newType [string "bool", objectBase, dict]
+   base <- objectBase
+   theType <- newType [string "bool", base, dict]
    return $ theType { object_constructor = mkBool }
    where
    mkBool :: [Object] -> Eval Object
-   mkBool [] = return false
-   mkBool [x] =
-      case truth x of
-         True -> return true
-         False -> return false
-   mkBool _other = raise typeError
+   mkBool [] = ret false
+   mkBool [x] = do
+      isTrue <- truth x
+      if isTrue then ret true else ret false
+   mkBool _other = raiseException "typeError"
 
-attributes :: IO Object
+attributes :: Eval Object
 attributes = mkAttributesList
    [ (specialAndName, and)
    , (specialOrName, or)
    , (specialStrName, str)
    ]
 
-mkOp :: (Object -> Object -> Eval Object) -> Object
+mkOp :: (Object -> Object -> Eval Object) -> Eval Object
 mkOp op = primitive 2 fun
    where
    fun (x:y:_) =
       case y of
-         Bool {} -> op x y
-         _other -> raise notImplementedError
+         TrueObject {} -> op x y
+         FalseObject {} -> op x y
+         _other -> raiseException "notImplementedError"
    fun _other = error "operator on Bool applied to wrong number of arguments"
 
-and :: Object
+and :: Eval Object
 and = mkOp Op.and
 
-or :: Object
+or :: Eval Object
 or = mkOp Op.or
 
-str :: Object
+str :: Eval Object
 str = primitive 1 fun
    where
-   fun (x:_) = Prelude.return $ string $ show $ object_bool x
+   fun (TrueObject:_) = Prelude.return $ string "True"
+   fun (FalseObject:_) = Prelude.return $ string "False"
    fun _other = error "str method on Bool applied to wrong number of arguments"

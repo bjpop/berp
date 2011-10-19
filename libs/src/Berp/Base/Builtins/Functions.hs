@@ -12,24 +12,21 @@
 -----------------------------------------------------------------------------
 
 module Berp.Base.Builtins.Functions
-   (print, dir, input, id, callCC)
+   (print, dir, input, callCC)
    where
 
-import Prelude hiding (print, id)
+import Prelude hiding (print)
 import Control.Monad (when)
 import System.IO (stdout)
 import Data.List (intersperse)
 import Berp.Base.SemanticTypes (Object (..), Procedure, Eval)
 import qualified Berp.Base.Prims as Prims (printObject, pyCallCC, primitive)
 import Berp.Base.LiftedIO as LIO (hFlush, putStr, putChar, getLine)
-import qualified Berp.Base.Object as Object (dir, identityOf)
-import Berp.Base.Unique (uniqueInteger)
-import {-# SOURCE #-} Berp.Base.StdTypes.None (none)
-import {-# SOURCE #-} Berp.Base.StdTypes.String (string)
-import {-# SOURCE #-} Berp.Base.StdTypes.Integer (int)
-import {-# SOURCE #-} qualified Berp.Base.StdTypes.Set as Set (set)
+import qualified Berp.Base.Object as Object (dir)
+import Berp.Base.StdTypes.None (none)
+import Berp.Base.StdTypes.String (string)
 
-input :: Object
+input :: Eval Object
 input = do
    Prims.primitive (-1) procedure
    where
@@ -45,7 +42,7 @@ input = do
       LIO.putStr $ object_string obj
    printer other = Prims.printObject other >> return ()
 
-print :: Object
+print :: Eval Object
 print =
    Prims.primitive (-1) procedure
    where
@@ -58,7 +55,7 @@ print =
    printer obj@(String {}) = LIO.putStr $ object_string obj
    printer other = Prims.printObject other >> return ()
 
-dir :: Object
+dir :: Eval Object
 dir = do
    Prims.primitive 1 procedure
    where
@@ -66,15 +63,7 @@ dir = do
    procedure (obj:_) = Object.dir obj
    procedure _other = error "dir applied to wrong number of arguments"
 
-id :: Object
-id = do
-   Prims.primitive 1 procedure
-   where
-   procedure :: Procedure
-   procedure (obj:_) = return $ int $ uniqueInteger $ Object.identityOf obj
-   procedure _other = error "id applied to wrong number of arguments"
-
-callCC :: Object
+callCC :: Eval Object
 callCC = do
    Prims.primitive 1 procedure
    where

@@ -14,9 +14,7 @@
 module Berp.Base.StdTypes.Set (emptySet, set, setClass) where
 
 import Data.List (intersperse)
-import Berp.Base.Prims (primitive, showObject, mapIterator, raise)
-import Berp.Base.Builtins (typeError)
-import Berp.Base.Monad (constantIO)
+import Berp.Base.Prims (primitive, showObject, mapIterator, raiseException, ret)
 import Berp.Base.SemanticTypes (Procedure, Object (..), Eval)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.HashSet as Hash (fromList, empty, elements, insert)
@@ -27,7 +25,7 @@ import Berp.Base.StdTypes.String (string)
 import Berp.Base.StdTypes.None (none)
 import Berp.Base.StdNames
 
-emptySet :: IO Object
+emptySet :: Eval Object
 emptySet = do
    identity <- newIdentity
    hashSet <- Hash.empty
@@ -47,11 +45,11 @@ set elements = do
       , object_hashSet = hashSet
       }
 
-{-# NOINLINE setClass #-}
-setClass :: Object
-setClass = constantIO $ do
+setClass :: Eval Object
+setClass = do
    dict <- attributes
-   theType <- newType [string "set", objectBase, dict]
+   base <- objectBase
+   theType <- newType [string "set", base, dict]
    return $ theType { object_constructor = mkSet }
    where
    mkSet :: [Object] -> Eval Object
@@ -60,14 +58,14 @@ setClass = constantIO $ do
       set <- empty
       mapIterator (flip insert set) obj
       identity <- newIdentity
-      return $
+      ret $
          Set
          { object_identity = identity
          , object_hashSet = set
          }
-   mkSet _other = raise typeError
+   mkSet _other = raiseException "typeError"
 
-attributes :: IO Object
+attributes :: Eval Object
 attributes = mkAttributesList
    [ (specialEqName, primitive 2 eq)
    , (specialStrName, primitive 1 str)

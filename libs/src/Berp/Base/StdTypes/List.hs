@@ -19,7 +19,6 @@ import Data.Array.MArray (newListArray, readArray, getElems, getBounds, writeArr
 import Data.List (intersperse)
 import Data.Foldable (traverse_)
 import Berp.Base.Prims (primitive, yield, pass, showObject)
-import Berp.Base.Monad (constantIO)
 import Berp.Base.SemanticTypes (Procedure, Object (..), Eval, ListArray)
 import Berp.Base.Identity (newIdentity)
 import Berp.Base.Attributes (mkAttributesList)
@@ -31,19 +30,16 @@ import Berp.Base.StdTypes.Generator (generator)
 import Berp.Base.StdTypes.None (none)
 
 list :: [Object] -> Eval Object
-list = liftIO . listIO
-
-listIO :: [Object] -> IO Object
-listIO elements = do
+list elements = do
    let numElements = fromIntegral (length elements)
-   array <- newListArray (0, numElements - 1) elements
+   array <- liftIO $ newListArray (0, numElements - 1) elements
    listFromArray numElements array
 
-listFromArray :: Integer -> ListArray -> IO Object
+listFromArray :: Integer -> ListArray -> Eval Object
 listFromArray numElements array = do
    identity <- newIdentity
-   arrayRef <- newIORef array
-   sizeRef <- newIORef numElements
+   arrayRef <- liftIO $ newIORef array
+   sizeRef <- liftIO $ newIORef numElements
    return $
       List
       { object_identity = identity
@@ -52,13 +48,13 @@ listFromArray numElements array = do
       }
 
 listIndex :: Object -> Object -> Eval Object
-listIndex list index = liftIO $ do
-   numElements <- readIORef $ object_list_num_elements list
+listIndex list index = do
+   numElements <- liftIO $ readIORef $ object_list_num_elements list
    normIndex <- normaliseIndex index numElements
-   array <- readIORef $ object_list_elements list
-   readArray array normIndex
+   array <- liftIO $ readIORef $ object_list_elements list
+   liftIO $ readArray array normIndex
 
-normaliseIndex :: Object -> Integer -> IO Integer
+normaliseIndex :: Object -> Integer -> Eval Integer
 normaliseIndex index numElements =
    case index of
       Integer {} -> do
@@ -94,20 +90,20 @@ listAppendItem list item = liftIO $ do
    return none
 
 listConcat :: Object -> Object -> Eval Object
-listConcat list1 list2 = liftIO $ do
-   array1 <- readIORef $ object_list_elements list1
-   array2 <- readIORef $ object_list_elements list2
-   (_lo1, hi1) <- getBounds array1
-   (_lo2, hi2) <- getBounds array2
+listConcat list1 list2 = do
+   array1 <- liftIO $ readIORef $ object_list_elements list1
+   array2 <- liftIO $ readIORef $ object_list_elements list2
+   (_lo1, hi1) <- liftIO $ getBounds array1
+   (_lo2, hi2) <- liftIO $ getBounds array2
    if hi2 < 0
       -- list2 is empty
       then return list1
       else do
          let newUpperBound = hi1 + hi2 + 1
          let size1 = hi1 + 1
-         resultArray <- newArray_ (0, newUpperBound)
-         copyElements size1 array1 0 resultArray
-         copyElements (hi2 + 1) array2 size1 resultArray
+         resultArray <- liftIO $ newArray_ (0, newUpperBound)
+         liftIO $ copyElements size1 array1 0 resultArray
+         liftIO $ copyElements (hi2 + 1) array2 size1 resultArray
          listFromArray (newUpperBound + 1) resultArray
 
 copyElements :: Integer -> ListArray -> Integer -> ListArray -> IO ()
@@ -123,20 +119,20 @@ copyElements howMany from toIndex to
            copyElementsW (fromIndex + 1) (toIndex + 1)
 
 updateListElement :: Object -> Object -> Object -> Eval Object
-updateListElement list index value = liftIO $ do
-   numElements <- readIORef $ object_list_num_elements list
+updateListElement list index value = do
+   numElements <- liftIO $ readIORef $ object_list_num_elements list
    normIndex <- normaliseIndex index numElements
-   array <- readIORef $ object_list_elements list
-   writeArray array normIndex value
+   array <- liftIO $ readIORef $ object_list_elements list
+   liftIO $ writeArray array normIndex value
    return list
 
-{-# NOINLINE listClass #-}
-listClass :: Object
-listClass = constantIO $ do
+listClass :: Eval Object
+listClass = do
    dict <- attributes
-   newType [string "list", objectBase, dict]
+   base <- objectBase
+   newType [string "list", base, dict]
 
-attributes :: IO Object
+attributes :: Eval Object
 attributes = mkAttributesList
    [ (specialEqName, eq)
    , (specialStrName, primitive 1 str)
@@ -147,7 +143,7 @@ attributes = mkAttributesList
    , (appendName, primitive 2 appendItem)
    ]
 
-eq :: Object
+eq :: Eval Object
 eq = error "== on list not defined"
 
 getItem :: Procedure
@@ -164,7 +160,7 @@ str (x:_) = do
    Prelude.return $ string $ "[" ++ concat (intersperse ", " strings) ++ "]"
 str _other = error "str on list applied to wrong number of arguments"
 
-add :: Procedure 
+add :: Procedure
 add (x:y:_) = listConcat x y
 add _other = error "add on list applied to wrong number of arguments"
 
@@ -172,7 +168,7 @@ appendItem :: Procedure
 appendItem (x:y:_) = listAppendItem x y
 appendItem _other = error "append on list applied to wrong number of arguments"
 
-setItem :: Procedure 
+setItem :: Procedure
 setItem (x:y:z:_) = updateListElement x y z
 setItem _other = error "setItem on list applied to wrong number of arguments"
 

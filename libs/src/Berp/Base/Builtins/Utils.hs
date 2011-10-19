@@ -11,18 +11,14 @@
 --
 -----------------------------------------------------------------------------
 
-module Berp.Base.Builtins.Utils (primFun, primConstant) where
+module Berp.Base.Builtins.Utils (primFun) where
 
-import Data.IORef (newIORef)
 import Berp.Base.Ident (Ident)
-import Berp.Base.SemanticTypes (Arity, Procedure, ObjectRef, Object)
+import Berp.Base.SemanticTypes (Arity, Procedure, ObjectRef, Eval)
 import Berp.Base.Prims (primitive)
-import Berp.Base.Monad (constantIO)
+import Berp.Base.LiftedIO (newIORef)
 
-primFun :: Ident -> Arity -> Procedure -> ObjectRef
-primFun _ident arity proc = constantIO $ do
-   let primitiveObj = primitive arity proc
+primFun :: Ident -> Arity -> Procedure -> Eval ObjectRef
+primFun _ident arity proc = do
+   primitiveObj <- primitive arity proc
    newIORef primitiveObj
-
-primConstant :: Object -> ObjectRef
-primConstant = constantIO . newIORef

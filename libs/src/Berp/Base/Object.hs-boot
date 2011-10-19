@@ -3,16 +3,14 @@ module Berp.Base.Object
    , typeOf, dictOf, identityOf, objectEquality
    , isIterator ) where
 
-import Berp.Base.SemanticTypes (Object, Eval)
-import Berp.Base.Identity (Identity)
+import Berp.Base.SemanticTypes (Object, Eval, Identity)
 import Berp.Base.Hash (Hashed)
-import Berp.Base.LiftedIO (MonadIO)
 
-typeOf :: Object -> Object
+typeOf :: Object -> Eval Object
 identityOf :: Object -> Identity
-dictOf :: Object -> Maybe Object 
+dictOf :: Object -> Maybe Object
 lookupAttribute :: Object -> Hashed String -> Eval Object
 lookupSpecialAttribute :: Object -> Hashed String -> Eval Object
-lookupAttributeMaybe :: MonadIO m => Object -> Hashed String -> m (Maybe Object)
+lookupAttributeMaybe :: Object -> Hashed String -> Eval (Maybe Object)
 objectEquality :: Object -> Object -> Eval Bool
 isIterator :: Object -> Eval Bool

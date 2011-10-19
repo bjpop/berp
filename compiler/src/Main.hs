@@ -18,7 +18,7 @@ import System.FilePath (dropExtension, (<.>))
 import System.IO (hPutStrLn, stderr)
 import Control.Monad (when, unless)
 import System.Console.ParseArgs
-   (Argtype (..), argDataOptional, argDataRequired, Arg (..)
+   (Argtype (..), argDataOptional, Arg (..)
    , gotArg, getArg, parseArgsIO, ArgsComplete (..), Args(..))
 import System.Exit (ExitCode (..), exitWith, exitFailure)
 import System.FilePath (takeBaseName)

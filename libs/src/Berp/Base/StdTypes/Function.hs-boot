@@ -1,6 +1,6 @@
 module Berp.Base.StdTypes.Function (function, functionClass) where
 
-import Berp.Base.SemanticTypes (HashTable, Object (..), Procedure)
+import Berp.Base.SemanticTypes (Object (..), Procedure, Eval)
 
-function :: Int -> Procedure -> Object
-functionClass :: Object
+function :: Int -> Procedure -> Eval Object
+functionClass :: Eval Object

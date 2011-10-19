@@ -1,5 +1,5 @@
 module Berp.Base.StdTypes.ObjectBase (objectBase) where
 
-import Berp.Base.SemanticTypes (Object)
+import Berp.Base.SemanticTypes (Eval, Object)
 
-objectBase :: Object
+objectBase :: Eval Object

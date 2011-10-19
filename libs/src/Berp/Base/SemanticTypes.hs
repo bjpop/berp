@@ -18,9 +18,9 @@
 module Berp.Base.SemanticTypes
    ( Procedure, ControlStack (..), EvalState (..), Object (..), Eval, ObjectRef
    , HashTable, HashSet, ListArray, Arity, ModuleCache
-   , initState )  where
+   , initState, Identity (..) )  where
 
-import Data.Typeable (Typeable)
+import Control.Concurrent.MVar (MVar)
 import Control.Monad.State.Strict (StateT)
 import Control.Monad.Cont (ContT)
 import Data.IntMap (IntMap)
@@ -28,7 +28,7 @@ import Data.Map as Map (Map, empty)
 import Data.IORef (IORef)
 import Data.Complex (Complex)
 import Data.Array.IO (IOArray)
-import Berp.Base.Identity (Identity)
+import Berp.Base.Unique (Unique)
 
 data ControlStack
    = EmptyStack
@@ -64,14 +64,16 @@ data EvalState =
    { state_control_stack :: !ControlStack
    , state_builtins :: !HashTable
    , state_moduleCache :: !ModuleCache
+   , state_unique :: MVar Unique
    }
 
-initState :: HashTable -> EvalState
-initState builtins =
+initState :: MVar Unique -> HashTable -> EvalState
+initState unique builtins =
    EvalState
    { state_control_stack = EmptyStack
    , state_builtins = builtins
    , state_moduleCache = Map.empty
+   , state_unique = unique
    }
 
 type ModuleCache = Map String Object
@@ -111,6 +113,25 @@ instance ObjectLike Object where
    ...
 -}
 
+{-
+   All objects have an identity.
+   Some primitive "atomic" types are self-identifying, whereas
+   more complex objects have an identity created when the object
+   is constructed at runtime.
+
+   To support the id() function in Python, we need to have
+   meta-identities. That is, we need an object type which
+   represents identities of other objects. Objects of this
+   type are "objects", and all objects have identities.
+
+   So we need a way of satisfying:
+
+   forall x y, id(x) == id(y) <-> x `sameObjectAs` y
+
+   and this implies:
+
+   forall x, id(x) != id(id(x))
+-}
 data Identity
    = IntegerID Integer
    | FloatID Double
@@ -119,7 +140,8 @@ data Identity
    | FalseID
    | StringID String
    | ComplexID (Complex Double)
-   | ObjectID Integer
+   | ObjectID Unique
+   | IdentityID Identity
    deriving (Eq, Show)
 
 -- XXX probably need Bound Methods.
@@ -138,24 +160,6 @@ data Object
      , object_type_name :: !Object -- string
      , object_mro :: !Object -- tuple. Method Resolution Order.
      }
-{-
-   | Integer
-     { object_identity :: !Identity
-     , object_integer :: !Integer
-     }
-   | Float
-     { object_identity :: !Identity
-     , object_float :: !Double
-     }
-   | Complex
-     { object_identity :: !Identity
-     , object_complex :: Complex Double
-     }
-   | Bool
-     { object_identity :: !Identity
-     , object_bool :: !Bool
-     }
--}
    | Tuple
      { object_identity :: !Identity
      , object_tuple :: ![Object]
@@ -173,12 +177,6 @@ data Object
      , object_arity :: !Arity
      , object_dict :: !Object -- dictionary
      }
-{-
-   | String
-     { object_identity :: !Identity
-     , object_string :: !String
-     }
--}
    | Dictionary
      { object_identity :: !Identity
      , object_hashTable :: !HashTable
@@ -197,6 +195,7 @@ data Object
      { object_identity :: !Identity
      , object_dict :: !Object -- dictionary
      }
+   | IdentityObject { object_identity :: !Identity }
    | Integer { object_integer :: !Integer }
    | Float { object_float :: !Double }
    | Complex { object_complex :: !(Complex Double) }
@@ -209,7 +208,6 @@ data Object
 instance Show Object where
    show obj@(Object {}) = "object of (" ++ show (object_type obj) ++ ")"
    show obj@(Type {}) = "type(" ++ show (object_type_name obj) ++ ")"
-   -- show obj@(Bool {}) = "bool(" ++ show (object_bool obj) ++ ")"
    show (Tuple {}) = "tuple"
    show (List {}) = "list"
    show (Function {}) = "function"
@@ -217,22 +215,11 @@ instance Show Object where
    show (Set {}) = "set"
    show (Generator {}) = "generator"
    show (Module {}) = "module"
+   show (IdentityObject {}) = "identity"
    show obj@(Integer {}) = "integer(" ++ show (object_integer obj) ++ ")"
    show obj@(Float {}) = "float(" ++ show (object_float obj) ++ ")"
+   show obj@(Complex {}) = "complex(" ++ show (object_complex obj) ++ ")"
+   show obj@(String {}) = "string(" ++ show (object_string obj) ++ ")"
    show TrueObject = "True"
    show FalseObject = "False"
-   show obj@(String {}) = "string(" ++ show (object_string obj) ++ ")"
-   show obj@(Complex {}) = "complex(" ++ show (object_complex obj) ++ ")"
    show (None {}) = "None"
-
--- equality instance for objects
--- NOTE: use with care. This does not call the user defined equality
--- on the object. It only uses identity equality.
-
-{-
-instance Eq Object where
-   None {} == None {} = True
-   TrueObject {} == TrueObject {} = True
-   FalseObject {} == FalseObject {} = True
-   obj1 == obj2 = object_identity obj1 == object_identity obj2
--}

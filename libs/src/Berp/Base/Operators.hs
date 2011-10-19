@@ -88,9 +88,9 @@ module Berp.Base.Operators
 
 import Data.Complex (Complex (..))
 import Prelude hiding ((+), (-), (*), (.), (/), (==), (<), (>), (<=), (>=), or, and, not)
-import qualified Prelude ((==),(<),(>=),(*),(+),(-),(<=),(>),(.),(/), not)
-import Berp.Base.Prims (callMethod, raise)
-import Berp.Base.Builtins.Exceptions (typeError, zeroDivisionError)
+import qualified Prelude ((==),(<),(>=),(*),(+),(-),(<=),(>),(.),(/))
+import Berp.Base.Prims (callMethod, raiseException)
+-- import Berp.Base.Builtins.Exceptions (typeError, zeroDivisionError)
 import Berp.Base.Object (lookupAttribute)
 import Berp.Base.SemanticTypes (Object (..), Eval)
 import Berp.Base.Hash (Hashed)
@@ -222,19 +222,19 @@ addComplexFloatComplex = specialiseOpComplexFloatComplex (Prelude.+)
       Integer {} -> addIntIntInt obj1 obj2
       Float {} -> addIntFloatFloat obj1 obj2
       Complex {} -> addIntComplexComplex obj1 obj2
-      _other -> raise typeError
+      _other -> raiseException "typeError"
 (+) obj1@(Float {}) obj2 =
    case obj2 of
       Float {} -> addFloatFloatFloat obj1 obj2
       Integer {} -> addFloatIntFloat obj1 obj2
       Complex {} -> addFloatComplexComplex obj1 obj2
-      _other -> raise typeError
+      _other -> raiseException "typeError"
 (+) obj1@(Complex {}) obj2 =
    case obj2 of
       Complex {} -> addComplexComplexComplex obj1 obj2
       Integer {} -> addComplexIntComplex obj1 obj2
       Float {} -> addComplexFloatComplex obj1 obj2
-      _other -> raise typeError
+      _other -> raiseException "typeError"
 (+) x y = binop specialAddName x y
 
 subIntIntInt, subFloatFloatFloat, subIntFloatFloat, subFloatIntFloat, subComplexComplexComplex, subIntComplexComplex, subComplexIntComplex, subFloatComplexComplex, subComplexFloatComplex :: Object -> Object -> Eval Object
@@ -254,19 +254,19 @@ subComplexFloatComplex = specialiseOpComplexFloatComplex (Prelude.-)
       Integer {} -> subIntIntInt obj1 obj2
       Float {} -> subIntFloatFloat obj1 obj2
       Complex {} -> subIntComplexComplex obj1 obj2
-      _other -> raise typeError
+      _other -> raiseException "typeError"
 (-) obj1@(Float {}) obj2 =
    case obj2 of
       Float {} -> subFloatFloatFloat obj1 obj2
       Integer {} -> subFloatIntFloat obj1 obj2
       Complex {} -> subFloatComplexComplex obj1 obj2
-      _other -> raise typeError
+      _other -> raiseException "typeError"
 (-) obj1@(Complex {}) obj2 =
    case obj2 of
       Complex {} -> subComplexComplexComplex obj1 obj2
       Integer {} -> subComplexIntComplex obj1 obj2
       Float {} -> subComplexFloatComplex obj1 obj2
-      _other -> raise typeError
+      _other -> raiseException "typeError"
 (-) x y = binop specialSubName x y
 
 mulIntIntInt, mulFloatFloatFloat, mulIntFloatFloat, mulFloatIntFloat, mulComplexComplexComplex, mulIntComplexComplex, mulComplexIntComplex, mulFloatComplexComplex, mulComplexFloatComplex :: Object -> Object -> Eval Object
@@ -286,24 +286,24 @@ mulComplexFloatComplex = specialiseOpComplexFloatComplex (Prelude.*)
       Integer {} -> mulIntIntInt obj1 obj2
       Float {} -> mulIntFloatFloat obj1 obj2
       Complex {} -> mulIntComplexComplex obj1 obj2
-      _other -> raise typeError
+      _other -> raiseException "typeError"
 (*) obj1@(Float {}) obj2 =
    case obj2 of
       Float {} -> mulFloatFloatFloat obj1 obj2
       Integer {} -> mulFloatIntFloat obj1 obj2
       Complex {} -> mulFloatComplexComplex obj1 obj2
-      _other -> raise typeError
+      _other -> raiseException "typeError"
 (*) obj1@(Complex {}) obj2 =
    case obj2 of
       Complex {} -> mulComplexComplexComplex obj1 obj2
       Integer {} -> mulComplexIntComplex obj1 obj2
       Float {} -> mulComplexFloatComplex obj1 obj2
-      _other -> raise typeError
+      _other -> raiseException "typeError"
 (*) x y = binop specialMulName x y
 
 checkDivByZero :: Num a => a -> Eval Object -> Eval Object
 checkDivByZero denom comp
-   | denom Prelude.== 0 = raise zeroDivisionError
+   | denom Prelude.== 0 = raiseException "zeroDivisionError"
    | otherwise = comp
 
 divIntIntInt, divFloatFloatFloat, divIntFloatFloat, divFloatIntFloat, divComplexComplexComplex, divIntComplexComplex, divComplexIntComplex, divFloatComplexComplex, divComplexFloatComplex :: Object -> Object -> Eval Object
@@ -332,19 +332,19 @@ divComplexFloatComplex obj1 obj2 =
       Integer {} -> divIntIntInt obj1 obj2
       Float {} -> divIntFloatFloat obj1 obj2
       Complex {} -> divIntComplexComplex obj1 obj2
-      _other -> raise typeError
+      _other -> raiseException "typeError"
 (/) obj1@(Float {}) obj2 =
    case obj2 of
       Float {} -> divFloatFloatFloat obj1 obj2
       Integer {} -> divFloatIntFloat obj1 obj2
       Complex {} -> divFloatComplexComplex obj1 obj2
-      _other -> raise typeError
+      _other -> raiseException "typeError"
 (/) obj1@(Complex {}) obj2 =
    case obj2 of
       Complex {} -> divComplexComplexComplex obj1 obj2
       Integer {} -> divComplexIntComplex obj1 obj2
       Float {} -> divComplexFloatComplex obj1 obj2
-      _other -> raise typeError
+      _other -> raiseException "typeError"
 (/) x y = binop specialDivName x y
 
 leIntIntBool, leFloatFloatBool, leIntFloatBool, leFloatIntBool :: Object -> Object -> Eval Object
@@ -358,12 +358,12 @@ leFloatIntBool = specialiseOpFloatIntBool (Prelude.<=)
    case obj2 of
       Integer {} -> leIntIntBool obj1 obj2
       Float {} -> leIntFloatBool obj1 obj2
-      _other -> raise typeError
+      _other -> raiseException "typeError"
 (<=) obj1@(Float {}) obj2 =
    case obj2 of
       Float {} -> leFloatFloatBool obj1 obj2
       Integer {} -> leIntFloatBool obj1 obj2
-      _other -> raise typeError
+      _other -> raiseException "typeError"
 (<=) x y = binop specialLeName x y
 
 gtIntIntBool, gtFloatFloatBool, gtIntFloatBool, gtFloatIntBool :: Object -> Object -> Eval Object
@@ -377,12 +377,12 @@ gtFloatIntBool = specialiseOpFloatIntBool (Prelude.>)
    case obj2 of
       Integer {} -> gtIntIntBool obj1 obj2
       Float {} -> gtIntFloatBool obj1 obj2
-      _other -> raise typeError
+      _other -> raiseException "typeError"
 (>) obj1@(Float {}) obj2 =
    case obj2 of
       Float {} -> gtFloatFloatBool obj1 obj2
       Integer {} -> gtIntFloatBool obj1 obj2
-      _other -> raise typeError
+      _other -> raiseException "typeError"
 (>) x y = binop specialGtName x y
 
 eqIntIntBool, eqFloatFloatBool, eqIntFloatBool, eqFloatIntBool, eqComplexComplexBool, eqIntComplexBool, eqComplexIntBool, eqFloatComplexBool, eqComplexFloatBool :: Object -> Object -> Eval Object
@@ -402,19 +402,19 @@ eqComplexFloatBool = specialiseOpComplexFloatBool (Prelude.==)
       Integer {} -> eqIntIntBool obj1 obj2
       Float {} -> eqIntFloatBool obj1 obj2
       Complex {} -> eqIntComplexBool obj1 obj2
-      _other -> raise typeError
+      _other -> raiseException "typeError"
 (==) obj1@(Float {}) obj2 =
    case obj2 of
       Float {} -> eqFloatFloatBool obj1 obj2
       Integer {} -> eqIntFloatBool obj1 obj2
       Complex {} -> eqFloatComplexBool obj1 obj2
-      _other -> raise typeError
+      _other -> raiseException "typeError"
 (==) obj1@(Complex {}) obj2 =
    case obj2 of
       Complex {} -> eqComplexComplexBool obj1 obj2
       Integer {} -> eqComplexIntBool obj1 obj2
       Float {} -> eqComplexFloatBool obj1 obj2
-      _other -> raise typeError
+      _other -> raiseException "typeError"
 (==) x y = binop specialEqName x y
 
 ltIntIntBool, ltFloatFloatBool, ltIntFloatBool, ltFloatIntBool :: Object -> Object -> Eval Object
@@ -428,12 +428,12 @@ ltFloatIntBool = specialiseOpFloatIntBool (Prelude.<)
    case obj2 of
       Integer {} -> ltIntIntBool obj1 obj2
       Float {} -> ltIntFloatBool obj1 obj2
-      _other -> raise typeError
+      _other -> raiseException "typeError"
 (<) obj1@(Float {}) obj2 =
    case obj2 of
       Float {} -> ltFloatFloatBool obj1 obj2
       Integer {} -> ltIntFloatBool obj1 obj2
-      _other -> raise typeError
+      _other -> raiseException "typeError"
 (<) x y = binop specialLtName x y
 
 geIntIntBool, geFloatFloatBool, geIntFloatBool, geFloatIntBool :: Object -> Object -> Eval Object
@@ -447,12 +447,12 @@ geFloatIntBool = specialiseOpFloatIntBool (Prelude.>=)
    case obj2 of
       Integer {} -> geIntIntBool obj1 obj2
       Float {} -> geIntFloatBool obj1 obj2
-      _other -> raise typeError
+      _other -> raiseException "typeError"
 (>=) obj1@(Float {}) obj2 =
    case obj2 of
       Float {} -> geFloatFloatBool obj1 obj2
       Integer {} -> geIntFloatBool obj1 obj2
-      _other -> raise typeError
+      _other -> raiseException "typeError"
 (>=) x y = binop specialGeName x y
 
 {-
@@ -461,9 +461,14 @@ geFloatIntBool = specialiseOpFloatIntBool (Prelude.>=)
    is returned; otherwise, y is evaluated and the resulting value is
    returned.
 -}
-and obj1 obj2
+and obj1 obj2 = do
+   isTrue <- truth obj1
+   if isTrue then return obj2 else return obj1
+
+{-
    | truth obj1 = return obj2
    | otherwise  = return obj1
+-}
 
 {-
    The expression x or y first evaluates x; if x is true, its value 
@@ -471,9 +476,13 @@ and obj1 obj2
    is returned.
 -}
 
-or obj1 obj2
+or obj1 obj2 = do
+   isTrue <- truth obj1
+   if isTrue then return obj1 else return obj2
+{-
    | truth obj1 = return obj1
    | otherwise  = return obj2
+-}
 
 (.) :: Object -> Hashed String -> Eval Object
 (.) object ident = lookupAttribute object ident
@@ -490,7 +499,9 @@ unaryPlus obj@(Integer {}) = return obj
 unaryPlus obj@(Float {}) = return obj
 unaryPlus obj@(Complex {}) = return obj
 -- XXX in CPython this turns the boolean into an integer
-unaryPlus obj@(Bool {}) = return obj
+-- unaryPlus obj@(Bool {}) = return obj
+unaryPlus obj@(TrueObject {}) = return obj
+unaryPlus obj@(FalseObject {}) = return obj
 unaryPlus _other = error "unary plus applied to a non integer"
 
 invert :: Object -> Eval Object
@@ -498,6 +509,10 @@ invert (Integer {}) = error "bitwise inversion not implemented"
 invert _other = error "unary invert applied to a non integer"
 
 not :: Object -> Eval Object
-not obj
+not obj = do
+   isTrue <- truth obj
+   if isTrue then return true else return false
+{-
    | Prelude.not $ truth obj = return true
    | otherwise = return false
+-}
