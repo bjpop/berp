@@ -9,9 +9,7 @@ Author: Bernie Pope, copyright 2009, 2010.
 
 ## Contact information
 
-Email Bernie Pope:
-
-   florbitous <at> gmail <dot> com
+Email Bernie Pope: `florbitous <at> gmail <dot> com`
 
 ## Building and installing
 
@@ -19,34 +17,35 @@ Berp uses the cabal infrastructure for configuring, building and installation.
 
 To configure:
 
-   cabal configure
+    cabal configure
 
 To build:
 
-   cabal build
+    cabal build
 
 To install:
 
-   cabal install
+    cabal install
 
 To clean:
 
-   cabal clean
+    cabal clean
 
 ## Testing
 
 Berp uses shelltestrunner for regression testing. Tests can be run like so:
 
-   make test
+    make test
 
 Shelltestrunner can be installed from Hackage:
 
-   cabal install shelltestrunner
+    cabal install shelltestrunner
 
 Don't worry if some tests fail.
 
 ## Directory structure
 
+```
 ---- src
      |
      |---- include                 # C header files
@@ -70,3 +69,4 @@ Don't worry if some tests fail.
            |---- features          # tests for specific language features
            |
            |---- programs          # Python programs
+```
