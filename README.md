@@ -1,23 +1,19 @@
-Berp, an implementation of Python 3
------------------------------------
+# Berp, an implementation of Python 3
 
-License and Copyright
----------------------
+## License and Copyright
 
 Berp is distributed as open source software under the terms of the BSD 
 License (see the file LICENSE in the top directory).
 
 Author: Bernie Pope, copyright 2009, 2010.
 
-Contact information
--------------------
+## Contact information
 
 Email Bernie Pope:
 
    florbitous <at> gmail <dot> com
 
-Building and installing
------------------------
+## Building and installing
 
 Berp uses the cabal infrastructure for configuring, building and installation.
 
@@ -37,8 +33,7 @@ To clean:
 
    cabal clean
 
-Testing
--------
+## Testing
 
 Berp uses shelltestrunner for regression testing. Tests can be run like so:
 
@@ -50,8 +45,7 @@ Shelltestrunner can be installed from Hackage:
 
 Don't worry if some tests fail.
 
-Directory structure
--------------------
+## Directory structure
 
 ---- src
      |
