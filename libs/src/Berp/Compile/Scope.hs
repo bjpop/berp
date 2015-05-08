@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      : Berp.Compile.Scope
@@ -27,7 +27,7 @@ module Berp.Compile.Scope
 import Language.Python.Common.AST as Py
 import Data.Set as Set
 import Berp.Compile.IdentString (IdentString, ToIdentString (..), IdentString (..))
-import Data.List (intersperse, foldl')
+import qualified Data.List as L (intersperse, foldl')
 import Data.Monoid
 import Berp.Compile.PySyntaxUtils (varToString, paramIdent)
 
@@ -78,7 +78,7 @@ type VarSet = Set IdentString
 -- Collect all the variables which are assigned to in a list of expressions (patterns).
 -- XXX Incomplete
 assignTargets :: [ExprSpan] -> VarSet
-assignTargets = foldl' addTarget mempty
+assignTargets = L.foldl' addTarget mempty
    where
    addTarget :: VarSet -> ExprSpan -> VarSet
    addTarget set expr = Set.union (exprVars expr) set
@@ -149,7 +149,7 @@ allDisjoint params nonlocals globals
    ns_gs = nonlocals `Set.intersection` globals
 
 prettyVarSet :: VarSet -> String
-prettyVarSet = concat . intersperse "," . Prelude.map fromIdentString . Set.toList
+prettyVarSet = concat . L.intersperse "," . Prelude.map fromIdentString . Set.toList
 
 data BindingSets =
    BindingSets

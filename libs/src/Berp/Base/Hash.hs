@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash, TypeSynonymInstances #-}
+{-# LANGUAGE MagicHash, TypeSynonymInstances, FlexibleInstances #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -16,7 +16,7 @@
 module Berp.Base.Hash (Hash (..), Hashed, hashedStr) where
 
 import Berp.Base.Mangle (mangle)
-import Data.HashTable as HT (hashString)
+import Berp.Base.LegacyHash as HT (hashString)
 
 type Hashed a = (Int, a)
 

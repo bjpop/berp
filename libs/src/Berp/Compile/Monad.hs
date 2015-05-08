@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, FlexibleInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, FlexibleInstances, MultiParamTypeClasses, CPP #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -15,7 +15,9 @@
 
 module Berp.Compile.Monad where
 
+#if !MIN_VERSION_base(4,6,0)
 import Prelude hiding (catch)
+#endif
 import Control.Monad.State.Strict as State hiding (State)
 -- import Control.Monad.IO.Class (MonadIO (..))
 import Control.Monad.State.Class (MonadState (..))
@@ -84,11 +86,13 @@ newtype Compile a
 
 -- annoyingly the CatchIO module does not define this instance for the strict
 -- state monad, only the lazy one.
+#if !MIN_VERSION_MonadCatchIO_mtl(0,3,1)
 instance MonadCatchIO m => MonadCatchIO (StateT s m) where
     m `catch` f = StateT $ \s -> (runStateT m s)
                                    `CatchIO.catch` (\e -> runStateT (f e) s)
     block       = mapStateT block
     unblock     = mapStateT unblock
+#endif
 
 instance MonadState State Compile where
    -- type (StateType Compile) = State

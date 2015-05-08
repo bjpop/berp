@@ -34,7 +34,7 @@ Executable berp
       language-python,
       haskell-src-exts,
       filepath,
-      process == 1.0.*,
+      process >= 1.0 && < 1.3,
       parseargs,
       directory,
       berplibs == 0.0.3
