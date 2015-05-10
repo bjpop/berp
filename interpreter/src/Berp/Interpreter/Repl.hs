@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, StandaloneDeriving, DeriveDataTypeable, CPP #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      : Berp.Interpreter.Repl
@@ -14,7 +14,13 @@
 
 module Berp.Interpreter.Repl (repl) where
 
+#if MIN_VERSION_base(4,7,0)
+import Data.Typeable (Typeable)
+import Control.Monad.State.Strict (StateT)
+import Control.Monad.Cont (ContT)
+#else
 import Data.Typeable (Typeable (..), mkTyConApp, mkTyCon)
+#endif
 import Control.Monad.Trans (lift, liftIO)
 import Control.Monad (when)
 import System.IO (hSetBuffering, stdout, BufferMode (..))
@@ -33,7 +39,7 @@ import Berp.Compile.PrimName as Prim (init)
 import Berp.Compile.PySyntaxUtils (InterpreterStmt (..))
 import Berp.Interpreter.Monad (Repl, runRepl, getGlobalScope)
 import Berp.Interpreter.Input (getInputLines)
-import Berp.Base.SemanticTypes (Eval, Object (None), HashTable)
+import Berp.Base.SemanticTypes (Eval, Object (None), HashTable, EvalState)
 import Berp.Base (runWithGlobals)
 import Berp.Base.Prims (printObject)
 
@@ -95,8 +101,15 @@ printObjectNotNone obj@None = return ()
 printObjectNotNone object = printObject object >> liftIO (putStr "\n")
 
 -- these Typeable instances are needed by the Hint interpret function.
+#if MIN_VERSION_base(4,7,0)
+deriving instance Typeable ContT
+deriving instance Typeable StateT
+deriving instance Typeable EvalState
+deriving instance Typeable Object
+#else
 instance Typeable Object where
    typeOf _ = mkTyConApp (mkTyCon "Object") []
 
 instance Typeable (Eval Object) where
    typeOf _ = mkTyConApp (mkTyCon "Eval") [typeOf (undefined :: Object)]
+#endif

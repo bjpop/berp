@@ -30,7 +30,8 @@ import Control.Applicative hiding (empty)
 -- import qualified MonadUtils (MonadIO (..))
 -- import Exception (ExceptionMonad (..))
 -- import Control.Exception.Extensible (block, unblock, catch)
-import Control.Monad.CatchIO as CatchIO (MonadCatchIO (..))
+-- import Control.Monad.CatchIO as CatchIO (MonadCatchIO (..))
+import Control.Monad.Catch (MonadThrow, MonadMask, MonadCatch)
 import qualified Data.Set as Set (Set, insert, empty)
 import Berp.Compile.Scope (Scope (..), emptyScope)
 
@@ -78,7 +79,8 @@ initState
 newtype Compile a
    = Compile (StateT State IO a)
    -- deriving (Monad, Functor, MonadIO, ExceptionMonad, Applicative)
-   deriving (Monad, Functor, MonadIO, Applicative, MonadCatchIO)
+   deriving (Monad, Functor, MonadIO, Applicative, -- MonadCatchIO,
+             MonadThrow, MonadCatch, MonadMask)
 
 -- the MonadState instance can't be derived by GHC
 -- because we're using the monads-tf (type families), and they 
@@ -86,13 +88,13 @@ newtype Compile a
 
 -- annoyingly the CatchIO module does not define this instance for the strict
 -- state monad, only the lazy one.
-#if !MIN_VERSION_MonadCatchIO_mtl(0,3,1)
+{-
 instance MonadCatchIO m => MonadCatchIO (StateT s m) where
     m `catch` f = StateT $ \s -> (runStateT m s)
                                    `CatchIO.catch` (\e -> runStateT (f e) s)
     block       = mapStateT block
     unblock     = mapStateT unblock
-#endif
+-}
 
 instance MonadState State Compile where
    -- type (StateType Compile) = State

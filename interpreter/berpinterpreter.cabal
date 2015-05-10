@@ -16,7 +16,7 @@ maintainer:          florbitous@gmail.com
 homepage:            http://wiki.github.com/bjpop/berp/
 build-type:          Simple
 stability:           experimental
-tested-with:         GHC==7.0.3
+tested-with:         GHC==7.6.3, GHC==7.8.3, GHC==7.10.1
 
 Executable berpi
   ghc-options: -Wall -fno-warn-name-shadowing -fno-warn-orphans
@@ -32,13 +32,11 @@ Executable berpi
       language-python,
       haskell-src-exts,
       filepath,
-      process == 1.0.*,
       parseargs,
       directory,
       berplibs == 0.0.3,
-      hint == 0.3.3.*,
-      MonadCatchIO-mtl == 0.3.0.*,
-      haskeline == 0.6.4.*
+      hint >= 0.3.3 && < 0.5,
+      haskeline >= 0.6.4 && < 0.8
   other-modules:
       Berp.Interpreter.Input
       Berp.Interpreter.Monad
