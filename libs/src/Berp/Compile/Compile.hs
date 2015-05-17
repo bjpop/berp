@@ -1,4 +1,4 @@
-{-# LANGUAGE PatternGuards, TypeSynonymInstances, TypeFamilies, FlexibleInstances #-}
+{-# LANGUAGE PatternGuards, TypeSynonymInstances, TypeFamilies, FlexibleInstances, CPP #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -37,6 +37,14 @@ import Berp.Base.Hash (Hash (..))
 import Berp.Compile.IdentString (IdentString (..), ToIdentString (..), identString)
 import Berp.Compile.Scope as Scope (Scope (..), topBindings, funBindings)
 import qualified Berp.Compile.Scope as Scope (isGlobal)
+
+#if MIN_VERSION_haskell_src_exts(1,16,0)
+ns :: (Namespace -> a -> b) -> a -> b
+ns f = f NoNamespace
+#else
+ns :: (a -> b) -> a -> b
+ns = id
+#endif
 
 compiler :: Compilable a => a -> IO (CompileResult a)
 compiler = runCompileMonad . compile
@@ -80,7 +88,7 @@ instance Compilable ModuleSpan where
       initDecl = simpleFun bogusSrcLoc (name initName) (name Prim.globalsName)
       pragmas = []
       warnings = Nothing
-      exports = Just [EVar $ UnQual $ name initName]
+      exports = Just [ns EVar $ UnQual $ name initName]
       srcImports names = mkImportStmts $ map mkSrcImport names
       stdImports = mkImportStmts [(Prim.preludeModuleName,False,Just []),
                                   (Prim.berpModuleName,False,Nothing)]
@@ -105,11 +113,14 @@ toImportStmt (moduleName, qualified, items) =
    , importAs  = Nothing
    , importSpecs = mkImportSpecs items
    , importPkg = Nothing
+#if MIN_VERSION_haskell_src_exts(1,16,0)
+   , importSafe = False
+#endif
    }
 
 mkImportSpecs :: Maybe [String] -> Maybe (Bool, [ImportSpec])
 mkImportSpecs Nothing = Nothing
-mkImportSpecs (Just items) = Just (False, map (IVar . name) items)
+mkImportSpecs (Just items) = Just (False, map (ns IVar . name) items)
 
 instance Compilable StatementSpan where
    type (CompileResult StatementSpan) = [Stmt]
