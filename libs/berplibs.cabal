@@ -36,7 +36,7 @@ Library
       extensible-exceptions == 0.1.*,
       filepath,
       haskell-src-exts >= 1.11 && < 1.17,
-      language-python >= 0.3 && < 0.5,
+      language-python >= 0.3 && < 0.6,
       directory >= 1.1.0 && < 1.3
    exposed-modules:
       Berp.Base

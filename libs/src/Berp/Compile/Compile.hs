@@ -38,6 +38,35 @@ import Berp.Compile.IdentString (IdentString (..), ToIdentString (..), identStri
 import Berp.Compile.Scope as Scope (Scope (..), topBindings, funBindings)
 import qualified Berp.Compile.Scope as Scope (isGlobal)
 
+yieldToMaybeExpr :: ExprSpan -> Maybe ExprSpan
+pairsFromDict :: [DictMappingPairSpan] -> [(ExprSpan, ExprSpan)]
+get_comp_expr :: ComprehensionSpanCompat -> ExprSpan
+
+#if MIN_VERSION_language_python(0,5,0)
+
+type ComprehensionSpanCompat = ComprehensionSpan
+
+yieldToMaybeExpr = fmap unYarg . yield_arg
+  where unYarg (YieldExpr e) = e
+        unYarg y = unsupported $ prettyText y
+
+pairsFromDict = map p2d
+  where p2d (DictMappingPair x y) = (x, y)
+
+get_comp_expr = f . comprehension_expr
+  where f (ComprehensionExpr e) = e
+        f (ComprehensionDict _) =
+              error "get_comp_expr called on ComprehensionDict"
+
+#else
+
+type ComprehensionSpanCompat = ComprehensionSpan ExprSpan
+yieldToMaybeExpr = yield_expr
+pairsFromDict = id
+get_comp_expr = comprehension_expr
+
+#endif
+
 #if MIN_VERSION_haskell_src_exts(1,16,0)
 ns :: (Namespace -> a -> b) -> a -> b
 ns f = f NoNamespace
@@ -397,12 +426,21 @@ instance Compilable ExprSpan where
    compile (Py.Var { var_ident = ident}) = do
       readExp <- compileRead ident
       return ([], readExp)
+#if MIN_VERSION_language_python(0,5,0)
+   compile (Py.Dot { dot_expr = leftExp, dot_attribute = method }) = do
+      (leftStmts, compiledLeft) <- compileExprObject leftExp
+      compiledMethod <- compile method
+      let newExp = infixApp compiledLeft (Prim.primOp ".") compiledMethod
+      return (leftStmts, newExp)
+#endif
    compile (Py.BinaryOp { operator = op, left_op_arg = leftExp, right_op_arg = rightExp })
+#if !MIN_VERSION_language_python(0,5,0)
       | Dot {} <- op, Py.Var { var_ident = method } <- rightExp = do
            (leftStmts, compiledLeft) <- compileExprObject leftExp
            compiledMethod <- compile method
            let newExp = infixApp compiledLeft (Prim.opExp op) compiledMethod
            return (leftStmts, newExp)
+#endif
       | otherwise = do
            (leftStmts, compiledLeft) <- compileExprObject leftExp
            (rightStmts, compiledRight) <- compileExprObject rightExp
@@ -436,7 +474,7 @@ instance Compilable ExprSpan where
              (stmts1, compiledE1) <- compileExprObject e1
              (stmts2, compiledE2) <- compileExprObject e2
              return (stmts1 ++ stmts2, (compiledE1, compiledE2))
-      (stmtss, exprPairs) <- mapAndUnzipM compileExprObjectPair mappings
+      (stmtss, exprPairs) <- mapAndUnzipM compileExprObjectPair $ pairsFromDict mappings
       let newExp = app Prim.dict $ listE $ map (\(x,y) -> Hask.tuple [x,y]) exprPairs
       return (concat stmtss, newExp)
    compile (Py.Set { set_exprs = elements }) = do
@@ -447,7 +485,8 @@ instance Compilable ExprSpan where
       (stmtss, exprs) <- mapAndUnzipM compileExprObject [obj_expr, sub]
       let newExp = appFun Prim.subscript exprs
       return (concat stmtss, newExp)
-   compile (Yield { yield_expr = maybeExpr }) = do
+   compile (y@Yield {}) = do
+      let maybeExpr = yieldToMaybeExpr y
       (stmts, compiledExpr) <- maybe (returnExp Prim.none) compileExprObject maybeExpr
       let newExpr = app Prim.yield $ parens compiledExpr
       setSeenYield True
@@ -466,13 +505,24 @@ data ComprehensType = GenComprehension | ListComprehension | DictComprehension |
 
 -- XXX maybe it would make more sense if we normalised dict comprehensions in the parser.
 -- could simplify the types somewhat.
+#if MIN_VERSION_language_python(0,5,0)
+normaliseDictComprehension :: ComprehensionSpan -> ComprehensionSpan
+normaliseDictComprehension comp@(Comprehension {
+                                    comprehension_expr =
+                                       ComprehensionDict (DictMappingPair e1 e2)
+                                    })
+   = comp { comprehension_expr = ComprehensionExpr $ Py.tuple [e1, e2] }
+normaliseDictComprehension _ =
+  error "normaliseDictComprehension called with non-ComprehensionDict"
+#else
 normaliseDictComprehension :: ComprehensionSpan (ExprSpan, ExprSpan) -> ComprehensionSpan ExprSpan
 normaliseDictComprehension comp@(Comprehension { comprehension_expr = (e1, e2) })
    = comp { comprehension_expr = Py.tuple [e1, e2] }
+#endif
 
-compileComprehens :: ComprehensType -> ComprehensionSpan ExprSpan -> Compile ([Stmt], Exp)
+compileComprehens :: ComprehensType -> ComprehensionSpanCompat -> Compile ([Stmt], Exp)
 compileComprehens GenComprehension comprehension = do
-   let resultStmt = stmtExpr $ yield $ comprehension_expr comprehension
+   let resultStmt = stmtExpr $ yield $ get_comp_expr comprehension
    desugaredFor <- desugarComprehensFor resultStmt $ comprehension_for comprehension
    bindings <- checkEither $ funBindings [] desugaredFor
    compiledBody <- nestedScope bindings $ compileBlockDo $ Block [desugaredFor]
@@ -483,7 +533,7 @@ compileComprehens ty comprehension = do
    v <- freshPythonVar
    let newVar = Py.var v
    let initStmt = comprehensInit ty newVar
-       resultStmt = comprehensUpdater ty newVar $ comprehension_expr comprehension
+       resultStmt = comprehensUpdater ty newVar $ get_comp_expr comprehension
    desugaredFor <- desugarComprehensFor resultStmt $ comprehension_for comprehension
    bindings <- checkEither $ funBindings [] desugaredFor
    let oldLocals = localVars bindings
@@ -501,9 +551,9 @@ comprehensInit GenComprehension _var = error $ "comprehensInit called on generat
 
 comprehensUpdater :: ComprehensType -> ExprSpan -> ExprSpan -> StatementSpan
 comprehensUpdater ListComprehension lhs rhs =
-   stmtExpr $ call (binOp dot lhs $ Py.var $ ident "append") [rhs]
+   stmtExpr $ call (dot lhs $ ident "append") [rhs]
 comprehensUpdater SetComprehension lhs rhs =
-   stmtExpr $ call (binOp dot lhs $ Py.var $ ident "add") [rhs]
+   stmtExpr $ call (dot lhs $ ident "add") [rhs]
 comprehensUpdater DictComprehension lhs (Py.Tuple { tuple_exprs = [key, val] }) =
    assign (subscript lhs key) val
 comprehensUpdater GenComprehension _lhs _rhs =
@@ -625,10 +675,16 @@ compileAssign (Py.Tuple { tuple_exprs = patElements }) rhs =
 compileAssign (Py.List { list_exprs = patElements }) rhs =
    compileUnpack patElements rhs
 -- Right argument of dot is always a variable, because dot associates to the left
+#if MIN_VERSION_language_python(0,5,0)
+compileAssign (Py.Dot { dot_expr = lhs
+                      , dot_attribute = attribute }
+              ) rhs = do
+#else
 compileAssign (Py.BinaryOp { operator = Dot {}
                            , left_op_arg = lhs
                            , right_op_arg = Py.Var { var_ident = attribute}}
               ) rhs = do
+#endif
    (stmtsLhs, compiledLhs) <- compileExprObject lhs
    compiledAttribute <- compile attribute
    let newStmt = qualStmt $ appFun Prim.setAttr [compiledLhs, compiledAttribute, rhs]
