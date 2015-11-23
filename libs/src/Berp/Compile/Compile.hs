@@ -67,7 +67,7 @@ get_comp_expr = comprehension_expr
 
 #endif
 
-#if MIN_VERSION_haskell_src_exts(1,16,0)
+#if MIN_VERSION_haskell_src_exts(1,16,0) && !MIN_VERSION_haskell_src_exts(1,17,0)
 ns :: (Namespace -> a -> b) -> a -> b
 ns f = f NoNamespace
 #else
