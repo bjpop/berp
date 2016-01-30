@@ -15,7 +15,7 @@ module Berp.Interpreter.Monad (Repl, runRepl, withInputState, getGlobalScope) wh
 
 import Control.Monad.Trans as Trans (lift, liftIO)
 import Control.Monad.State.Strict as State (StateT (..), evalStateT, gets)
-import Control.Monad.CatchIO as CatchIO (MonadCatchIO (..))
+-- import Control.Monad.CatchIO as CatchIO (MonadCatchIO (..))
 import Language.Haskell.Interpreter (InterpreterT, runInterpreter)
 import System.Console.Haskeline as Haskeline (defaultSettings)
 import System.Console.Haskeline.IO (initializeInput, InputState)

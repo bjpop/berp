@@ -60,12 +60,11 @@ isComment (CommentToken {}) = True
 isComment _other = False
 
 lastTokenIsColon :: [Token] -> Bool
-lastTokenIsColon [] = False
-lastTokenIsColon tokens =
-   isColon $ last tokens
+lastTokenIsColon = isColon . reverse
    where
-   isColon :: Token -> Bool
-   isColon (ColonToken {}) = True
+   isColon :: [Token] -> Bool
+   isColon (ColonToken {}:_) = True
+   isColon (NewlineToken {}:xs) = isColon xs
    isColon _other = False
 
 nonEmptyParenStack :: ParseState -> Bool

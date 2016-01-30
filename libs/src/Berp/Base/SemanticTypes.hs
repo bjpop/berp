@@ -18,7 +18,10 @@
 module Berp.Base.SemanticTypes
    ( Procedure, ControlStack (..), EvalState (..), Object (..), Eval, ObjectRef
    , HashTable, HashSet, ListArray, Arity, ModuleCache
-   , initState )  where
+   , initState
+     -- re-exports needed for interpreter (due to the type of Eval)
+   , StateT, ContT, IO
+   )  where
 
 import Data.Typeable (Typeable)
 import Control.Monad.State.Strict (StateT)

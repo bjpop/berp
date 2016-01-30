@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      : Berp.Compile.PrimName
@@ -271,5 +273,7 @@ opExp (Divide {}) = primOp "/"
 opExp (FloorDivide {}) = primOp "//"
 opExp (Invert {}) = primOp "~" 
 opExp (Modulo {}) = primOp "%"
+#if !MIN_VERSION_language_python(0,5,0)
 opExp (Dot {}) = primOp "."
+#endif
 opExp other = unsupported $ "opExp: " ++ show other

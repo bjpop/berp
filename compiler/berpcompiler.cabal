@@ -18,7 +18,7 @@ maintainer:          florbitous@gmail.com
 homepage:            http://wiki.github.com/bjpop/berp/
 build-type:          Simple
 stability:           experimental
-tested-with:         GHC==7.0.3
+tested-with:         GHC==7.4.1, GHC==7.6.3, GHC==7.8.3, GHC==7.10.1
 
 Executable berp
   ghc-options: -Wall -fno-warn-name-shadowing -fno-warn-orphans
@@ -34,7 +34,7 @@ Executable berp
       language-python,
       haskell-src-exts,
       filepath,
-      process == 1.0.*,
+      process >= 1.0 && < 1.3,
       parseargs,
       directory,
       berplibs == 0.0.3

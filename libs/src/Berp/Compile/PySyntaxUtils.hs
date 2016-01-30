@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeSynonymInstances, CPP #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -18,6 +18,14 @@ module Berp.Compile.PySyntaxUtils where
 import Language.Python.Common.AST as Py
 import Language.Python.Common.SrcLocation ( SrcSpan (..) )
 import Berp.Compile.IdentString (ToIdentString (..), IdentString (..))
+
+dictFromPairs :: [(ExprSpan, ExprSpan)] -> [DictMappingPairSpan]
+#if MIN_VERSION_language_python(0,5,0)
+dictFromPairs = map (uncurry DictMappingPair)
+#else
+dictFromPairs = id
+type DictMappingPairSpan = (ExprSpan, ExprSpan)
+#endif
 
 data InterpreterStmt = InterpreterStmt Py.SuiteSpan
 
@@ -56,7 +64,8 @@ list es = List { list_exprs = es, expr_annot = SpanEmpty }
 set :: [ExprSpan] -> ExprSpan
 set es = Set { set_exprs = es, expr_annot = SpanEmpty }
 dict :: [(ExprSpan, ExprSpan)] -> ExprSpan
-dict es = Dictionary { dict_mappings = es, expr_annot = SpanEmpty }
+dict es = Dictionary { dict_mappings = dictFromPairs es
+                     , expr_annot = SpanEmpty }
 tuple :: [ExprSpan] -> ExprSpan
 tuple es = Py.Tuple { tuple_exprs = es, expr_annot = SpanEmpty }
 call :: ExprSpan -> [ExprSpan] -> ExprSpan
@@ -71,7 +80,14 @@ binOp op lhs rhs =
 subscript :: ExprSpan -> ExprSpan -> ExprSpan
 subscript e1 e2 = Subscript { subscriptee = e1, subscript_expr = e2, expr_annot = SpanEmpty }
 yield :: ExprSpan -> ExprSpan
-yield e = Yield { yield_expr = Just e, expr_annot = SpanEmpty }
+yield e = Yield {
+#if MIN_VERSION_language_python(0,5,0)
+  yield_arg = Just (YieldExpr e),
+#else
+  yield_expr = Just e,
+#endif
+  expr_annot = SpanEmpty
+  }
 argExpr :: ExprSpan -> ArgumentSpan
 argExpr e = ArgExpr { arg_expr = e, arg_annot = SpanEmpty }
 pass :: StatementSpan
@@ -89,8 +105,14 @@ conditional conds elsePart =
 for :: [ExprSpan] -> ExprSpan -> SuiteSpan -> StatementSpan
 for targets gen body
    = For { for_targets = targets, for_generator = gen, for_body = body, for_else = [], stmt_annot = SpanEmpty }
-dot :: OpSpan
-dot = Dot { op_annot = SpanEmpty }
+
+dot :: ExprSpan -> IdentSpan -> ExprSpan
+#if MIN_VERSION_language_python(0,5,0)
+dot e i = Dot { dot_expr = e, dot_attribute = i, expr_annot = SpanEmpty }
+#else
+dot e i = binOp Dot { op_annot = SpanEmpty } e $ var i
+#endif
+
 def :: IdentSpan -> [ParameterSpan] -> SuiteSpan -> StatementSpan
 def name args body =
    Fun { fun_name = name

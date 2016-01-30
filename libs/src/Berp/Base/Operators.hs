@@ -301,7 +301,7 @@ mulComplexFloatComplex = specialiseOpComplexFloatComplex (Prelude.*)
       _other -> raise typeError
 (*) x y = binop specialMulName x y
 
-checkDivByZero :: Num a => a -> Eval Object -> Eval Object
+checkDivByZero :: (Num a, Eq a) => a -> Eval Object -> Eval Object
 checkDivByZero denom comp
    | denom Prelude.== 0 = raise zeroDivisionError
    | otherwise = comp
